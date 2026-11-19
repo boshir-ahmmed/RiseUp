@@ -58,6 +58,15 @@ builder.Services.AddRateLimiter(o =>
         _ => new FixedWindowRateLimiterOptions { PermitLimit = builder.Configuration.GetValue("RateLimits:RequestsPerMinute", 30), Window = TimeSpan.FromMinutes(1) }));
 });
 
+var emailEnabled = builder.Configuration.GetValue("Email:Enabled", false);
+var registrationOpen = builder.Configuration.GetValue("Registration:Enabled", builder.Environment.IsDevelopment());
+if (!builder.Environment.IsDevelopment() && registrationOpen && !emailEnabled)
+    throw new InvalidOperationException("Enable email delivery before opening public registration.");
+if (emailEnabled && (!Uri.TryCreate(builder.Configuration["Site:PublicOrigin"], UriKind.Absolute, out var origin) ||
+    origin.Scheme != "https" || origin.UserInfo.Length != 0 || origin.PathAndQuery != "/" || origin.Fragment.Length != 0))
+    throw new InvalidOperationException("Set Site:PublicOrigin to the public HTTPS origin for email links.");
+if (emailEnabled || builder.Configuration["Payments:Gateway"] == "SSLCOMMERZ")
+    builder.Services.AddHostedService<CommerceJobs>();
 builder.Services.AddSignalR();
 builder.Services.AddHealthChecks().AddDbContextCheck<RiseUpDbContext>("database");
 if (builder.Configuration.GetValue("Jobs:Enabled", true)) builder.Services.AddHostedService<ScheduledJobs>();

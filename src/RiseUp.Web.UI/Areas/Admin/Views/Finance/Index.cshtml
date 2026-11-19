@@ -5,7 +5,7 @@
 @foreach (var o in Model)
 {
     <tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>#@o.StartupId</td><td>@Ui.Bdt(o.PriceBdt) · @o.Tokens credits</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td>@(o.Credited ? "Yes" : "No")</td>
-        <td>@if (o.Status == PaymentStatus.Pending) {<details class="small"><summary class="linkbtn">Reconcile…</summary><form method="post" action="/admin/finance/reconcile" class="stack mt8" asp-antiforgery="true"><input type="hidden" name="orderNumber" value="@o.OrderNumber" /><input class="input" name="providerTransactionId" required placeholder="Provider transaction id" /><input class="input" name="reason" required minlength="5" placeholder="Settlement evidence" /><button class="btn btn-primary btn-sm">Credit once</button></form></details>}</td></tr>
+        <td>@if (o.Status is PaymentStatus.Pending or PaymentStatus.RequiresReview or PaymentStatus.Failed) {<details class="small"><summary class="linkbtn">Reconcile…</summary><form method="post" action="/admin/finance/reconcile" class="stack mt8" asp-antiforgery="true"><input type="hidden" name="orderNumber" value="@o.OrderNumber" /><input class="input" name="providerTransactionId" placeholder="Reference (simulator only)" /><input class="input" name="reason" required minlength="5" placeholder="Settlement evidence" /><button class="btn btn-primary btn-sm">Check payment</button></form></details>}</td></tr>
 }
 </tbody></table></div></div>
 <form class="card card-b mt24 grid g4" method="post" action="/admin/finance/adjust" style="align-items:end" asp-antiforgery="true">

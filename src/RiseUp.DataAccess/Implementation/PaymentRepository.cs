@@ -23,9 +23,19 @@ public sealed class PaymentRepository(RiseUpDbContext db) : Repository<PaymentOr
     public Task<PaymentOrder?> GetByOrderNumberAsync(string orderNumber, CancellationToken ct = default) => Set.FirstOrDefaultAsync(o => o.OrderNumber == orderNumber, ct);
     public Task<bool> ProviderTransactionUsedAsync(string providerTransactionId, CancellationToken ct = default) =>
         Set.AnyAsync(o => o.ProviderTransactionId == providerTransactionId && o.CreditedAtUtc != null, ct);
+    public async Task<IReadOnlyList<string>> ListDueOrdersAsync(string prefix, DateTime now, CancellationToken ct)
+    {
+        var cutoff = now.AddDays(-1);
+        var recent = now.AddDays(-30);
+        return await Set.AsNoTracking().Where(o => o.OrderNumber.StartsWith(prefix) &&
+                (o.Status == PaymentStatus.Pending || o.CreatedAtUtc >= recent) &&
+                (o.UpdatedAtUtc == null || o.UpdatedAtUtc < cutoff))
+            .OrderBy(o => o.UpdatedAtUtc ?? o.CreatedAtUtc).ThenBy(o => o.Id).Take(20).Select(o => o.OrderNumber).ToListAsync(ct);
+    }
     public async Task AddEventAsync(PaymentProviderEvent evt, CancellationToken ct = default) => await Db.PaymentProviderEvents.AddAsync(evt, ct);
     public async Task<IReadOnlyList<PaymentOrder>> ListOrdersAsync(int? startupId, int take, CancellationToken ct = default) =>
-        await Set.AsNoTracking().Where(o => startupId == null || o.StartupId == startupId).OrderByDescending(o => o.CreatedAtUtc).Take(take).ToListAsync(ct);
+        await Set.AsNoTracking().Where(o => startupId == null || o.StartupId == startupId)
+            .OrderByDescending(o => startupId == null && o.Status == PaymentStatus.RequiresReview).ThenByDescending(o => o.CreatedAtUtc).Take(take).ToListAsync(ct);
     public async Task<IReadOnlyList<PromotionPackage>> ListPromotionPackagesAsync(CancellationToken ct = default) =>
         await Db.PromotionPackages.AsNoTracking().OrderBy(p => p.Days).ToListAsync(ct);
 }

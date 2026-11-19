@@ -16,6 +16,7 @@ namespace RiseUp.Entities.Abstractions;
 public interface IWalletRepository : IRepository<StartupWallet>
 {
     Task<StartupWallet?> GetByStartupAsync(int startupId, CancellationToken ct = default);
+    Task<TokenLedgerEntry?> GetLedgerByKeyAsync(string key, CancellationToken ct);
     Task<bool> LedgerKeyExistsAsync(string idempotencyKey, CancellationToken ct = default);
     Task AddLedgerAsync(TokenLedgerEntry entry, CancellationToken ct = default);
     Task<IReadOnlyList<TokenLedgerEntry>> ListLedgerAsync(int startupId, int take, CancellationToken ct = default);

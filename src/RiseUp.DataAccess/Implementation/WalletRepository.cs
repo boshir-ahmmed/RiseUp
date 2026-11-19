@@ -18,6 +18,7 @@ namespace RiseUp.DataAccess.Repositories;
 public sealed class WalletRepository(RiseUpDbContext db) : Repository<StartupWallet>(db), IWalletRepository
 {
     public Task<StartupWallet?> GetByStartupAsync(int startupId, CancellationToken ct = default) => Set.FirstOrDefaultAsync(w => w.StartupId == startupId, ct);
+    public Task<TokenLedgerEntry?> GetLedgerByKeyAsync(string key, CancellationToken ct) => Db.TokenLedger.AsNoTracking().SingleOrDefaultAsync(l => l.IdempotencyKey == key, ct);
     public Task<bool> LedgerKeyExistsAsync(string idempotencyKey, CancellationToken ct = default) => Db.TokenLedger.AnyAsync(l => l.IdempotencyKey == idempotencyKey, ct);
     public async Task AddLedgerAsync(TokenLedgerEntry entry, CancellationToken ct = default) => await Db.TokenLedger.AddAsync(entry, ct);
     public async Task<IReadOnlyList<TokenLedgerEntry>> ListLedgerAsync(int startupId, int take, CancellationToken ct = default) =>

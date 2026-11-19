@@ -19,9 +19,9 @@ public sealed class PaymentOptions
 public sealed class SandboxPaymentGateway(IOptions<PaymentOptions> options) : IPaymentGateway
 {
     public string Name => "Sandbox (bKash/Nagad/card simulator)";
-    public bool IsSandbox => true;
+    public PaymentMode Mode => PaymentMode.Simulator;
 
-    public Task<CheckoutSession> CreateCheckoutAsync(string orderNumber, decimal amountBdt, CancellationToken ct = default) =>
+    public Task<CheckoutSession> CreateCheckoutAsync(string orderNumber, decimal amountBdt, CheckoutCustomer customer, CancellationToken ct = default) =>
         Task.FromResult(new CheckoutSession($"/wallet/sandbox-checkout/{orderNumber}", Name, true));
 
     public bool VerifySignature(string payload, string signature) =>

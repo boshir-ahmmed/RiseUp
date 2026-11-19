@@ -30,7 +30,7 @@ public static class DependencyInjection
             }
             options.UseSqlServer(configuration.GetConnectionString("RiseUp")
                 ?? throw new InvalidOperationException("ConnectionStrings:RiseUp is not configured."),
-                sql => { sql.CommandTimeout(30); sql.EnableRetryOnFailure(3); });
+                sql => sql.CommandTimeout(30));
         });
 
         services.AddSingleton<IClock, SystemClock>();
@@ -66,13 +66,36 @@ public static class DependencyInjection
         else
             services.AddSingleton<IMalwareScanner>(new ClamAvScanner(configuration["Scanning:Host"], configuration.GetValue("Scanning:Port", 3310)));
         services.Configure<MfaOptions>(configuration.GetSection("Mfa"));
+        if (isProduction) services.PostConfigure<MfaOptions>(options => options.AllowDemoCodes = false);
         services.AddSingleton<IMfaVerifier, TotpMfaVerifier>();
 
-        var gateway = configuration["Payments:Gateway"] ?? "Sandbox";
+        if (configuration.GetValue("Email:Enabled", false))
+        {
+            var smtp = configuration.GetSection("Email:Smtp").Get<SmtpOptions>() ?? new();
+            if (string.IsNullOrWhiteSpace(smtp.Host) || smtp.Port is < 1 or > 65535 ||
+                !System.Net.Mail.MailAddress.TryCreate(smtp.From, out _) ||
+                (string.IsNullOrEmpty(smtp.Username) != string.IsNullOrEmpty(smtp.Password)))
+                throw new InvalidOperationException("Configure Email:Smtp host, port, sender and matching SMTP credentials.");
+            services.AddSingleton<IEmailSender>(new SmtpEmailSender(smtp));
+        }
+
+        var gateway = configuration["Payments:Gateway"] ?? "Disabled";
         if (gateway == "Sandbox")
         {
             if (isProduction) throw new InvalidOperationException("The sandbox payment gateway cannot be enabled in Production.");
             services.AddSingleton<IPaymentGateway, SandboxPaymentGateway>();
+        }
+        else if (gateway == "Disabled")
+        {
+            services.AddSingleton<IPaymentGateway, DisabledPaymentGateway>();
+        }
+        else if (gateway == "SSLCOMMERZ")
+        {
+            var options = configuration.GetSection("Payments:SslCommerz").Get<SslCommerzOptions>() ?? new();
+            options.PublicOrigin = configuration["Site:PublicOrigin"] ?? "";
+            options.Validate(isProduction);
+            services.AddSingleton<IPaymentGateway>(_ => new SslCommerzGateway(options, new HttpClient(
+                new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(15) }));
         }
         else
         {

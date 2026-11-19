@@ -1,13 +1,31 @@
+@using RiseUp.Entities.Abstractions
 @model WalletViewModel
 @{ ViewData["Title"] = "Wallet"; }
 <partial name="_PageHeader" model='("Wallet", (string?)"Pitches use welcome credits first. Promotions use purchased credits only.")' />
 <div class="grid g3">
     <div class="card kpi"><div class="l">Welcome credits</div><div class="v">@Model.Wallet.WelcomeBalance</div><div class="tiny muted">One-time grant · pitches only · never expire</div></div>
     <div class="card kpi"><div class="l">Purchased credits</div><div class="v">@Model.Wallet.PurchasedBalance</div><div class="tiny muted">Pitches &amp; promotions · never expire</div></div>
-    <div class="card kpi"><div class="l">Gateway</div><div class="mt8"><span class="badge b-warn">SANDBOX ADAPTER</span></div><div class="tiny muted mt8">A live gateway needs merchant onboarding and server-side credentials.</div></div>
+    <div class="card kpi"><div class="l">Payment provider</div><strong>@(Model.Mode switch { PaymentMode.Live => "SSLCOMMERZ", PaymentMode.HostedTest => "SSLCOMMERZ test store", PaymentMode.Simulator => "Development simulator", _ => "Purchases closed" })</strong></div>
 </div>
-<h3 class="mt24">Buy credits (BDT)</h3>
-<div class="grid g3">@foreach (var p in Model.Packages) {<form class="card card-b" method="post" action="/wallet/buy" asp-antiforgery="true"><input type="hidden" name="packageId" value="@p.Id" /><div class="row between"><strong>@p.Tokens credits</strong><span class="stat" style="font-size:20px">@Ui.Bdt(p.PriceBdt)</span></div><button class="btn btn-dark btn-sm mt16" style="width:100%">Checkout</button></form>}</div>
+@if (Model.Mode != PaymentMode.Disabled && Model.Packages.Count > 0)
+{
+    <form class="card card-b stack mt24" method="post" action="/wallet/buy" asp-antiforgery="true">
+        <h3>Buy RiseUp Credits</h3>
+        <label class="field"><span>Credit package</span><select class="input" name="packageId">@foreach (var p in Model.Packages) {<option value="@p.Id">@p.Tokens credits · @Ui.Bdt(p.PriceBdt)</option>}</select></label>
+        @if (Model.Mode is PaymentMode.HostedTest or PaymentMode.Live)
+        {
+            <p>Choose bKash, Nagad or another available method on the SSLCOMMERZ checkout page.</p>
+            <label class="field"><span>Billing address</span><input class="input" name="billing.Address" autocomplete="street-address" maxlength="50" required /></label>
+            <label class="field"><span>Billing phone (if different or missing from your account)</span><input class="input" type="tel" name="billing.Phone" autocomplete="tel" maxlength="20" /></label>
+            <div class="grid g3">
+                <label class="field"><span>City</span><input class="input" name="billing.City" autocomplete="address-level2" maxlength="50" required /></label>
+                <label class="field"><span>Postal code</span><input class="input" name="billing.Postcode" autocomplete="postal-code" maxlength="30" required /></label>
+                <label class="field"><span>Country</span><input class="input" name="billing.Country" autocomplete="country-name" maxlength="50" value="Bangladesh" required /></label>
+            </div>
+        }
+        <button class="btn btn-primary" type="submit">Continue to checkout</button>
+    </form>
+}
 <div class="card mt24"><div class="card-h"><h3>Payment orders</h3><span class="tiny muted">Credits are added after payment is confirmed</span></div>
     @if (Model.Orders.Count == 0) { <div class="empty">No orders</div> }
     else { <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Package</th><th>Status</th><th>Provider ref</th></tr></thead><tbody>@foreach (var o in Model.Orders) {<tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>@o.Tokens credits · @Ui.Bdt(o.PriceBdt)</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td class="small">@(o.ProviderTransactionId ?? "—")</td></tr>}</tbody></table></div> }

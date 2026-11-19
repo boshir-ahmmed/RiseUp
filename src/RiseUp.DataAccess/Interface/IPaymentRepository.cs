@@ -19,6 +19,7 @@ public interface IPaymentRepository : IRepository<PaymentOrder>
     Task<TokenPackage?> GetPackageAsync(int id, CancellationToken ct = default);
     Task<PaymentOrder?> GetByOrderNumberAsync(string orderNumber, CancellationToken ct = default);
     Task<bool> ProviderTransactionUsedAsync(string providerTransactionId, CancellationToken ct = default);
+    Task<IReadOnlyList<string>> ListDueOrdersAsync(string prefix, DateTime now, CancellationToken ct);
     Task AddEventAsync(PaymentProviderEvent evt, CancellationToken ct = default);
     Task<IReadOnlyList<PaymentOrder>> ListOrdersAsync(int? startupId, int take, CancellationToken ct = default);
     Task<IReadOnlyList<PromotionPackage>> ListPromotionPackagesAsync(CancellationToken ct = default);

@@ -22,5 +22,7 @@ public interface IGovernanceRepository
     Task<IReadOnlyList<AdminActionAudit>> ListAuditAsync(int take, CancellationToken ct = default);
     Task AddNotificationAsync(Notification notification, CancellationToken ct = default);
     Task<IReadOnlyList<Notification>> ListNotificationsAsync(int? accountId, int? teamAccountId, int take, CancellationToken ct = default);
+    Task<IReadOnlyList<int>> DueEmailsAsync(DateTime now, CancellationToken ct);
+    Task<OutboxEvent?> ClaimEmailAsync(int id, DateTime now, CancellationToken ct);
     Task AddOutboxAsync(OutboxEvent evt, CancellationToken ct = default);
 }

@@ -208,15 +208,15 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     public async Task<IActionResult> Wallet(CancellationToken ct)
     {
         var w = await wallets.GetAsync(Actor, ct);
-        return View(new WalletViewModel(w.Value!, await payments.ListPackagesAsync(ct), await payments.ListOrdersAsync(Actor, ct)));
+        return View(new WalletViewModel(w.Value!, await payments.ListPackagesAsync(ct), await payments.ListOrdersAsync(Actor, ct), payments.Mode));
     }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/wallet/buy")]
-    public async Task<IActionResult> Buy(int packageId, CancellationToken ct)
+    public async Task<IActionResult> Buy(int packageId, BillingAddress? billing, CancellationToken ct)
     {
-        var result = await payments.CreateOrderAsync(Actor, packageId, ct);
+        var result = await payments.CreateOrderAsync(Actor, packageId, billing, ct);
         if (result.IsFailure) { Flash(result); return RedirectToAction(nameof(Wallet)); }
-        return LocalRedirect(result.Value!.RedirectUrl);
+        return payments.Mode == PaymentMode.Simulator ? LocalRedirect(result.Value!.RedirectUrl) : Redirect(result.Value!.RedirectUrl);
     }
 
     // ------------------------------------------------------------ profile, verification, settings, notifications

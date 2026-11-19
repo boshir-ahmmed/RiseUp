@@ -29,6 +29,7 @@ public static class DependencyInjection
     {
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly, ServiceLifetime.Singleton);
         services.AddScoped<ActivityRecorder>();
+        services.AddScoped<EmailDelivery>();
         services.AddScoped<IAccountFacade, AccountFacade>();
         services.AddScoped<IStartupFacade, StartupFacade>();
         services.AddScoped<IInvestorFacade, InvestorFacade>();

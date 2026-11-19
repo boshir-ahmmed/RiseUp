@@ -13,3 +13,10 @@
         <p class="tiny muted mb0">After 5 failed attempts the account is locked for 15 minutes. Administrators must also enter a two-factor code.</p>
     </form>
 </div></section>
+
+<div class="container" style="max-width:560px"><details><summary>Resend verification email</summary>
+    <form method="post" action="/account/resend-verification" asp-antiforgery="true" class="stack">
+        <label class="field"><span>Account email</span><input class="input" type="email" name="email" autocomplete="email" required /></label>
+        <button class="btn btn-outline">Send verification link</button>
+    </form>
+</details></div>

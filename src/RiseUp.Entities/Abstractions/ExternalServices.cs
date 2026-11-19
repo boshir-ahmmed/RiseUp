@@ -37,14 +37,29 @@ public interface IAiMatchingService
 public sealed record CheckoutSession(string RedirectUrl, string GatewayName, bool IsSandbox);
 
 /// <summary>Bangladesh payment gateway port. Browser redirects never count as proof of payment (FR-129).</summary>
+public sealed record BillingAddress(string Address, string City, string Postcode, string Country, string? Phone = null);
+public sealed record CheckoutCustomer(string Name, string Email, string Phone, BillingAddress? Billing);
+public enum PaymentMode { Disabled, Simulator, HostedTest, Live }
+public enum ProviderOutcome { Paid, Failed, Pending, Review }
+public sealed record ProviderPayment(ProviderOutcome Outcome, string OrderNumber, decimal Amount, string Currency, string BankReference, string Method);
+
 public interface IPaymentGateway
 {
     string Name { get; }
-    bool IsSandbox { get; }
-    Task<CheckoutSession> CreateCheckoutAsync(string orderNumber, decimal amountBdt, CancellationToken ct = default);
-    bool VerifySignature(string payload, string signature);
-    /// <summary>Sandbox only: signs a simulated confirmation. Real gateways return null.</summary>
-    string? CreateSandboxSignature(string payload);
+    PaymentMode Mode { get; }
+    Task<CheckoutSession> CreateCheckoutAsync(string orderNumber, decimal amountBdt, CheckoutCustomer customer, CancellationToken ct = default);
+    bool VerifySignature(string payload, string signature) => false;
+    string? CreateSandboxSignature(string payload) => null;
+}
+
+public interface IHostedPaymentGateway : IPaymentGateway
+{
+    Task<ProviderPayment> CheckAsync(string orderNumber, string? validationId, CancellationToken ct);
+}
+
+public interface IEmailSender
+{
+    Task SendAsync(string recipient, string subject, string body, CancellationToken ct);
 }
 
 public interface IFileStorage

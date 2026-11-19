@@ -42,6 +42,8 @@ public static class ErrorCodes
     public const string ForbiddenDocument = "forbidden_document";
     public const string UploadPendingScan = "upload_pending_scan";
 
+    public const string PaymentUnavailable = "payment_unavailable";
+    public const string PaymentReview = "payment_review";
     public const string DuplicatePaymentEvent = "duplicate_payment_event";
     public const string InvalidSignature = "invalid_signature";
     public const string NegativeBalance = "negative_balance";
