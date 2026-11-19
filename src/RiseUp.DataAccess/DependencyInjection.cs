@@ -58,8 +58,13 @@ public static class DependencyInjection
         services.Configure<PaymentOptions>(configuration.GetSection("Payments"));
         services.Configure<StorageOptions>(configuration.GetSection("Storage"));
         services.AddSingleton<RiseUp.Entities.Abstractions.IPasswordHasher, PasswordHasherAdapter>();
-        services.AddSingleton<IFileStorage, LocalPrivateFileStorage>();
-        services.AddSingleton<IMalwareScanner, SignatureMalwareScanner>();
+        services.AddSingleton<LocalPrivateFileStorage>();
+        services.AddSingleton<IFileStorage>(sp => sp.GetRequiredService<LocalPrivateFileStorage>());
+        services.AddSingleton<IVerificationUploadStorage>(sp => sp.GetRequiredService<LocalPrivateFileStorage>());
+        if (!isProduction && configuration.GetValue("Scanning:DemoSignatures", false) && string.IsNullOrWhiteSpace(configuration["Scanning:Host"]))
+            services.AddSingleton<IMalwareScanner, SignatureMalwareScanner>();
+        else
+            services.AddSingleton<IMalwareScanner>(new ClamAvScanner(configuration["Scanning:Host"], configuration.GetValue("Scanning:Port", 3310)));
         services.Configure<MfaOptions>(configuration.GetSection("Mfa"));
         services.AddSingleton<IMfaVerifier, TotpMfaVerifier>();
 

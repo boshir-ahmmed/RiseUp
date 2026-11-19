@@ -26,7 +26,7 @@ public class InvestorProfile : BaseEntity, IConcurrencyAware
 
     public List<InvestorClaim> Claims { get; set; } = [];
 
-    public bool IsActiveVerified => VerificationStatus == VerificationStatus.Verified && !IsSuspended && !IsDeleted;
+    public bool IsActiveVerifiedAt(DateTime utcNow) => VerifiedUntilUtc > utcNow && VerificationStatus == VerificationStatus.Verified && !IsSuspended && !IsDeleted;
     public IEnumerable<string> Industries => PreferredIndustries.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     public IEnumerable<FundingStage> Stages => PreferredStages.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(Enum.Parse<FundingStage>);
 }

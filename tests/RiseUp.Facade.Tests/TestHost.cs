@@ -35,6 +35,7 @@ public sealed class SpyContentSafety(IContentSafetyModel inner) : IContentSafety
 public sealed class TestHost : IAsyncDisposable
 {
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
+    private readonly string _storageRoot = Path.Combine(Path.GetTempPath(), $"riseup-test-storage-{Guid.NewGuid():N}");
     public ServiceProvider Services { get; }
     public TestClock Clock { get; } = new(new DateTime(2026, 11, 7, 12, 0, 0, DateTimeKind.Utc)); // 18:00 Asia/Dhaka
     public SpyContentSafety Model1 { get; private set; } = null!;
@@ -44,8 +45,8 @@ public sealed class TestHost : IAsyncDisposable
         _connection.Open();
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["Payments:Gateway"] = "Sandbox", ["Payments:WebhookSecret"] = "test-secret", ["Mfa:AllowDemoCodes"] = "true",
-            ["Seed:DemoMediaPath"] = DemoMediaPath(), ["Storage:RootPath"] = Path.Combine(Path.GetTempPath(), "riseup-test-storage"),
+            ["Scanning:DemoSignatures"] = "true", ["Payments:Gateway"] = "Sandbox", ["Payments:WebhookSecret"] = "test-secret", ["Mfa:AllowDemoCodes"] = "true",
+            ["Seed:DemoMediaPath"] = DemoMediaPath(), ["Storage:RootPath"] = _storageRoot,
         }.Where(kv => !settings.ContainsKey(kv.Key)).Concat(settings).ToDictionary(k => k.Key, v => v.Value)).Build();
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
@@ -121,5 +122,6 @@ public sealed class TestHost : IAsyncDisposable
     {
         await Services.DisposeAsync();
         await _connection.DisposeAsync();
+        if (Directory.Exists(_storageRoot)) Directory.Delete(_storageRoot, recursive: true);
     }
 }

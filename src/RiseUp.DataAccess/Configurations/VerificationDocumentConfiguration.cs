@@ -8,6 +8,8 @@ public sealed class VerificationDocumentConfiguration : IEntityTypeConfiguration
 {
     public void Configure(EntityTypeBuilder<VerificationDocument> b)
     {
+        b.Property(x => x.Retention).IsConcurrencyToken();
+        b.Property(x => x.Erased).IsConcurrencyToken();
         b.Property(x => x.Kind).HasMaxLength(40).IsRequired();
         b.Property(x => x.StorageKey).HasMaxLength(200).IsRequired();
     }

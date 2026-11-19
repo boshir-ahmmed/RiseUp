@@ -7,12 +7,17 @@ services:
       MSSQL_SA_PASSWORD: "${SQL_SA_PASSWORD:-Local#Dev2026!}"
     ports: ["1433:1433"]
     volumes: ["sqldata:/var/opt/mssql"]
+  scanner:
+    image: clamav/clamav:stable
+    volumes: ["clamdefs:/var/lib/clamav"]
   web:
     build: .
-    depends_on: [sql]
+    depends_on: [sql, scanner]
+    volumes: ["privatefiles:/var/riseup/private"]
     ports: ["8080:8080"]
     environment:
       ASPNETCORE_ENVIRONMENT: Staging
+      Scanning__Host: scanner
       Database__Provider: SqlServer
       Database__InitializeOnStartup: "true"
       ConnectionStrings__RiseUp: "Server=sql;Database=RiseUp;User Id=sa;Password=${SQL_SA_PASSWORD:-Local#Dev2026!};TrustServerCertificate=True"
@@ -21,3 +26,5 @@ services:
       Mfa__AllowDemoCodes: "true"
 volumes:
   sqldata:
+  privatefiles:
+  clamdefs:

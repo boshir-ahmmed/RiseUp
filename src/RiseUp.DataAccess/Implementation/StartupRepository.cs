@@ -15,7 +15,7 @@ using RiseUp.Entities.Wallets;
 
 namespace RiseUp.DataAccess.Repositories;
 
-public sealed class StartupRepository(RiseUpDbContext db) : Repository<Startup>(db), IStartupRepository
+public sealed class StartupRepository(RiseUpDbContext db, RiseUp.Framework.Time.IClock clock) : Repository<Startup>(db), IStartupRepository
 {
     private IQueryable<Startup> Visible => Set.Where(s => !s.IsDeleted && !s.IsSuspended);
 
@@ -32,8 +32,8 @@ public sealed class StartupRepository(RiseUpDbContext db) : Repository<Startup>(
     {
         var query = Visible.AsNoTracking();
         query = q.VerifiedOnly
-            ? query.Where(s => s.VerificationStatus == VerificationStatus.Verified)
-            : query.Where(s => s.VerificationStatus == VerificationStatus.Verified || s.VerificationStatus == VerificationStatus.Pending);
+            ? query.Where(s => (s.VerificationStatus == VerificationStatus.Verified && s.VerifiedUntilUtc > clock.UtcNow))
+            : query.Where(s => (s.VerificationStatus == VerificationStatus.Verified && s.VerifiedUntilUtc > clock.UtcNow) || s.VerificationStatus == VerificationStatus.Pending);
         if (!string.IsNullOrWhiteSpace(q.Text))
         {
             var t = q.Text.Trim();
@@ -52,7 +52,7 @@ public sealed class StartupRepository(RiseUpDbContext db) : Repository<Startup>(
     }
 
     public async Task<IReadOnlyList<Startup>> ListActiveVerifiedAsync(int take, CancellationToken ct = default) =>
-        await Visible.AsNoTracking().Where(s => s.VerificationStatus == VerificationStatus.Verified).OrderBy(s => s.Id).Take(take).ToListAsync(ct);
+        await Visible.AsNoTracking().Where(s => (s.VerificationStatus == VerificationStatus.Verified && s.VerifiedUntilUtc > clock.UtcNow)).OrderBy(s => s.Id).Take(take).ToListAsync(ct);
     public Task<bool> HasViewSinceAsync(int startupId, string viewerKey, DateTime sinceUtc, CancellationToken ct = default) =>
         Db.ProfileViewEvents.AnyAsync(v => v.StartupId == startupId && v.ViewerKey == viewerKey && v.ViewedAtUtc >= sinceUtc, ct);
     public async Task AddViewAsync(ProfileViewEvent view, CancellationToken ct = default) => await Db.ProfileViewEvents.AddAsync(view, ct);

@@ -81,7 +81,7 @@ Summary: **Tested** 146, **Implemented** 67, **Partial** 30, **Supported** 3, **
 | FR-009 | Founders and Investors may enable optional two-factor authentication; all administrators must use strong two-factor authentication. | Partial | admin 2FA enforced (TOTP verifier); optional user 2FA enrolment UI pending |
 | FR-010 | Only a Founder designated as the Main Startup Owner shall manage the startup, its teams, pitches, wallet, posts and document grants. | Implemented |  |
 | FR-011 | Founders may make one basic startup profile public before verification, but may not pitch, publish posts, buy promotions or receive investor invita… | Tested | T02 |
-| FR-012 | Each Main Startup Owner shall submit a government NID or passport and the startup trade license for manual verification. | Implemented | upload form + manual review (document kinds not individually enforced) |
+| FR-012 | Each Main Startup Owner shall submit a government NID or passport and the startup trade license for manual verification. | Implemented | typed identity and trade licence uploads, company authority evidence, audited manual review |
 | FR-013 | Where the trade license names an individual, the Main Startup Owner shall be the named legal holder of that license. | Tested | T03_T04 |
 | FR-014 | Where the trade license names a company, accepted registration evidence shall identify the Main Startup Owner as a registered director or authorize… | Tested | T03_T04 (company path: manual review) |
 | FR-015 | Verification Administrators shall manually inspect identity, business documents, ownership evidence and related records; AI shall not decide docume… | Tested | T03_T04 |

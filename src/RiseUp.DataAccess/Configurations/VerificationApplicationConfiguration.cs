@@ -8,6 +8,7 @@ public sealed class VerificationApplicationConfiguration : IEntityTypeConfigurat
 {
     public void Configure(EntityTypeBuilder<VerificationApplication> b)
     {
+        b.Property(x => x.Status).IsConcurrencyToken();
         b.Property(x => x.LicenceHolderName).HasMaxLength(150);
         b.Property(x => x.DecisionReason).HasMaxLength(500);
         b.HasIndex(x => new { x.Status, x.SubmittedAtUtc });

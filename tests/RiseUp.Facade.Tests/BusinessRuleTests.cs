@@ -59,6 +59,17 @@ public class BusinessRuleTests
         Assert.True(detail.IsSuccess);   // basic public profile is visible
     }
 
+    private static async Task OpenEvidence(TestHost h, Actor reviewer, int applicationId)
+    {
+        var ids = await h.Db(db => db.VerificationDocuments.Where(d => d.ApplicationId == applicationId).Select(d => d.Id).ToListAsync());
+        foreach (var id in ids)
+        {
+            var opened = await h.Run<IVerificationFacade, Result<(Stream Content, string FileName)>>(f => f.OpenEvidenceAsync(reviewer, applicationId, id));
+            Assert.True(opened.IsSuccess, opened.Error.Message);
+            opened.Value.Content.Dispose();
+        }
+    }
+
     [Fact]
     public async Task T03_T04_ManualVerification_RejectsWithReason_AndIndividualLicenceMustNameTheOwner()
     {
@@ -66,6 +77,7 @@ public class BusinessRuleTests
         var admin = await h.Admin("verify");
         var queue = await h.Run<IVerificationFacade, IReadOnlyList<ApplicationDto>>(f => f.ListQueueAsync(admin));
         var app = queue.Single(a => a.Subject == VerificationSubject.Startup && a.Status == VerificationStatus.Pending);
+        await OpenEvidence(h, admin, app.Id);
         var noReason = await h.Run<IVerificationFacade, Result>(f => f.RejectAsync(admin, app.Id, ""));
         Assert.Equal(ErrorCodes.Validation, noReason.Error.Code);
         await h.Db(async db => { var a = await db.VerificationApplications.FindAsync(app.Id); a!.LicenceHolderName = "Someone Else"; await db.SaveChangesAsync(); return 0; });
@@ -84,14 +96,19 @@ public class BusinessRuleTests
         await using var h = await TestHost.CreateAsync();
         var admin = await h.Admin("verify");
         var app = (await h.Run<IVerificationFacade, IReadOnlyList<ApplicationDto>>(f => f.ListQueueAsync(admin))).Single(a => a.Subject == VerificationSubject.Startup);
+        Assert.True((await h.Run<IVerificationFacade, Result>(f => f.ApproveAsync(admin, app.Id, "NID and licence match"))).IsFailure);
+        await OpenEvidence(h, admin, app.Id);
         Assert.True((await h.Run<IVerificationFacade, Result>(f => f.ApproveAsync(admin, app.Id, "NID and licence match"))).IsSuccess);
         Assert.Equal((20, 0), await Wallet(h, app.SubjectId));
         var again = await h.Run<IVerificationFacade, Result>(f => f.ApproveAsync(admin, app.Id, "duplicate callback"));
         Assert.Equal(ErrorCodes.NotPending, again.Error.Code);
         await h.Run<IVerificationFacade, Result>(f => f.ExpireAsync(admin, VerificationSubject.Startup, app.SubjectId, "evidence expired"));
         var founder = await h.PendingFounder();
-        var reapp = await h.Run<IVerificationFacade, Result<int>>(f => f.SubmitAsync(founder, new(LicenceHolderType.Individual, "Ayesha Noor", [("NID", "k")])));
-        await h.Run<IVerificationFacade, Result>(f => f.ApproveAsync(admin, reapp.Value, "renewed"));
+        var identity = await h.UploadAsync("%PDF fictional identity"u8.ToArray(), "id.pdf", "application/pdf");
+        var business = await h.UploadAsync("%PDF fictional licence"u8.ToArray(), "licence.pdf", "application/pdf");
+        var reapp = await h.Run<IVerificationFacade, Result<int>>(f => f.SubmitAsync(founder, new(LicenceHolderType.Individual, "Ayesha Noor", [("NID", identity.StorageKey), ("TradeLicence", business.StorageKey)])));
+        await OpenEvidence(h, admin, reapp.Value);
+        Assert.True((await h.Run<IVerificationFacade, Result>(f => f.ApproveAsync(admin, reapp.Value, "renewed"))).IsSuccess);
         Assert.Equal((20, 0), await Wallet(h, app.SubjectId));
     }
 
@@ -253,7 +270,7 @@ public class BusinessRuleTests
             {
                 var acct = new RiseUp.Entities.Identity.UserAccount { Email = $"q{i}@x", NormalizedEmail = $"Q{i}@X", FullName = $"Q {i}", PasswordHash = "x", PrimaryRole = PrimaryRole.Founder, EmailVerified = true };
                 db.UserAccounts.Add(acct); await db.SaveChangesAsync();
-                db.Startups.Add(new Startup { OwnerAccountId = acct.Id, Name = $"Quota {i}", NormalizedLegalName = $"QUOTA {i}", Tagline = "t", Description = "d", Industry = "Fintech", Location = "Dhaka", VerificationStatus = VerificationStatus.Verified });
+                db.Startups.Add(new Startup { OwnerAccountId = acct.Id, Name = $"Quota {i}", NormalizedLegalName = $"QUOTA {i}", Tagline = "t", Description = "d", Industry = "Fintech", Location = "Dhaka", VerificationStatus = VerificationStatus.Verified, VerifiedUntilUtc = h.Clock.UtcNow.AddYears(1) });
             }
             await db.SaveChangesAsync();
             return await db.Startups.Where(s => s.Name.StartsWith("Quota")).Select(s => s.Id).ToListAsync();

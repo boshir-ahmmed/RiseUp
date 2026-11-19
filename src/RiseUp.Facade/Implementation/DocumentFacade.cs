@@ -82,7 +82,7 @@ public sealed class DocumentFacade(IDocumentRepository documents, IInvestorRepos
         if (d is null || !owner.IsFounder || owner.StartupId != d.StartupId) return Result.Failure(Guard.Forbidden());
         if (d.ScanStatus != ScanStatus.Clean) return Result.Failure(ErrorCodes.UploadPendingScan, "This file is still being scanned.");
         var investor = await investors.GetByIdAsync(investorId, ct);
-        if (investor is null || !investor.IsActiveVerified) return Result.Failure(ErrorCodes.InvestorNotVerified, "Documents can only be shared with verified investors.");
+        if (investor is null || !investor.IsActiveVerifiedAt(clock.UtcNow)) return Result.Failure(ErrorCodes.InvestorNotVerified, "Documents can only be shared with verified investors.");
         if (await documents.GetActiveGrantAsync(documentId, investorId, ct) is null)
         {
             await documents.AddGrantAsync(new Entities.Startups.DocumentAccessGrant { DocumentId = documentId, InvestorId = investorId, GrantedAtUtc = clock.UtcNow }, ct);
@@ -108,7 +108,7 @@ public sealed class DocumentFacade(IDocumentRepository documents, IInvestorRepos
         if (d.ScanStatus != ScanStatus.Clean) return new Error(ErrorCodes.UploadPendingScan, "This file is still being scanned.");
         var allowed = (actor.IsFounder && actor.StartupId == d.StartupId) ||
                       (actor.IsInvestor && await documents.GetActiveGrantAsync(d.Id, actor.InvestorId!.Value, ct) is not null &&
-                       (await investors.GetByIdAsync(actor.InvestorId!.Value, ct))?.IsActiveVerified == true);
+                       (await investors.GetByIdAsync(actor.InvestorId!.Value, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true);
         if (!allowed) return new Error(ErrorCodes.ForbiddenDocument, "You do not have access to this document.");
         await activity.AuditAsync(actor, "Confidential document download", $"document:{d.Id}", "authorised access", ct: ct);
         await uow.SaveChangesAsync(ct);

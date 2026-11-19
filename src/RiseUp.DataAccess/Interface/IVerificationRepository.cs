@@ -17,6 +17,10 @@ public interface IVerificationRepository : IRepository<VerificationApplication>
 {
     Task<IReadOnlyList<VerificationApplication>> ListAsync(VerificationStatus? status, CancellationToken ct = default);
     Task<VerificationApplication?> GetPendingForAsync(VerificationSubject subject, int subjectId, CancellationToken ct = default);
+    Task<IReadOnlyList<VerificationDocument>> ListForErasureAsync(int afterId, CancellationToken ct);
+    Task<bool> HasDocumentKeyAsync(string key, CancellationToken ct);
+    Task<bool> WasOpenedByAsync(int documentId, int reviewerId, CancellationToken ct);
+    Task<IReadOnlyList<int>> ListExpiredSubjectIdsAsync(VerificationSubject subject, DateTime now, CancellationToken ct);
     Task<OwnershipTransferCase?> GetTransferAsync(int id, CancellationToken ct = default);
     Task<OwnershipTransferCase?> GetOpenTransferForStartupAsync(int startupId, CancellationToken ct = default);
     Task AddTransferAsync(OwnershipTransferCase transfer, CancellationToken ct = default);

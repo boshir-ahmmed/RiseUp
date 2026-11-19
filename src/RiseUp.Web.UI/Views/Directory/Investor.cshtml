@@ -5,7 +5,7 @@
     <div class="card mk-card card-b mt16"><div class="row between" style="align-items:flex-start">
         <div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div class="avatar" style="width:72px;height:72px;font-size:24px;background:@Ui.Color(i.ColorIndex)" aria-hidden="true">@Ui.Initials(i.Name)</div>
             <div><h1 style="font-size:28px;margin-bottom:4px">@i.Name</h1><div class="muted">@i.Affiliation · @i.Type · @i.Location</div>
-            <div class="row mt8"><span class="badge b-ver">✓ Verified Investor</span>@if (i.ReceivePitches) {<span class="badge b-ver">Accepting pitches</span>} else {<span class="badge b-warn">Not accepting pitches</span>}</div></div></div>
+            <div class="row mt8"><span class="badge @Ui.StatusClass(Model.Status.ToString())">@(Model.Status == VerificationStatus.Verified ? "✓ Verified Investor" : Model.Status.ToString())</span>@if (i.ReceivePitches && Model.Status == VerificationStatus.Verified) {<span class="badge b-ver">Accepting pitches</span>} else {<span class="badge b-warn">Not accepting pitches</span>}</div></div></div>
         <div class="row">@if (Model.ViewerConnected) {<span class="badge b-ver">Connected</span> <a class="btn btn-primary" href="/conversations">Message</a>} else if (Model.ViewerCanPitch) {<a class="btn btn-primary" href="/pitches?to=@i.Id">Write a pitch</a>}</div>
     </div></div>
     <div class="grid mt24 g-detail" style="align-items:start">

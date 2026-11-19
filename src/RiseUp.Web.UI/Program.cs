@@ -68,7 +68,7 @@ if (app.Configuration.GetValue("Database:InitializeOnStartup", app.Environment.I
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<RiseUpDbContext>();
-    if (db.Database.IsSqlServer()) await db.Database.MigrateAsync(); else await db.Database.EnsureCreatedAsync();
+    if (db.Database.IsSqlServer()) await db.Database.MigrateAsync(); else await db.InitializeDemoDatabaseAsync();
     if (!app.Environment.IsProduction()) await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();
 }
 

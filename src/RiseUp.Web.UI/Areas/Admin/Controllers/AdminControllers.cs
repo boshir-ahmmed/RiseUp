@@ -34,9 +34,24 @@ public sealed class VerificationController(IVerificationFacade verification) : A
     public async Task<IActionResult> Index(CancellationToken ct) =>
         View(new VerificationQueueViewModel(await verification.ListQueueAsync(Actor, ct), await verification.ListTransfersAsync(Actor, ct)));
 
+    [HttpPost("/admin/verification/{id:int}/evidence/{documentId:int}")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> Evidence(int id, int documentId, CancellationToken ct)
+    {
+        var result = await verification.OpenEvidenceAsync(Actor, id, documentId, ct);
+        if (result.IsFailure) return Back(result, nameof(Index));
+        Response.Headers.XContentTypeOptions = "nosniff";
+        return File(result.Value.Content, "application/octet-stream", result.Value.FileName);
+    }
+
+    [Authorize(Policy = Policies.SuperAdmin), HttpPost("/admin/verification/{id:int}/evidence/{documentId:int}/hold")]
+    public async Task<IActionResult> Hold(int id, int documentId, bool hold, string reason, CancellationToken ct) =>
+        Back(await verification.SetEvidenceHoldAsync(Actor, id, documentId, hold, reason, ct), nameof(Index));
+
     [HttpPost("/admin/verification/{id:int}/decide")]
-    public async Task<IActionResult> Decide(int id, bool approve, string note, CancellationToken ct) =>
-        Back(approve ? await verification.ApproveAsync(Actor, id, note ?? "", ct) : await verification.RejectAsync(Actor, id, note ?? "", ct), nameof(Index));
+    public async Task<IActionResult> Decide(int id, bool approve, string note, DateOnly? earliestEvidenceExpiry, CancellationToken ct) =>
+        Back(approve && !ModelState.IsValid ? RiseUp.Framework.Results.Result.Failure(RiseUp.Framework.Results.ErrorCodes.Validation, "Check the decision note and evidence expiry date.") :
+            approve ? await verification.ApproveAsync(Actor, id, note ?? "", earliestEvidenceExpiry, ct) : await verification.RejectAsync(Actor, id, note ?? "", ct), nameof(Index));
 
     [HttpPost("/admin/verification/expire")]
     public async Task<IActionResult> Expire(VerificationSubject subject, int subjectId, string reason, CancellationToken ct) =>

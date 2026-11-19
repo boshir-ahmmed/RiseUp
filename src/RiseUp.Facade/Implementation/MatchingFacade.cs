@@ -13,7 +13,7 @@ namespace RiseUp.Facade.Discovery;
 /// AI output is validated against the permission-filtered candidate set and cannot authorise anything (FR-060).
 /// </summary>
 public sealed class MatchingFacade(IStartupRepository startups, IInvestorRepository investors, IConnectionRepository connections,
-    IAiMatchingService ai, ILogger<MatchingFacade> logger) : IMatchingFacade
+    IAiMatchingService ai, ILogger<MatchingFacade> logger, RiseUp.Framework.Time.IClock clock) : IMatchingFacade
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(8);
 
@@ -35,7 +35,7 @@ public sealed class MatchingFacade(IStartupRepository startups, IInvestorReposit
     {
         if (!actor.IsInvestor) return new MatchList("none", false, []);
         var me = await investors.GetByIdAsync(actor.InvestorId!.Value, ct);
-        if (me is null || !me.IsActiveVerified) return new MatchList("none", false, []);
+        if (me is null || !me.IsActiveVerifiedAt(clock.UtcNow)) return new MatchList("none", false, []);
         var pool = new List<Startup>();
         foreach (var s in await startups.ListActiveVerifiedAsync(500, ct))
             if (await connections.GetConnectionAsync(s.Id, me.Id, ct) is null && await connections.GetBlockAsync(s.Id, me.Id, ct) is null) pool.Add(s);
@@ -50,7 +50,7 @@ public sealed class MatchingFacade(IStartupRepository startups, IInvestorReposit
         if (!actor.IsFounder || actor.StartupId is null) return new MatchList("none", false, []);
         var me = await startups.GetByIdAsync(actor.StartupId.Value, ct);
         if (me is null) return new MatchList("none", false, []);
-        var includeRange = me.IsActiveVerified;   // FR-039: ranges visible to verified startups only
+        var includeRange = me.IsActiveVerifiedAt(clock.UtcNow);   // FR-039: ranges visible to verified startups only
         var pool = new List<InvestorProfile>();
         foreach (var i in await investors.ListActiveVerifiedAsync(500, ct))
             if (await connections.GetBlockAsync(me.Id, i.Id, ct) is null) pool.Add(i);

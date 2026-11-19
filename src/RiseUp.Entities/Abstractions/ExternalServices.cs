@@ -54,6 +54,14 @@ public interface IFileStorage
     Task DeleteAsync(string storageKey, CancellationToken ct = default);
 }
 
+/// <summary>Durable staging receipts allow abandoned identity uploads to be reconciled with the database.</summary>
+public interface IVerificationUploadStorage
+{
+    Task<string> StageAsync(Stream content, CancellationToken ct);
+    IEnumerable<string> ListStaleReceipts(DateTime olderThanUtc);
+    void Complete(string storageKey);
+}
+
 /// <summary>Second-factor verifier (TOTP in production). Administrators must always pass it (FR-009).</summary>
 public interface IMfaVerifier
 {

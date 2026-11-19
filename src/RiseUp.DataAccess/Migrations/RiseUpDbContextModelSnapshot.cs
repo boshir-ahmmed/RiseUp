@@ -2310,6 +2310,7 @@ namespace RiseUp.DataAccess.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<int>("Subject")
@@ -2343,12 +2344,17 @@ namespace RiseUp.DataAccess.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("Erased")
+                        .IsConcurrencyToken()
                         .HasColumnType("bit");
 
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("Retention")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
 
                     b.Property<int>("ScanStatus")
                         .HasColumnType("int");

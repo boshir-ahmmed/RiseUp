@@ -234,17 +234,47 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     public async Task<IActionResult> ReceivePitches(bool receive, CancellationToken ct) => Back(await investors.SetReceivePitchesAsync(Actor, receive, ct), nameof(Settings));
 
     [Authorize(Policy = Policies.FounderOrInvestor), HttpPost("/verification")]
-    public async Task<IActionResult> SubmitVerification(LicenceHolderType? licenceHolderType, string? licenceHolderName, List<IFormFile> files, CancellationToken ct)
+    [RequestSizeLimit(32 * 1024 * 1024)]
+    public async Task<IActionResult> SubmitVerification(LicenceHolderType? licenceHolderType, string? licenceHolderName,
+        string identityKind, IFormFile? identity, IFormFile? business, IFormFile? ownership,
+        [FromServices] IMalwareScanner scanner, [FromServices] IVerificationUploadStorage intake, CancellationToken ct)
     {
-        var docs = new List<(string, string)>();
-        foreach (var f in files.Where(f => f.Length > 0).Take(6))
+        var files = new List<(string Kind, IFormFile? File)> { (identityKind, identity), (Actor.IsFounder ? "TradeLicence" : "Credential", business) };
+        if (ownership != null) files.Add(("OwnershipProof", ownership));
+        foreach (var (_, file) in files)
         {
-            if (!await FileSignatures.LooksLikeAsync(f, [".pdf", ".jpg", ".jpeg", ".png"])) { Flash(Result.Failure(ErrorCodes.Validation, $"{f.FileName} is not an allowed PDF or image.")); return RedirectToAction(nameof(Settings)); }
-            await using var s = f.OpenReadStream();
-            docs.Add((Path.GetExtension(f.FileName).TrimStart('.').ToUpperInvariant(), await storage.SaveAsync(s, f.FileName, ct)));
+            if (file is null || file.Length is <= 0 or > 10 * 1024 * 1024 ||
+                !await FileSignatures.LooksLikeAsync(file, [".pdf", ".jpg", ".jpeg", ".png"]))
+                return Back(Result.Failure(ErrorCodes.Validation, "Each required file must be a PDF, JPEG or PNG up to 10 MB."), nameof(Settings));
+            await using var content = file.OpenReadStream();
+            if (await scanner.ScanAsync(content, ct) != ScanVerdict.Clean)
+                return Back(Result.Failure(ErrorCodes.UploadPendingScan, "Evidence could not be cleared by the scanner. Please check the file and try again."), nameof(Settings));
         }
-        Flash(await verification.SubmitAsync(Actor, new SubmitVerificationRequest(licenceHolderType, licenceHolderName, docs), ct));
-        return RedirectToAction(nameof(Settings));
+        var saved = new List<(string Kind, string StorageKey)>();
+        var rejected = false;
+        try
+        {
+            foreach (var (kind, file) in files)
+            {
+                await using var content = file!.OpenReadStream();
+                saved.Add((kind, await intake.StageAsync(content, ct)));
+            }
+            var result = await verification.SubmitAsync(Actor, new(licenceHolderType, licenceHolderName, saved), ct);
+            rejected = result.IsFailure;
+            if (result.IsSuccess)
+                foreach (var item in saved) intake.Complete(item.StorageKey);
+            return Back(result, nameof(Settings));
+        }
+        finally
+        {
+            // On an ambiguous commit the receipt stays for the worker to reconcile against the database.
+            if (rejected)
+                foreach (var item in saved)
+                {
+                    await storage.DeleteAsync(item.StorageKey, CancellationToken.None);
+                    intake.Complete(item.StorageKey);
+                }
+        }
     }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/settings/ownership-transfer")]

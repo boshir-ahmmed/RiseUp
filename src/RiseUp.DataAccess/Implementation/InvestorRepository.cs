@@ -15,7 +15,7 @@ using RiseUp.Entities.Wallets;
 
 namespace RiseUp.DataAccess.Repositories;
 
-public sealed class InvestorRepository(RiseUpDbContext db) : Repository<InvestorProfile>(db), IInvestorRepository
+public sealed class InvestorRepository(RiseUpDbContext db, RiseUp.Framework.Time.IClock clock) : Repository<InvestorProfile>(db), IInvestorRepository
 {
     public async Task<IReadOnlyList<InvestorProfile>> GetManyAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default) =>
         await Set.AsNoTracking().Where(i => ids.Contains(i.Id)).ToListAsync(ct);
@@ -24,6 +24,6 @@ public sealed class InvestorRepository(RiseUpDbContext db) : Repository<Investor
     public Task<InvestorProfile?> GetWithClaimsAsync(int id, CancellationToken ct = default) =>
         Set.Include(i => i.Claims).FirstOrDefaultAsync(i => i.Id == id, ct);
     public async Task<IReadOnlyList<InvestorProfile>> ListActiveVerifiedAsync(int take, CancellationToken ct = default) =>
-        await Set.AsNoTracking().Where(i => i.VerificationStatus == VerificationStatus.Verified && !i.IsSuspended && !i.IsDeleted)
+        await Set.AsNoTracking().Where(i => (i.VerificationStatus == VerificationStatus.Verified && i.VerifiedUntilUtc > clock.UtcNow) && !i.IsSuspended && !i.IsDeleted)
             .OrderBy(i => i.Id).Take(take).ToListAsync(ct);
 }
