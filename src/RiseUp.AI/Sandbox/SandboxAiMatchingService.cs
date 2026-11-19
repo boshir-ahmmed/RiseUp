@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using RiseUp.Entities.Abstractions;
 
-namespace RiseUp.DataAccess.Services;
+namespace RiseUp.AI.Sandbox;
 
 /// <summary>
 /// DEMO/SANDBOX AI Model 2. Receives only permission-filtered profiles. Throws when an outage is simulated

@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\RiseUp.Facade\RiseUp.Facade.csproj" />
     <ProjectReference Include="..\..\src\RiseUp.DataAccess\RiseUp.DataAccess.csproj" />
+    <ProjectReference Include="..\..\src\RiseUp.AI\RiseUp.AI.csproj" />
     <ProjectReference Include="..\..\src\RiseUp.Entities\RiseUp.Entities.csproj" />
     <ProjectReference Include="..\..\src\RiseUp.Framework\RiseUp.Framework.csproj" />
     <ProjectReference Include="..\..\src\RiseUp.Web.UI\RiseUp.Web.UI.csproj" />
