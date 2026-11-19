@@ -14,7 +14,19 @@ public sealed class WalletFacade(IWalletRepository wallets, IUnitOfWork uow, Act
         var wallet = await wallets.GetByStartupAsync(actor.StartupId.Value, ct);
         var ledger = await wallets.ListLedgerAsync(actor.StartupId.Value, 100, ct);
         return Result.Success(new WalletDto(wallet?.WelcomeBalance ?? 0, wallet?.PurchasedBalance ?? 0,
-            ledger.Select(l => new LedgerLine(l.Id, l.CreatedAtUtc, l.Description, l.Bucket, l.Amount, l.Reference)).ToList()));
+            ledger.Select(l => new LedgerLine(l.Id, l.CreatedAtUtc, DisplayDescription(l), l.Bucket, l.Amount, l.Reference)).ToList()));
+    }
+
+    // Older purchases have the original label in the append-only ledger.
+    private static string DisplayDescription(TokenLedgerEntry entry)
+    {
+        if (entry.Reference.StartsWith("order:", StringComparison.Ordinal) &&
+            entry.Description.StartsWith("Token purchase · ", StringComparison.Ordinal))
+        {
+            var orderNumber = entry.Reference["order:".Length..];
+            return $"Credit purchase · {entry.Amount} credits (order {orderNumber})";
+        }
+        return entry.Description;
     }
 
     /// <summary>Finance Administrator compensating entry (FR-131/158). Never edits history.</summary>

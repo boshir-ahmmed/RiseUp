@@ -1,6 +1,6 @@
 @model MyPostsViewModel
 @{ ViewData["Title"] = "Posts & promotions"; }
-<div class="page-h"><div><h1>Posts &amp; promotions</h1><p>Each new or edited post passes AI Model 1 before going public. Promotions use Purchased tokens only.</p></div><span class="badge b-gray" style="font-size:13px;padding:6px 12px">@(Model.Wallet?.PurchasedBalance ?? 0) Purchased tokens</span></div>
+<div class="page-h"><div><h1>Posts &amp; promotions</h1><p>Each new or edited post passes AI Model 1 before going public. Promotions use purchased credits only.</p></div><span class="badge b-gray" style="font-size:13px;padding:6px 12px">@(Model.Wallet?.PurchasedBalance ?? 0) purchased credits</span></div>
 <div class="grid g-detail" style="align-items:start">
     <div class="card"><div class="card-h"><h3>Your posts</h3></div>
         @if (Model.Posts.Count == 0) { <div class="empty">No posts yet</div> }
@@ -17,7 +17,7 @@
                     <form method="post" action="/my-posts/@p.Id/video" enctype="multipart/form-data" class="inline" asp-antiforgery="true"><label class="btn btn-outline btn-sm upl">🎬 Add video (≤90 s)<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime,.mov" data-video-upload data-max-seconds="90" /></label><span class="tiny muted" data-status></span><div class="progress-line" style="width:120px;display:inline-block;vertical-align:middle"><i></i></div></form>
                     @if (p.LiveTitle is not null && !p.HasOpenPromotion)
                     {
-                        <form method="post" action="/my-posts/@p.Id/promote" class="row inline" style="flex-wrap:nowrap" asp-antiforgery="true"><select class="input" name="days" style="width:auto;padding:5px 8px"><option value="1">1 day · 3 tokens</option><option value="3" selected>3 days · 7 tokens</option><option value="7">7 days · 15 tokens</option></select><button class="btn btn-primary btn-sm">Promote</button></form>
+                        <form method="post" action="/my-posts/@p.Id/promote" class="row inline" style="flex-wrap:nowrap" asp-antiforgery="true"><select class="input" name="days" style="width:auto;padding:5px 8px"><option value="1">1 day · 3 credits</option><option value="3" selected>3 days · 7 credits</option><option value="7">7 days · 15 credits</option></select><button class="btn btn-primary btn-sm">Promote</button></form>
                     }
                 </div>
             </div>
@@ -39,7 +39,7 @@
     @foreach (var p in Model.Promotions)
     {
         <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><strong class="small">@p.PostTitle</strong><span class="badge @Ui.StatusClass(p.Status.ToString())">@p.Status</span></div>
-            <div class="tiny muted mt8">@p.Days-day package · @p.Cost Purchased tokens · @Ui.Left(p.Remaining) of paid time remaining@(p.PauseReason is null ? "" : " · paused: " + p.PauseReason)</div>
+            <div class="tiny muted mt8">@p.Days-day package · @p.Cost purchased credits · @Ui.Left(p.Remaining) of paid time remaining@(p.PauseReason is null ? "" : " · paused: " + p.PauseReason)</div>
             <details class="small mt8"><summary class="linkbtn">View details</summary><dl class="kv mt8"><dt>Impressions</dt><dd>@p.Impressions.ToString("N0")</dd><dt>Clicks</dt><dd>@p.Clicks</dd><dt>Engagements</dt><dd>@p.Engagements</dd><dt>Served via fallback</dt><dd>@p.FallbackImpressions impressions during AI outages</dd><dt>Refunds</dt><dd>Non-refundable unless RiseUp fails to activate it</dd></dl></details>
         </div>
     }

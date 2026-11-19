@@ -64,7 +64,7 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
         {
             var w = await wallets.GetByStartupAsync(sid, ct);
             stats.Add(new("Profile views", s.ViewCount.ToString("N0"), "/settings"));
-            stats.Add(new("Tokens", ((w?.WelcomeBalance ?? 0) + (w?.PurchasedBalance ?? 0)).ToString(), "/wallet"));
+            stats.Add(new("Credits", ((w?.WelcomeBalance ?? 0) + (w?.PurchasedBalance ?? 0)).ToString(), "/wallet"));
             badge = (await connections.ListPendingForStartupAsync(sid, ct)).Count(r => r.Type == RequestType.Invitation);
         }
         if (actor.IsInvestor)

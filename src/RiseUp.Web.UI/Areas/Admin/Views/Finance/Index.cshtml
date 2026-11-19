@@ -4,7 +4,7 @@
 <div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Startup</th><th>Amount</th><th>Status</th><th>Credited</th><th></th></tr></thead><tbody>
 @foreach (var o in Model)
 {
-    <tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>#@o.StartupId</td><td>@Ui.Bdt(o.PriceBdt) · @o.Tokens tokens</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td>@(o.Credited ? "Yes" : "No")</td>
+    <tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>#@o.StartupId</td><td>@Ui.Bdt(o.PriceBdt) · @o.Tokens credits</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td>@(o.Credited ? "Yes" : "No")</td>
         <td>@if (o.Status == PaymentStatus.Pending) {<details class="small"><summary class="linkbtn">Reconcile…</summary><form method="post" action="/admin/finance/reconcile" class="stack mt8" asp-antiforgery="true"><input type="hidden" name="orderNumber" value="@o.OrderNumber" /><input class="input" name="providerTransactionId" required placeholder="Provider transaction id" /><input class="input" name="reason" required minlength="5" placeholder="Settlement evidence" /><button class="btn btn-primary btn-sm">Credit once</button></form></details>}</td></tr>
 }
 </tbody></table></div></div>

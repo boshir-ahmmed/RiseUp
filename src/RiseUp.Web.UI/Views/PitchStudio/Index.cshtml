@@ -7,7 +7,7 @@
     string Dur(int s) => $"{s / 60}:{s % 60:00}";
     var draft = Model.EditDraftId is int did ? Model.Drafts.FirstOrDefault(d => d.Id == did) : null;
 }
-<div class="page-h"><div><h1>Pitch Studio</h1><p>One reusable pitch package — videos, deck, documents and your ask. Sending to an investor costs 1 token; only your written note is checked by AI Model 1.</p></div>
+<div class="page-h"><div><h1>Pitch Studio</h1><p>One reusable pitch package — videos, deck, documents and your ask. You spend 1 credit when your pitch is delivered. AI Model 1 checks only your written note.</p></div>
     <div class="row"><span class="badge b-gray" style="font-size:13px;padding:6px 12px">@(w?.WelcomeBalance ?? 0) Welcome · @(w?.PurchasedBalance ?? 0) Purchased</span><a class="btn btn-outline" href="/pitch-room/0">Preview as investor</a></div></div>
 <nav class="studio-tabs" aria-label="Pitch Studio">
     <a href="/pitches?tab=package" class="@(Model.Tab == "package" ? "on" : "")">Pitch package · @p.Completeness% complete</a>
@@ -106,7 +106,7 @@
 else if (Model.Tab == "send")
 {
     <div class="grid g-detail" style="align-items:start">
-        <div class="card"><div class="card-h"><h3>@(draft is null ? "Send your pitch package" : "Edit draft")</h3><span class="tiny muted">1 token · only if delivered</span></div>
+        <div class="card"><div class="card-h"><h3>@(draft is null ? "Send your pitch package" : "Edit draft")</h3><span class="tiny muted">1 credit · only if delivered</span></div>
             <form class="card-b stack" method="post" action="/pitches/send" asp-antiforgery="true">
                 @if (!Model.StartupVerified) { <div class="notice n-warn">Your startup must be verified before you can send pitches.</div> }
                 else if (p.Completeness < 60) { <div class="notice n-warn">Your package is @p.Completeness% complete. Pitches with a video and deck get far more replies — you can still send.</div> }
@@ -117,7 +117,7 @@ else if (Model.Tab == "send")
                     @foreach (var d in p.Documents) { <label class="check mt8"><input type="checkbox" name="documentIds" value="@d.Id" checked="@(d.Scan == ScanStatus.Clean)" disabled="@(d.Scan != ScanStatus.Clean)" /> <span>@d.FileName <span class="tiny muted">· @d.Label@(d.Scan != ScanStatus.Clean ? " · still scanning" : "")</span></span></label> }
                     @if (p.Documents.Count == 0) { <div class="tiny muted mt8">No pitch documents in your package yet.</div> }</div>
                 <div class="card card-b small" style="background:var(--canvas);box-shadow:none"><strong>The investor receives:</strong> @(p.Pitch is null ? "no pitch video" : "pitch video ✓") · @(p.Demo is null ? "no demo" : "product demo ✓") · @(p.Slides.Count > 0 ? $"deck ({p.Slides.Count} slides) ✓" : "no deck") · ask: @Ui.Usd(p.Ask.AmountUsd) @p.Ask.InstrumentLabel · Q&amp;A inside the pitch room</div>
-                <div class="row" style="justify-content:flex-end"><button class="btn btn-outline" formaction="/pitches/draft" formnovalidate>Save draft</button><button class="btn btn-primary" disabled="@(!Model.StartupVerified)">Check note &amp; send pitch (1 token)</button></div>
+                <div class="row" style="justify-content:flex-end"><button class="btn btn-outline" formaction="/pitches/draft" formnovalidate>Save draft</button><button class="btn btn-primary" disabled="@(!Model.StartupVerified)">Send pitch · 1 credit</button></div>
             </form></div>
         <div class="card"><div class="card-h"><h3>Drafts</h3></div>
             @foreach (var d in Model.Drafts)

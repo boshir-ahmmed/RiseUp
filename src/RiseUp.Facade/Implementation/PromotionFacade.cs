@@ -24,9 +24,9 @@ public sealed class PromotionFacade(IPromotionRepository promotions, IPostReposi
 
         await using var tx = await uow.BeginTransactionAsync(ct);
         var wallet = await wallets.GetByStartupAsync(startup.Id, ct);
-        // FR-126: promotions are payable from Purchased tokens only — Welcome tokens are never touched.
+        // FR-126: promotions are payable from Purchased credits only — Welcome credits are never touched.
         if (wallet is null || wallet.PurchasedBalance < package.CostPurchasedTokens)
-            return new Error(ErrorCodes.InsufficientPurchasedTokens, $"Promotions need {package.CostPurchasedTokens} Purchased tokens. Welcome tokens can't be used for promotions.");
+            return new Error(ErrorCodes.InsufficientPurchasedTokens, $"Promotions need {package.CostPurchasedTokens} purchased credits. Welcome credits can't be used for promotions.");
         var now = clock.UtcNow;
         wallet.PurchasedBalance -= package.CostPurchasedTokens;
         var promotion = new Promotion
@@ -42,7 +42,7 @@ public sealed class PromotionFacade(IPromotionRepository promotions, IPostReposi
         }, ct);
         await uow.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        return Result.Success(promotion.Id, $"Promotion active for {days} day(s). {package.CostPurchasedTokens} Purchased tokens debited.");
+        return Result.Success(promotion.Id, $"Promotion active for {days} day(s). {package.CostPurchasedTokens} purchased credits debited.");
     }
 
     public async Task<IReadOnlyList<PromotionDto>> ListForStartupAsync(Actor actor, CancellationToken ct = default)

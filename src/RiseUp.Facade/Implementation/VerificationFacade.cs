@@ -82,7 +82,7 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
                 return Result.Failure(ErrorCodes.OwnershipMismatch, "An individually named trade licence must belong to the Main Startup Owner.");
             startup.VerificationStatus = VerificationStatus.Verified;
             startup.VerifiedUntilUtc = now.Add(BusinessRules.VerificationValidity);
-            // FR-121/122: exactly 20 Welcome tokens on FIRST verification only; idempotency key prevents duplicates.
+            // FR-121/122: exactly 20 Welcome credits on FIRST verification only; idempotency key prevents duplicates.
             var key = $"welcome:{startup.Id}";
             if (!startup.WelcomeTokensGranted && !await wallets.LedgerKeyExistsAsync(key, ct))
             {
@@ -91,9 +91,9 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
                 wallet.WelcomeBalance += BusinessRules.WelcomeTokens;
                 await wallets.AddLedgerAsync(new TokenLedgerEntry { StartupId = startup.Id, Description = "Welcome grant (first verification)", Bucket = TokenBucket.Welcome, Amount = BusinessRules.WelcomeTokens, Reference = $"verification:{app.Id}", IdempotencyKey = key }, ct);
                 startup.WelcomeTokensGranted = true;
-                message = $"{startup.Name} verified — {BusinessRules.WelcomeTokens} Welcome tokens credited (one-time).";
+                message = $"{startup.Name} verified — {BusinessRules.WelcomeTokens} welcome credits added (one-time).";
             }
-            else message = $"{startup.Name} re-verified — no additional Welcome tokens.";
+            else message = $"{startup.Name} re-verified — no additional welcome credits.";
             await promotions.ResumeForStartupAsync(startup.Id, ct);
             await activity.NotifyAccountAsync(startup.OwnerAccountId, message, "/dashboard", ct);
         }

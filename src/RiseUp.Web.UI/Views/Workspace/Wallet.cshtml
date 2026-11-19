@@ -1,16 +1,16 @@
 @model WalletViewModel
 @{ ViewData["Title"] = "Wallet"; }
-<partial name="_PageHeader" model='("Wallet", (string?)"Two separate balances. Pitches use Welcome tokens first; promotions use Purchased tokens only.")' />
+<partial name="_PageHeader" model='("Wallet", (string?)"Pitches use welcome credits first. Promotions use purchased credits only.")' />
 <div class="grid g3">
-    <div class="card kpi"><div class="l">Welcome tokens</div><div class="v">@Model.Wallet.WelcomeBalance</div><div class="tiny muted">One-time grant · pitches only · never expire</div></div>
-    <div class="card kpi"><div class="l">Purchased tokens</div><div class="v">@Model.Wallet.PurchasedBalance</div><div class="tiny muted">Pitches &amp; promotions · never expire</div></div>
+    <div class="card kpi"><div class="l">Welcome credits</div><div class="v">@Model.Wallet.WelcomeBalance</div><div class="tiny muted">One-time grant · pitches only · never expire</div></div>
+    <div class="card kpi"><div class="l">Purchased credits</div><div class="v">@Model.Wallet.PurchasedBalance</div><div class="tiny muted">Pitches &amp; promotions · never expire</div></div>
     <div class="card kpi"><div class="l">Gateway</div><div class="mt8"><span class="badge b-warn">SANDBOX ADAPTER</span></div><div class="tiny muted mt8">A live gateway needs merchant onboarding and server-side credentials.</div></div>
 </div>
-<h3 class="mt24">Buy tokens (BDT)</h3>
-<div class="grid g3">@foreach (var p in Model.Packages) {<form class="card card-b" method="post" action="/wallet/buy" asp-antiforgery="true"><input type="hidden" name="packageId" value="@p.Id" /><div class="row between"><strong>@p.Tokens tokens</strong><span class="stat" style="font-size:20px">@Ui.Bdt(p.PriceBdt)</span></div><button class="btn btn-dark btn-sm mt16" style="width:100%">Checkout</button></form>}</div>
-<div class="card mt24"><div class="card-h"><h3>Payment orders</h3><span class="tiny muted">Credits happen only after a verified server-side confirmation</span></div>
+<h3 class="mt24">Buy credits (BDT)</h3>
+<div class="grid g3">@foreach (var p in Model.Packages) {<form class="card card-b" method="post" action="/wallet/buy" asp-antiforgery="true"><input type="hidden" name="packageId" value="@p.Id" /><div class="row between"><strong>@p.Tokens credits</strong><span class="stat" style="font-size:20px">@Ui.Bdt(p.PriceBdt)</span></div><button class="btn btn-dark btn-sm mt16" style="width:100%">Checkout</button></form>}</div>
+<div class="card mt24"><div class="card-h"><h3>Payment orders</h3><span class="tiny muted">Credits are added after payment is confirmed</span></div>
     @if (Model.Orders.Count == 0) { <div class="empty">No orders</div> }
-    else { <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Package</th><th>Status</th><th>Provider ref</th></tr></thead><tbody>@foreach (var o in Model.Orders) {<tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>@o.Tokens tokens · @Ui.Bdt(o.PriceBdt)</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td class="small">@(o.ProviderTransactionId ?? "—")</td></tr>}</tbody></table></div> }
+    else { <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Package</th><th>Status</th><th>Provider ref</th></tr></thead><tbody>@foreach (var o in Model.Orders) {<tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>@o.Tokens credits · @Ui.Bdt(o.PriceBdt)</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td class="small">@(o.ProviderTransactionId ?? "—")</td></tr>}</tbody></table></div> }
 </div>
 <div class="card mt24"><div class="card-h"><h3>Ledger (append-only)</h3></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Entry</th><th>Bucket</th><th style="text-align:right">Amount</th></tr></thead><tbody>
     @foreach (var l in Model.Wallet.Ledger) {<tr><td class="small">@Ui.Dhaka(l.AtUtc)</td><td class="small">@l.Description<div class="tiny muted"><code>@l.Reference</code></div></td><td><span class="badge b-gray">@l.Bucket</span></td><td style="text-align:right;font-weight:650;color:@(l.Amount < 0 ? "var(--danger)" : "var(--teal-d)")">@(l.Amount > 0 ? "+" : "")@l.Amount</td></tr>}

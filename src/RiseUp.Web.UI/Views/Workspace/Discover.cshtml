@@ -10,7 +10,7 @@
         <article class="card card-b">
             <div class="row between" style="flex-wrap:nowrap"><div class="row" style="flex-wrap:nowrap"><partial name="_Logo" model="(m.Name, m.ColorIndex, string.Empty)" /><div><h3 class="mb0"><a href="@href" style="color:inherit">@m.Name</a></h3><div class="small muted">@m.Subtitle</div></div></div><span class="badge b-gray">@m.Score% fit</span></div>
             <div class="mt16"><div class="tiny muted" style="margin-bottom:4px">Why this match · @Model.Engine</div>@foreach (var r in m.Reasons) {<span class="reason">@r</span>}</div>
-            <div class="row mt16"><a class="btn btn-outline btn-sm" href="@href">View details</a>@if (actor.IsFounder) {<a class="btn btn-primary btn-sm" href="/pitches?to=@m.Id">Write pitch (1 token)</a>}</div>
+            <div class="row mt16"><a class="btn btn-outline btn-sm" href="@href">View details</a>@if (actor.IsFounder) {<a class="btn btn-primary btn-sm" href="/pitches?to=@m.Id">Write a pitch · 1 credit on delivery</a>}</div>
         </article>
     }
 </div>

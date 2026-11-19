@@ -38,9 +38,9 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
         if (!startup.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Your startup must be verified before pitching.");
         if (investor is null || !investor.IsActiveVerified) return new Error(ErrorCodes.InvestorNotVerified, "This investor is not verified.");
         if (await PairBlockersAsync(startup.Id, investor.Id, RequestType.Pitch, ct) is { } e) return e;
-        if (!investor.ReceivePitches) return new Error(ErrorCodes.PitchDisabled, "This investor is not accepting pitches right now. No token was charged.");
+        if (!investor.ReceivePitches) return new Error(ErrorCodes.PitchDisabled, "This investor is not accepting pitches right now. No credit was charged.");
         var wallet = await wallets.GetByStartupAsync(startup.Id, ct);
-        if (wallet is null || wallet.WelcomeBalance + wallet.PurchasedBalance < 1) return new Error(ErrorCodes.InsufficientTokens, "You have no tokens left. Buy a token package to continue.");
+        if (wallet is null || wallet.WelcomeBalance + wallet.PurchasedBalance < 1) return new Error(ErrorCodes.InsufficientTokens, "You have no credits left. Buy credits to send a pitch.");
         return null;
     }
 
@@ -63,7 +63,7 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
 
     /// <summary>
     /// Founder pitch (master prompt §9): manual text → preflight → AI Model 1 (fail-closed) → recheck inside a
-    /// serializable transaction → debit 1 token (Welcome first) + append ledger + create Pending request → commit.
+    /// serializable transaction → debit 1 credit (Welcome first) + append ledger + create Pending request → commit.
     /// Rejection, AI outage or any ineligibility leaves an editable draft and costs nothing.
     /// </summary>
     public async Task<Result<int>> SendPitchAsync(Actor actor, SendPitchRequest request, CancellationToken ct = default)
@@ -99,13 +99,13 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
         {
             draft.State = ModerationState.AiUnavailable;
             await uow.SaveChangesAsync(ct);
-            return new Error(ErrorCodes.AiTemporarilyUnavailable, "The safety check is unavailable. Your draft is saved, nothing was sent and no token was charged.");
+            return new Error(ErrorCodes.AiTemporarilyUnavailable, "The safety check is unavailable. Your draft is saved, nothing was sent and no credit was charged.");
         }
         if (safety.Outcome == SafetyOutcome.Reject)
         {
             draft.State = ModerationState.Rejected; draft.ReasonCode = safety.ReasonCode;
             await uow.SaveChangesAsync(ct);
-            return new Error(ErrorCodes.ContentRejected, $"The safety check rejected this pitch ({safety.ReasonCode}). Edit and resubmit — no token was charged.");
+            return new Error(ErrorCodes.ContentRejected, $"The safety check rejected this pitch ({safety.ReasonCode}). Edit and resubmit — no credit was charged.");
         }
 
         await using var tx = await uow.BeginTransactionAsync(ct);
@@ -145,9 +145,9 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
         {
             // Unique pending-pair index or wallet concurrency token rejected a racing request: nothing is debited.
             await tx.RollbackAsync(ct);
-            return new Error(ErrorCodes.PendingRequestExists, "Another request for this pair was submitted at the same time. No token was charged.");
+            return new Error(ErrorCodes.PendingRequestExists, "Another request for this pair was submitted at the same time. No credit was charged.");
         }
-        return Result.Success(pitch.Id, $"Pitch delivered to {investor.DisplayName}. 1 {bucket} token debited.");
+        return Result.Success(pitch.Id, $"Pitch delivered to {investor.DisplayName}. 1 {bucket.ToString().ToLowerInvariant()} credit used.");
     }
 
     // ---------------------------------------------------------------- investor invitation
@@ -196,7 +196,7 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
     // ---------------------------------------------------------------- decisions
     /// <summary>
     /// Accepting creates exactly ONE connection and ONE group chat (owner + investor), protected by unique indexes
-    /// and a serializable transaction against concurrent double-accepts (FR-089/090). Declines never refund tokens.
+    /// and a serializable transaction against concurrent double-accepts (FR-089/090). Declines never refund credits.
     /// </summary>
     public async Task<Result> RespondAsync(Actor actor, int requestId, bool accept, string? note, CancellationToken ct = default)
     {
