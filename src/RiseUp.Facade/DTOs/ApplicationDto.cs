@@ -11,4 +11,6 @@ using RiseUp.Framework.Time;
 namespace RiseUp.Facade.Verification;
 
 public sealed record ApplicationDto(int Id, VerificationSubject Subject, int SubjectId, string SubjectName, string? OwnerName, VerificationStatus Status,
-    LicenceHolderType? LicenceHolderType, string? LicenceHolderName, DateTime SubmittedAtUtc, string? DecisionReason, IReadOnlyList<string> DocumentKinds);
+    LicenceHolderType? LicenceHolderType, string? LicenceHolderName, DateTime SubmittedAtUtc, string? DecisionReason, IReadOnlyList<EvidenceDto> Documents);
+
+public sealed record EvidenceDto(int Id, string Kind, ScanStatus ScanStatus, EvidenceRetention Retention, bool Erased);

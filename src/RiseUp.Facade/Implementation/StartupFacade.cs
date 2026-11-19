@@ -29,7 +29,7 @@ public sealed class StartupFacade(IStartupRepository startups, IInvestorReposito
     public async Task<Result<StartupDetailDto>> GetDetailAsync(Actor actor, int id, string viewerKey, CancellationToken ct = default)
     {
         var s = await startups.GetWithMetricsAsync(id, ct);
-        if (s is null || s.IsDeleted || s.IsSuspended || s.VerificationStatus is VerificationStatus.Unverified) return Guard.NotFound("Startup");
+        if (s is null || s.IsDeleted || s.IsSuspended || (s.VerificationStatus == VerificationStatus.Unverified && !(actor.IsFounder && actor.StartupId == id))) return Guard.NotFound("Startup");
 
         // FR-120: at most one counted view per viewer per startup every 24 hours.
         var now = clock.UtcNow;
@@ -42,15 +42,16 @@ public sealed class StartupFacade(IStartupRepository startups, IInvestorReposito
 
         var isOwner = actor.IsFounder && actor.StartupId == s.Id;
         var investor = actor.IsInvestor ? await investors.GetByIdAsync(actor.InvestorId!.Value, ct) : null;
-        var verifiedInvestor = investor is { IsActiveVerified: true };
+        var verifiedInvestor = investor?.IsActiveVerifiedAt(clock.UtcNow) == true;
         var isConnected = investor is not null && await connections.GetConnectionAsync(s.Id, investor.Id, ct) is not null;
         var canSeeRestricted = isOwner || verifiedInvestor;       // FR-027
         var canSeeContact = isOwner || isConnected;               // FR-041
         var owner = canSeeContact ? await accounts.GetByIdAsync(s.OwnerAccountId, ct) : null;
-        var canInvite = verifiedInvestor && s.IsActiveVerified && !isConnected && await connections.GetPendingForPairAsync(s.Id, investor!.Id, ct) is null;
+        var canInvite = verifiedInvestor && s.IsActiveVerifiedAt(clock.UtcNow) && !isConnected && await connections.GetPendingForPairAsync(s.Id, investor!.Id, ct) is null;
 
         return Result.Success(new StartupDetailDto(s.Id, s.Name, s.Tagline, s.Description, s.Industry, s.Stage, s.Location, s.FoundingYear,
-            s.BusinessModel, s.Website, s.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), s.VerificationStatus, s.VerifiedUntilUtc,
+            s.BusinessModel, s.Website, s.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            s.VerificationStatus == VerificationStatus.Verified && !s.IsActiveVerifiedAt(now) ? VerificationStatus.Expired : s.VerificationStatus, s.VerifiedUntilUtc,
             s.ViewCount, s.ColorIndex,
             canSeeRestricted ? s.FundingGoalUsd : null,
             canSeeRestricted ? s.Metrics.Select(m => (m.Name, m.Value)).ToList() : null,
@@ -111,7 +112,7 @@ public sealed class StartupFacade(IStartupRepository startups, IInvestorReposito
         var s = await startups.GetByIdAsync(startupId, ct);
         if (s is null) return Result.Failure(Guard.NotFound("Startup"));
         s.IsSuspended = false;
-        if (s.VerificationStatus == VerificationStatus.Verified) await promotions.ResumeForStartupAsync(s.Id, ct);
+        if (s.IsActiveVerifiedAt(clock.UtcNow)) await promotions.ResumeForStartupAsync(s.Id, ct);
         await activity.AuditAsync(moderator, "Lifted suspension", $"startup:{s.Id}", reason, ct: ct);
         await uow.SaveChangesAsync(ct);
         return Result.Success("Suspension lifted.");

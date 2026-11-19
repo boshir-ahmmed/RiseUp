@@ -35,8 +35,8 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
     private async Task<Error?> PitchEligibilityAsync(Startup startup, InvestorProfile? investor, CancellationToken ct)
     {
         if (startup.IsSuspended) return new Error(ErrorCodes.AccountSuspended, "Your startup account is suspended.");
-        if (!startup.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Your startup must be verified before pitching.");
-        if (investor is null || !investor.IsActiveVerified) return new Error(ErrorCodes.InvestorNotVerified, "This investor is not verified.");
+        if (!startup.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.NotVerified, "Your startup must be verified before pitching.");
+        if (investor is null || !investor.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.InvestorNotVerified, "This investor is not verified.");
         if (await PairBlockersAsync(startup.Id, investor.Id, RequestType.Pitch, ct) is { } e) return e;
         if (!investor.ReceivePitches) return new Error(ErrorCodes.PitchDisabled, "This investor is not accepting pitches right now. No credit was charged.");
         var wallet = await wallets.GetByStartupAsync(startup.Id, ct);
@@ -155,9 +155,9 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
     {
         if (!actor.IsInvestor) return Guard.Forbidden("Only verified investors can send invitations.");
         var investor = await investors.GetByIdAsync(actor.InvestorId!.Value, ct);
-        if (investor is null || !investor.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Only verified investors can send invitations.");
+        if (investor is null || !investor.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.NotVerified, "Only verified investors can send invitations.");
         var startup = await startups.GetByIdAsync(startupId, ct);
-        if (startup is null || !startup.IsActiveVerified) return new Error(ErrorCodes.StartupNotVerified, "Invitations can only be sent to verified startups.");
+        if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.StartupNotVerified, "Invitations can only be sent to verified startups.");
         if (note?.Length > 500) return new Error(ErrorCodes.Validation, "Notes are limited to 500 characters.");
         // FR-081: Receive Pitches has no effect on invitations. FR-087: blocked/duplicate attempts never consume allowance.
         if (await PairBlockersAsync(startup.Id, investor.Id, RequestType.Invitation, ct) is { } blocked) return blocked;
@@ -212,6 +212,8 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
 
         var startup = (await startups.GetByIdAsync(r.StartupId, ct))!;
         var investor = (await investors.GetByIdAsync(r.InvestorId, ct))!;
+        if (accept && (!startup.IsActiveVerifiedAt(now) || !investor.IsActiveVerifiedAt(now)))
+            return Result.Failure(ErrorCodes.NotVerified, "Both parties must have current verification to accept this request.");
         r.DecidedAtUtc = now; r.DecisionNote = note?.Trim();
         if (!accept)
         {

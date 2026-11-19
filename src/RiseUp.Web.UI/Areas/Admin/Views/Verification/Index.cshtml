@@ -8,7 +8,27 @@
         <div style="padding:16px 20px;border-bottom:1px solid #EEF2F6">
             <div class="row between"><div><strong>@a.SubjectName</strong> <span class="tiny muted">@a.Subject · #@a.Id · submitted @Ui.Ago(a.SubmittedAtUtc)</span></div><span class="badge @Ui.StatusClass(a.Status.ToString())">@a.Status</span></div>
             <details class="small mt8"><summary class="linkbtn">View details</summary>
-                <dl class="kv mt8"><dt>Evidence</dt><dd>@string.Join(", ", a.DocumentKinds)</dd>
+                <dl class="kv mt8"><dt>Evidence</dt><dd>@foreach (var d in a.Documents)
+                {
+                    <div class="mt8">@d.Kind · @(d.Erased ? "Erased" : d.Retention == RiseUp.Entities.Verification.EvidenceRetention.Available ? d.ScanStatus.ToString() : d.Retention.ToString())
+                    @if (!d.Erased && d.Retention != RiseUp.Entities.Verification.EvidenceRetention.Erasing)
+                    {
+                        @if (a.Status == VerificationStatus.Pending && d.ScanStatus != ScanStatus.Infected)
+                        {
+                            <form class="inline" method="post" action="/admin/verification/@a.Id/evidence/@d.Id" asp-antiforgery="true"><button class="btn btn-outline btn-sm">Open @d.Kind</button></form>
+                        }
+                        @if (User.IsInRole(Roles.SuperAdmin))
+                        {
+                            var held = d.Retention == RiseUp.Entities.Verification.EvidenceRetention.Held;
+                            <form class="row" method="post" action="/admin/verification/@a.Id/evidence/@d.Id/hold" asp-antiforgery="true">
+                                <input type="hidden" name="hold" value="@((!held).ToString())" />
+                                <input class="input" name="reason" aria-label="Reason for hold or release" placeholder="Reason for hold or release" required minlength="5" maxlength="500" />
+                                <button class="btn btn-outline btn-sm">@(held ? "Release hold" : "Place hold")</button>
+                            </form>
+                        }
+                    }
+                    </div>
+                }</dd>
                 @if (a.Subject == VerificationSubject.Startup) {<dt>Licence</dt><dd>@a.LicenceHolderType · holder @a.LicenceHolderName · owner on account @a.OwnerName @if (string.Equals(a.LicenceHolderName, a.OwnerName, StringComparison.OrdinalIgnoreCase)) {<span class="badge b-ver">Names match</span>} else {<span class="badge b-danger">Mismatch</span>}</dd>}
                 @if (a.DecisionReason is not null) {<dt>Decision note</dt><dd>@a.DecisionReason</dd>}</dl>
                 <p class="tiny muted mb0">Opening evidence files is recorded in the access audit.</p>
@@ -17,6 +37,7 @@
             {
                 <form method="post" action="/admin/verification/@a.Id/decide" class="row mt16" style="flex-wrap:nowrap" asp-antiforgery="true">
                     <label class="sr" for="note-@a.Id">Decision note</label><input class="input" id="note-@a.Id" name="note" required minlength="5" placeholder="Decision note / rejection reason (required)" />
+                    <label class="field"><span>Earliest document expiry (if dated)</span><input class="input" type="date" name="earliestEvidenceExpiry" /></label>
                     <button class="btn btn-primary btn-sm" name="approve" value="true">Approve</button><button class="btn btn-danger btn-sm" name="approve" value="false">Reject</button>
                 </form>
             }

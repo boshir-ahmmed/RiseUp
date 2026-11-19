@@ -122,7 +122,7 @@ public sealed class PitchPackageFacade(IPitchRepository pitches, IStartupReposit
         if (e is not null) return Result.Failure(e);
         if (publicTeaser && p!.TeaserVideoId is null) return Result.Failure(ErrorCodes.Validation, "Upload a teaser before making it public.");
         if (publicDemo && p!.DemoVideoId is null) return Result.Failure(ErrorCodes.Validation, "Upload a product demo before making it public.");
-        if ((publicTeaser || publicDemo) && !s!.IsActiveVerified) return Result.Failure(ErrorCodes.NotVerified, "Public videos are available once your startup is verified.");
+        if ((publicTeaser || publicDemo) && !s!.IsActiveVerifiedAt(clock.UtcNow)) return Result.Failure(ErrorCodes.NotVerified, "Public videos are available once your startup is verified.");
         p!.PublicTeaser = publicTeaser; p.PublicDemo = publicDemo; p.CaptionsAvailable = captions;
         await uow.SaveChangesAsync(ct);
         return Result.Success(publicTeaser ? "Saved. Your teaser is public in Reels." : "Saved.");
@@ -252,7 +252,7 @@ public sealed class PitchPackageFacade(IPitchRepository pitches, IStartupReposit
         var packages = (await pitches.ListPackagesAsync(verified.Select(s => s.Id).ToList(), ct)).Where(p => p.PublicTeaser && p.TeaserVideoId is not null).ToDictionary(p => p.StartupId);
         var pool = verified.Where(s => packages.ContainsKey(s.Id) && !(actor.IsFounder && actor.StartupId == s.Id)).ToList();
         var me = actor.IsInvestor ? await investors.GetByIdAsync(actor.InvestorId!.Value, ct) : null;
-        var verifiedInvestor = me is { IsActiveVerified: true };
+        var verifiedInvestor = me?.IsActiveVerifiedAt(clock.UtcNow) == true;
         IEnumerable<Startup> ordered = me is not null
             ? RuleBasedMatcher.Rank(MatchingFacade.ToProfile(me, true), pool.Select(MatchingFacade.ToProfile).ToList()).Select(m => pool.First(s => s.Id == m.CandidateId))
             : pool.OrderByDescending(s => s.ViewCount);

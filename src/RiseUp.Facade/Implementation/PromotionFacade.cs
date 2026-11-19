@@ -15,7 +15,7 @@ public sealed class PromotionFacade(IPromotionRepository promotions, IPostReposi
     {
         if (!actor.IsFounder || actor.StartupId is null) return Guard.Forbidden("Only the Main Startup Owner can buy promotions.");
         var startup = await startups.GetByIdAsync(actor.StartupId.Value, ct);
-        if (startup is null || !startup.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Only verified startups can promote posts.");
+        if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.NotVerified, "Only verified startups can promote posts.");
         var post = await posts.GetByIdAsync(postId, ct);
         if (post is null || post.StartupId != startup.Id || !post.IsLive) return Guard.NotFound("Approved post");
         var package = (await payments.ListPromotionPackagesAsync(ct)).FirstOrDefault(p => p.Days == days);
@@ -66,7 +66,7 @@ public sealed class PromotionFacade(IPromotionRepository promotions, IPostReposi
         foreach (var p in await promotions.ListByStatusAsync(PromotionStatus.Active, ct))
         {
             var startup = await startups.GetByIdAsync(p.StartupId, ct);
-            if (startup is null || !startup.IsActiveVerified)
+            if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow))
             {
                 // FR-143/148/151: lapse or suspension pauses and preserves remaining paid time.
                 p.Status = PromotionStatus.Paused; p.PauseReason = startup?.IsSuspended == true ? "account suspended" : "verification lapsed";

@@ -181,17 +181,24 @@ public sealed partial class DemoDataSeeder(RiseUpDbContext db, IPasswordHasher h
         {
             Subject = VerificationSubject.Startup, StartupId = startups[7].Id, Status = VerificationStatus.Pending, LicenceHolderType = LicenceHolderType.Individual,
             LicenceHolderName = "Ayesha Noor", SubmittedAtUtc = now.AddDays(-2), CreatedAtUtc = now.AddDays(-2),
-            Documents = [new() { Kind = "NID", StorageKey = "demo-nid", ScanStatus = ScanStatus.Clean }, new() { Kind = "TradeLicence", StorageKey = "demo-licence", ScanStatus = ScanStatus.Clean }],
+            Documents = [await DemoEvidenceAsync("NID", ct), await DemoEvidenceAsync("TradeLicence", ct)],
         });
         db.VerificationApplications.Add(new VerificationApplication
         {
             Subject = VerificationSubject.Investor, InvestorId = investors[5].Id, Status = VerificationStatus.Pending, SubmittedAtUtc = now.AddDays(-1), CreatedAtUtc = now.AddDays(-1),
-            Documents = [new() { Kind = "Passport", StorageKey = "demo-passport", ScanStatus = ScanStatus.Clean }, new() { Kind = "Credential", StorageKey = "demo-credential", ScanStatus = ScanStatus.Clean }],
+            Documents = [await DemoEvidenceAsync("Passport", ct), await DemoEvidenceAsync("Credential", ct)],
         });
         db.Reports.Add(new UserReport { Kind = ReportKind.Comment, TargetReference = "comment:1", Reason = "Spam / self-promotion", ReporterAccountId = investorUsers[3].Id, Status = ReportStatus.Open, CreatedAtUtc = now.AddDays(-6) });
         db.AdminAudit.Add(new AdminActionAudit { ActorAccountId = admins[1].Id, ActorRole = "VerificationAdmin", Action = "Approved startup verification", Target = "Nodi Freight", Reason = "NID + trade licence holder match", CreatedAtUtc = now.AddDays(-80) });
         await db.SaveChangesAsync(ct);
         await SeedPitchingAndProfilesAsync(founders, investorUsers, admins, startups, investors, rafi, posts, ct);
+    }
+
+    private async Task<VerificationDocument> DemoEvidenceAsync(string kind, CancellationToken ct)
+    {
+        using var bytes = new MemoryStream(MinimalPdf("Fictional verification sample", [kind, "For demonstration only."]));
+        var key = await storage.SaveAsync(bytes, "sample.pdf", ct);
+        return new VerificationDocument { Kind = kind, StorageKey = key, ScanStatus = ScanStatus.Pending };
     }
 
     private static string Mitigation() => "Pitch delivered → Imran Chowdhury";

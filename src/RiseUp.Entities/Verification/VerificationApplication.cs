@@ -18,12 +18,15 @@ public class VerificationApplication : BaseEntity
     public List<VerificationDocument> Documents { get; set; } = [];
 }
 
+public enum EvidenceRetention { Available, Held, Erasing }
+
 public class VerificationDocument : BaseEntity
 {
     public int ApplicationId { get; set; }
     public string Kind { get; set; } = string.Empty; // NID, Passport, TradeLicence, OwnershipProof, Credential
     public string StorageKey { get; set; } = string.Empty;
     public ScanStatus ScanStatus { get; set; }
+    public EvidenceRetention Retention { get; set; }
     public bool Erased { get; set; }
 }
 

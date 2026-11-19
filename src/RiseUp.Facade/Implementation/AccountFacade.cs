@@ -15,7 +15,7 @@ namespace RiseUp.Facade.Identity;
 
 public sealed class AccountFacade(
     IUserAccountRepository accounts, IStartupRepository startups, IInvestorRepository investors, ITeamAccountRepository team,
-    IConnectionRepository connections, IWalletRepository wallets, IVerificationRepository verification,
+    IConnectionRepository connections, IWalletRepository wallets,
     IPostRepository posts, IPasswordHasher hasher, IMfaVerifier mfa, IUnitOfWork uow, IClock clock, IValidator<RegisterRequest> validator,
     ActivityRecorder activity, IPromotionFacade promotions) : IAccountFacade
 {
@@ -159,6 +159,9 @@ public sealed class AccountFacade(
         if (actor.AccountId is null || !(actor.IsFounder || actor.IsInvestor)) return Result.Failure(Guard.Forbidden());
         var account = await accounts.GetByIdAsync(actor.AccountId.Value, ct);
         if (account is null) return Result.Failure(Guard.NotFound("Account"));
+        if ((actor.IsFounder && (actor.StartupId is null || (await startups.GetByOwnerAsync(account.Id, ct))?.Id != actor.StartupId)) ||
+            (actor.IsInvestor && (await investors.GetByAccountAsync(account.Id, ct))?.Id != actor.InvestorId))
+            return Result.Failure(Guard.Forbidden());
         var now = clock.UtcNow;
         var cancelled = 0;
 
@@ -181,17 +184,9 @@ public sealed class AccountFacade(
             foreach (var r in await connections.ListPendingForInvestorAsync(investor.Id, ct)) { r.Status = Entities.Common.RequestStatus.Cancelled; r.DecidedAtUtc = now; r.DecisionNote = "account deleted"; cancelled++; }
             investor.IsDeleted = true; investor.DisplayName = "Deleted investor"; investor.Bio = "";
         }
-        foreach (var app in await verification.ListAsync(null, ct))
-        {
-            if (app.StartupId == actor.StartupId || app.InvestorId == actor.InvestorId)
-            {
-                var tracked = await verification.GetByIdAsync(app.Id, ct);
-                tracked?.Documents.ForEach(d => { d.Erased = true; d.StorageKey = "erased"; });
-            }
-        }
         account.DeletedAtUtc = now; account.FullName = "Deleted user"; account.Phone = null; account.PasswordHash = "";
         account.Email = $"deleted-{account.Id}@invalid"; account.NormalizedEmail = account.Email.ToUpperInvariant();
-        await activity.AuditAsync(Actor.System, "Account permanently deleted", $"account:{account.Id}", $"{cancelled} pending request(s) cancelled; balances forfeited; identity documents erased", ct: ct);
+        await activity.AuditAsync(Actor.System, "Account permanently deleted", $"account:{account.Id}", $"{cancelled} pending request(s) cancelled; balances forfeited; eligible identity documents scheduled for erasure", ct: ct);
         await uow.SaveChangesAsync(ct);
         return Result.Success($"Your account was deleted. {cancelled} pending request(s) were cancelled.");
     }

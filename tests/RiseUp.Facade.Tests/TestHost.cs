@@ -44,7 +44,7 @@ public sealed class TestHost : IAsyncDisposable
         _connection.Open();
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["Payments:Gateway"] = "Sandbox", ["Payments:WebhookSecret"] = "test-secret", ["Mfa:AllowDemoCodes"] = "true",
+            ["Scanning:DemoSignatures"] = "true", ["Payments:Gateway"] = "Sandbox", ["Payments:WebhookSecret"] = "test-secret", ["Mfa:AllowDemoCodes"] = "true",
             ["Seed:DemoMediaPath"] = DemoMediaPath(), ["Storage:RootPath"] = Path.Combine(Path.GetTempPath(), "riseup-test-storage"),
         }.Where(kv => !settings.ContainsKey(kv.Key)).Concat(settings).ToDictionary(k => k.Key, v => v.Value)).Build();
         var services = new ServiceCollection();

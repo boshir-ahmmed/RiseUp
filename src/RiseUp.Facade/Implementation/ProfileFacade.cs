@@ -39,7 +39,7 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
     private async Task<(string Name, string DefaultHeadline, int Color, bool Verified, string RoleLine, string? StartupName)> IdentityAsync(Actor actor, CancellationToken ct)
     {
         if (actor.IsInvestor && await investors.GetByIdAsync(actor.InvestorId!.Value, ct) is { } i)
-            return (i.DisplayName, $"{(i.InvestorType == "Venture fund" ? "Partner" : i.InvestorType)} · {i.Affiliation}", i.ColorIndex, i.IsActiveVerified, i.Affiliation, null);
+            return (i.DisplayName, $"{(i.InvestorType == "Venture fund" ? "Partner" : i.InvestorType)} · {i.Affiliation}", i.ColorIndex, i.IsActiveVerifiedAt(clock.UtcNow), i.Affiliation, null);
         if (actor.IsTeamMember && await team.GetByIdAsync(actor.TeamAccountId!.Value, ct) is { } t)
         {
             var s = await startups.GetByIdAsync(t.StartupId, ct);
@@ -47,7 +47,7 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
         }
         var account = actor.AccountId is int a ? await accounts.GetByIdAsync(a, ct) : null;
         if (actor.IsFounder && actor.StartupId is int sid && await startups.GetByIdAsync(sid, ct) is { } st)
-            return (account?.FullName ?? actor.Name, $"Founder · {st.Name}", st.ColorIndex, st.IsActiveVerified, $"Founder of {st.Name}", st.Name);
+            return (account?.FullName ?? actor.Name, $"Founder · {st.Name}", st.ColorIndex, st.IsActiveVerifiedAt(clock.UtcNow), $"Founder of {st.Name}", st.Name);
         return (account?.FullName ?? actor.Name, $"{actor.AdminRole} · RiseUp", 4, false, "RiseUp administration", null);
     }
 

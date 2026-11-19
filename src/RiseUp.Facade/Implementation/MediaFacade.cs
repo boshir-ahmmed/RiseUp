@@ -56,7 +56,7 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
         if (package is null) return owner;
         if (owner) return true;
         var startup = await startups.GetByIdAsync(package.StartupId, ct);
-        if (startup is null || !startup.IsActiveVerified) return false;
+        if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return false;
         var isTeaser = asset.Id == package.TeaserVideoId || asset.Id == package.TeaserPosterId;
         var isDemo = asset.Id == package.DemoVideoId || asset.Id == package.DemoPosterId;
         if ((isTeaser && package.PublicTeaser) || (isDemo && package.PublicDemo)) return true;

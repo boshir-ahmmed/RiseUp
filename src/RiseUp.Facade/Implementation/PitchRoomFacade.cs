@@ -84,7 +84,7 @@ public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchReposi
         var conn = r is null ? null : await requests.GetConnectionAsync(r.StartupId, r.InvestorId, ct);
         var shortlisted = role == Role.Investor && await shortlist.GetAsync(r!.InvestorId, r.StartupId, ct) is not null;
         return Result.Success(new PitchRoomDto(r?.Id, r is null, role == Role.Investor, role == Role.Founder, s.Id, s.Name, s.Tagline, s.Industry, s.Stage, s.Location, s.ColorIndex,
-            s.LogoMediaId is null ? null : UrlRewrite.Media(s.LogoMediaId), s.IsActiveVerified, s.IsSuspended, investor?.DisplayName, r?.SentAtUtc, r?.ExpiresAtUtc, r?.Status,
+            s.LogoMediaId is null ? null : UrlRewrite.Media(s.LogoMediaId), s.IsActiveVerifiedAt(clock.UtcNow), s.IsSuspended, investor?.DisplayName, r?.SentAtUtc, r?.ExpiresAtUtc, r?.Status,
             r?.PackageVersion, package.PackageVersion, r?.Message, r?.InfoRequestedAtUtc, r?.InfoRequestMessage, dto, questions,
             role == Role.Investor && pending && questions.Count < BusinessRules.PitchQuestionsMax && !s.IsSuspended, Math.Max(0, BusinessRules.PitchQuestionsMax - questions.Count),
             role == Role.Investor && pending && !s.IsSuspended, role == Role.Founder && pending, role == Role.Founder && r is not null ? Stats(engagement) : null,

@@ -71,6 +71,17 @@ public class RiseUpDbContext(DbContextOptions<RiseUpDbContext> options, IClock c
     public DbSet<Meeting> Meetings => Set<Meeting>();
     public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
 
+    // The development SQLite store uses EnsureCreated, while SQL Server uses versioned migrations.
+    public async Task InitializeDemoDatabaseAsync()
+    {
+        if (await Database.EnsureCreatedAsync()) return;
+        await using var transaction = await Database.BeginTransactionAsync();
+        var columns = await Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('VerificationDocuments')").ToListAsync();
+        if (!columns.Contains("Retention"))
+            await Database.ExecuteSqlRawAsync("ALTER TABLE VerificationDocuments ADD COLUMN Retention INTEGER NOT NULL DEFAULT 0");
+        await transaction.CommitAsync();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(RiseUpDbContext).Assembly);

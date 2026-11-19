@@ -21,7 +21,7 @@
 * CSP allows inline **styles** (`'unsafe-inline'` in `style-src` only) for per-startup colours; move to classes or nonces.
 * TOTP verification is implemented, but the authenticator **enrolment UI** is not; seeded admins rely on
   `Mfa:AllowDemoCodes` which must be `false` outside Development.
-* Sandbox adapters (AI, payments, malware scanner) must be replaced before production; the sandbox payment gateway
+* Sandbox adapters (AI, payments) must be replaced before production; the sandbox payment gateway
   refuses to start in Production by design.
 * Email delivery: notifications are written to the outbox; an SMTP/API sender worker is not yet implemented.
 * Data-protection keys should be persisted to a shared store for multi-instance deployments.

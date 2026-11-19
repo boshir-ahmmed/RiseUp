@@ -19,6 +19,9 @@ public sealed class ScheduledJobs(IServiceScopeFactory scopes, ILogger<Scheduled
             try
             {
                 using var scope = scopes.CreateScope();
+                var verification = scope.ServiceProvider.GetRequiredService<RiseUp.Facade.Verification.IVerificationFacade>();
+                await verification.ProcessEvidenceErasureAsync(stoppingToken);
+                await verification.ExpireDueAsync(stoppingToken);
                 var expired = await scope.ServiceProvider.GetRequiredService<IConnectionRequestFacade>().ExpireDueAsync(stoppingToken);
                 var promos = await scope.ServiceProvider.GetRequiredService<IPromotionFacade>().RunClockAsync(stoppingToken);
                 await scope.ServiceProvider.GetRequiredService<IDocumentFacade>().ProcessScanQueueAsync(stoppingToken);

@@ -20,7 +20,10 @@
     }
     else
     {
-        <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge b-ver">✓ Verified Investor</span></div></div>
+        var status = Model.Investor?.Status ?? VerificationStatus.Unverified;
+        <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge @Ui.StatusClass(status.ToString())">@status</span></div>
+            @if (status != VerificationStatus.Verified) { <a class="tiny" href="/settings#verification">Submit evidence</a> }
+        </div>
         <div class="card kpi"><div class="l">Pitches awaiting you</div><div class="v">@pending.Count(r => r.Type == RequestType.Pitch)</div></div>
         <div class="card kpi"><div class="l">Invitations today</div><div class="v">@Model.InvitationsUsedToday / 10</div><div class="tiny muted">Resets 00:00 Asia/Dhaka</div></div>
         <div class="card kpi"><div class="l">Receive Pitches</div><form method="post" action="/settings/receive-pitches" class="mt8" asp-antiforgery="true"><input type="hidden" name="receive" value="@((!(Model.Investor?.Card.ReceivePitches ?? true)).ToString().ToLowerInvariant())" /><button class="btn btn-outline btn-sm">@(Model.Investor?.Card.ReceivePitches == true ? "ON — turn off" : "OFF — turn on")</button></form></div>

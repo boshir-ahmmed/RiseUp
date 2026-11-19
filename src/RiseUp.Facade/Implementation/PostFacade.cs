@@ -24,8 +24,8 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
 {
     private async Task<bool> CanInteractAsync(Actor actor, CancellationToken ct)
     {
-        if (actor.IsFounder && actor.StartupId is int sid) return (await startups.GetByIdAsync(sid, ct))?.IsActiveVerified == true;
-        if (actor.IsInvestor) return (await investors.GetByIdAsync(actor.InvestorId!.Value, ct))?.IsActiveVerified == true;
+        if (actor.IsFounder && actor.StartupId is int sid) return (await startups.GetByIdAsync(sid, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true;
+        if (actor.IsInvestor) return (await investors.GetByIdAsync(actor.InvestorId!.Value, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true;
         return false;   // visitors, team members and admins cannot react (FR-113–115)
     }
 
@@ -34,7 +34,7 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
         if (!actor.IsFounder || actor.StartupId is null) return Guard.Forbidden("Only the Main Startup Owner can publish posts.");
         if (await Guard.ValidateAsync(validator, request, ct) is { } invalid) return invalid;
         var startup = await startups.GetByIdAsync(actor.StartupId.Value, ct);
-        if (startup is null || !startup.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Only verified startups can publish posts.");
+        if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.NotVerified, "Only verified startups can publish posts.");
         StartupPost post;
         if (request.PostId is int id)
         {
@@ -85,7 +85,7 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
         return list.Where(p => owners.ContainsKey(p.StartupId)).Select(p =>
         {
             var s = owners[p.StartupId];
-            return new FeedItemDto(p.Id, s.Id, s.Name, s.Industry, s.Location, s.VerificationStatus == VerificationStatus.Verified, s.ColorIndex, p.Category,
+            return new FeedItemDto(p.Id, s.Id, s.Name, s.Industry, s.Location, s.IsActiveVerifiedAt(clock.UtcNow), s.ColorIndex, p.Category,
                 p.LiveTitle!, p.LiveBody!, p.ImageStorageKey, p.PublishedAtUtc ?? p.CreatedAtUtc, likes.GetValueOrDefault(p.Id), comments.GetValueOrDefault(p.Id),
                 p.ShareCount, mine.Contains(p.Id), promoted.Contains(p.Id), s.Tagline, s.Stage, s.LogoMediaId is null ? null : UrlRewrite.Media(s.LogoMediaId),
                 p.VideoMediaId is null ? null : UrlRewrite.Media(p.VideoMediaId), p.PosterMediaId is null ? null : UrlRewrite.Media(p.PosterMediaId), p.VideoSeconds,
@@ -243,7 +243,7 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
     {
         if (!actor.IsFounder || actor.StartupId is null) return Result.Failure(Guard.Forbidden("Only the Main Startup Owner can add videos to posts."));
         var startup = await startups.GetByIdAsync(actor.StartupId.Value, ct);
-        if (startup is null || !startup.IsActiveVerified) return Result.Failure(ErrorCodes.NotVerified, "Only verified startups can publish videos.");
+        if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return Result.Failure(ErrorCodes.NotVerified, "Only verified startups can publish videos.");
         var p = await posts.GetByIdAsync(postId, ct);
         if (p is null || p.StartupId != startup.Id) return Result.Failure(Guard.Forbidden());
         var accepted = await intake.AcceptAsync(MediaKind.PostVideo, video, startup.Id, actor.AccountId, null, ct);

@@ -10,37 +10,64 @@ using RiseUp.Framework.Time;
 
 namespace RiseUp.Facade.Verification;
 
-public sealed class VerificationFacade(IVerificationRepository applications, IStartupRepository startups, IInvestorRepository investors,
+public sealed partial class VerificationFacade(IVerificationRepository applications, IStartupRepository startups, IInvestorRepository investors,
     IUserAccountRepository accounts, IWalletRepository wallets, IConnectionRepository connections, IPromotionFacade promotions,
-    IUnitOfWork uow, IClock clock, ActivityRecorder activity) : IVerificationFacade
+    IUnitOfWork uow, IClock clock, ActivityRecorder activity, IFileStorage storage, IMalwareScanner scanner, IVerificationUploadStorage intake,
+    Microsoft.Extensions.Logging.ILogger<VerificationFacade> logger) : IVerificationFacade
 {
-    private static bool CanReview(Actor a) => a.IsAdmin(AdminRole.VerificationAdmin) || a.IsAdmin(AdminRole.SuperAdmin);
+    private static bool CanReview(Actor a) => a.AccountId.HasValue && (a.IsAdmin(AdminRole.VerificationAdmin) || a.IsAdmin(AdminRole.SuperAdmin));
 
     public async Task<Result<int>> SubmitAsync(Actor actor, SubmitVerificationRequest request, CancellationToken ct = default)
     {
-        if (request.Documents.Count == 0) return new Error(ErrorCodes.Validation, "Upload your identity and business/credential documents.");
-        var app = new VerificationApplication { Status = VerificationStatus.Pending, SubmittedAtUtc = clock.UtcNow };
+        VerificationSubject subject;
+        int subjectId;
         if (actor.IsFounder && actor.StartupId is int sid)
         {
-            if (await applications.GetPendingForAsync(VerificationSubject.Startup, sid, ct) is not null) return new Error(ErrorCodes.Conflict, "An application is already awaiting review.");
-            if (request.LicenceHolderType is null || string.IsNullOrWhiteSpace(request.LicenceHolderName))
+            subject = VerificationSubject.Startup;
+            subjectId = sid;
+            if (request.LicenceHolderType is not (LicenceHolderType.Company or LicenceHolderType.Individual) ||
+                string.IsNullOrWhiteSpace(request.LicenceHolderName) || request.LicenceHolderName.Trim().Length > 150)
                 return new Error(ErrorCodes.Validation, "State whether the trade licence names an individual or a company, and the holder's name.");
-            app.Subject = VerificationSubject.Startup; app.StartupId = sid;
-            app.LicenceHolderType = request.LicenceHolderType; app.LicenceHolderName = request.LicenceHolderName.Trim();
-            var startup = await startups.GetByIdAsync(sid, ct);
-            if (startup!.VerificationStatus is VerificationStatus.Unverified or VerificationStatus.Rejected) startup.VerificationStatus = VerificationStatus.Pending;
         }
-        else if (actor.IsInvestor)
+        else if (actor.IsInvestor && actor.InvestorId is int iid)
         {
-            if (await applications.GetPendingForAsync(VerificationSubject.Investor, actor.InvestorId!.Value, ct) is not null) return new Error(ErrorCodes.Conflict, "An application is already awaiting review.");
-            app.Subject = VerificationSubject.Investor; app.InvestorId = actor.InvestorId;
-            var investor = await investors.GetByIdAsync(actor.InvestorId!.Value, ct);
-            if (investor!.VerificationStatus is VerificationStatus.Unverified or VerificationStatus.Rejected) investor.VerificationStatus = VerificationStatus.Pending;
+            subject = VerificationSubject.Investor;
+            subjectId = iid;
         }
         else return Guard.Forbidden();
+
+        if (!HasRequiredEvidence(subject, request.LicenceHolderType, request.Documents.Select(d => d.Kind)))
+            return new Error(ErrorCodes.Validation, "Supply an identity document and the required business, ownership or investor evidence.");
+
+        var startup = subject == VerificationSubject.Startup ? await startups.GetByIdAsync(subjectId, ct) : null;
+        var investor = subject == VerificationSubject.Investor ? await investors.GetByIdAsync(subjectId, ct) : null;
+        if (actor.AccountId is null || (subject == VerificationSubject.Startup
+            ? startup is null || startup.IsDeleted || startup.OwnerAccountId != actor.AccountId
+            : investor is null || investor.IsDeleted || investor.AccountId != actor.AccountId))
+            return Guard.Forbidden();
+
+        var pending = await applications.GetPendingForAsync(subject, subjectId, ct);
+        if (pending?.Documents.Count > 0) return new Error(ErrorCodes.Conflict, "An application is already awaiting review.");
+        var app = pending ?? new VerificationApplication { Subject = subject, Status = VerificationStatus.Pending };
+        if (startup != null)
+        {
+            app.StartupId = startup.Id;
+            app.LicenceHolderName = request.LicenceHolderName!.Trim();
+            app.LicenceHolderType = request.LicenceHolderType;
+            if (startup.VerificationStatus is VerificationStatus.Unverified or VerificationStatus.Rejected) startup.VerificationStatus = VerificationStatus.Pending;
+            startup.Version = Guid.NewGuid(); // serialize submissions and deletion even on renewal
+        }
+        else
+        {
+            app.InvestorId = investor!.Id;
+            if (investor.VerificationStatus is VerificationStatus.Unverified or VerificationStatus.Rejected) investor.VerificationStatus = VerificationStatus.Pending;
+            investor.Version = Guid.NewGuid();
+        }
         app.Documents = request.Documents.Select(d => new VerificationDocument { Kind = d.Kind, StorageKey = d.StorageKey, ScanStatus = ScanStatus.Pending }).ToList();
-        await applications.AddAsync(app, ct);
-        await uow.SaveChangesAsync(ct);
+        app.SubmittedAtUtc = clock.UtcNow;
+        if (pending is null) await applications.AddAsync(app, ct);
+        try { await uow.SaveChangesAsync(ct); }
+        catch (PersistenceConflictException) { return new Error(ErrorCodes.Conflict, "The applicant or application changed. Refresh before submitting again."); }
         return Result.Success(app.Id, "Submitted for manual review.");
     }
 
@@ -59,18 +86,34 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
             }
             else name = (await investors.GetByIdAsync(a.InvestorId!.Value, ct))?.DisplayName ?? "?";
             result.Add(new ApplicationDto(a.Id, a.Subject, a.StartupId ?? a.InvestorId ?? 0, name, owner, a.Status, a.LicenceHolderType, a.LicenceHolderName,
-                a.SubmittedAtUtc, a.DecisionReason, a.Documents.Select(d => d.Kind).ToList()));
+                a.SubmittedAtUtc, a.DecisionReason, a.Documents.Select(d => new EvidenceDto(d.Id, d.Kind, d.ScanStatus, d.Retention, d.Erased)).ToList()));
         }
         return result;
     }
 
-    public async Task<Result> ApproveAsync(Actor admin, int applicationId, string note, CancellationToken ct = default)
+    public async Task<Result> ApproveAsync(Actor admin, int applicationId, string note, DateOnly? earliestEvidenceExpiry = null, CancellationToken ct = default)
     {
         if (!CanReview(admin)) return Result.Failure(Guard.Forbidden("Only a Verification Administrator can decide verification."));
         var app = await applications.GetByIdAsync(applicationId, ct);
         if (app is null || app.Status != VerificationStatus.Pending) return Result.Failure(ErrorCodes.NotPending, "This application is not pending.");
         var now = clock.UtcNow;
+        var validUntil = now.Add(BusinessRules.VerificationValidity);
+        if (earliestEvidenceExpiry is DateOnly date)
+        {
+            if (date < DhakaTime.ToDhakaDate(now)) return Result.Failure(ErrorCodes.Validation, "An evidence document has already expired.");
+            if (date < DhakaTime.ToDhakaDate(validUntil))
+                validUntil = DhakaTime.FromDhaka(date.AddDays(1).ToDateTime(TimeOnly.MinValue));
+        }
         var message = "Verified.";
+        if (string.IsNullOrWhiteSpace(note) || note.Trim().Length is < 5 or > 500)
+            return Result.Failure(ErrorCodes.Validation, "Enter a decision note of 5 to 500 characters.");
+        if (!await IsSubjectActiveAsync(app, ct)) return Result.Failure(Guard.NotFound("Applicant"));
+        if (!HasRequiredEvidence(app.Subject, app.LicenceHolderType, app.Documents.Select(d => d.Kind)))
+            return Result.Failure(ErrorCodes.Validation, "Required evidence is missing or unclassified. Request a corrected application.");
+        foreach (var d in app.Documents)
+            if (d.ScanStatus != ScanStatus.Clean || d.Erased || d.Retention == EvidenceRetention.Erasing ||
+                !await applications.WasOpenedByAsync(d.Id, admin.AccountId!.Value, ct))
+                return Result.Failure(ErrorCodes.UploadPendingScan, "Open and review each clean document before approving.");
 
         if (app.Subject == VerificationSubject.Startup)
         {
@@ -81,7 +124,7 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
                 !string.Equals(app.LicenceHolderName?.Trim(), owner?.FullName.Trim(), StringComparison.OrdinalIgnoreCase))
                 return Result.Failure(ErrorCodes.OwnershipMismatch, "An individually named trade licence must belong to the Main Startup Owner.");
             startup.VerificationStatus = VerificationStatus.Verified;
-            startup.VerifiedUntilUtc = now.Add(BusinessRules.VerificationValidity);
+            startup.VerifiedUntilUtc = validUntil;
             // FR-121/122: exactly 20 Welcome credits on FIRST verification only; idempotency key prevents duplicates.
             var key = $"welcome:{startup.Id}";
             if (!startup.WelcomeTokensGranted && !await wallets.LedgerKeyExistsAsync(key, ct))
@@ -101,20 +144,21 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
         {
             var investor = await investors.GetByIdAsync(app.InvestorId!.Value, ct);
             investor!.VerificationStatus = VerificationStatus.Verified;
-            investor.VerifiedUntilUtc = now.Add(BusinessRules.VerificationValidity);
+            investor.VerifiedUntilUtc = validUntil;
             await activity.NotifyAccountAsync(investor.AccountId, "Your investor profile is verified.", "/dashboard", ct);
             message = $"{investor.DisplayName} verified.";
         }
         app.Status = VerificationStatus.Verified; app.DecidedAtUtc = now; app.ReviewerAccountId = admin.AccountId; app.DecisionReason = note;
         await activity.AuditAsync(admin, $"Approved {app.Subject} verification", $"application:{app.Id}", note, ct: ct);
-        await uow.SaveChangesAsync(ct);
+        try { await uow.SaveChangesAsync(ct); }
+        catch (PersistenceConflictException) { return Result.Failure(ErrorCodes.Conflict, "This application changed. Refresh the review queue."); }
         return Result.Success(message);
     }
 
     public async Task<Result> RejectAsync(Actor admin, int applicationId, string reason, CancellationToken ct = default)
     {
         if (!CanReview(admin)) return Result.Failure(Guard.Forbidden());
-        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length < 5) return Result.Failure(ErrorCodes.Validation, "A clear rejection reason is required (FR-019).");
+        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length is < 5 or > 500) return Result.Failure(ErrorCodes.Validation, "A clear rejection reason is required (FR-019).");
         var app = await applications.GetByIdAsync(applicationId, ct);
         if (app is null || app.Status != VerificationStatus.Pending) return Result.Failure(ErrorCodes.NotPending, "This application is not pending.");
         app.Status = VerificationStatus.Rejected; app.DecidedAtUtc = clock.UtcNow; app.ReviewerAccountId = admin.AccountId; app.DecisionReason = reason.Trim();
@@ -131,7 +175,8 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
             await activity.NotifyAccountAsync(i.AccountId, $"Verification rejected: {reason.Trim()} You can correct and resubmit.", "/verification", ct);
         }
         await activity.AuditAsync(admin, $"Rejected {app.Subject} verification", $"application:{app.Id}", reason.Trim(), ct: ct);
-        await uow.SaveChangesAsync(ct);
+        try { await uow.SaveChangesAsync(ct); }
+        catch (PersistenceConflictException) { return Result.Failure(ErrorCodes.Conflict, "This application changed. Refresh the review queue."); }
         return Result.Success("Rejected with reason. The applicant can resubmit.");
     }
 
@@ -145,6 +190,7 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
         {
             var s = await startups.GetByIdAsync(subjectId, ct);
             if (s is null) return Result.Failure(Guard.NotFound("Startup"));
+            if (admin == Actor.System && (s.VerificationStatus != VerificationStatus.Verified || s.VerifiedUntilUtc > now)) return Result.Success();
             await promotions.PauseForStartupAsync(s.Id, "verification lapsed", ct);
             s.VerificationStatus = VerificationStatus.Expired;
             foreach (var r in await connections.ListPendingForStartupAsync(s.Id, ct)) { r.Status = RequestStatus.Cancelled; r.DecidedAtUtc = now; r.DecisionNote = "verification expired"; cancelled++; }
@@ -153,6 +199,7 @@ public sealed class VerificationFacade(IVerificationRepository applications, ISt
         {
             var i = await investors.GetByIdAsync(subjectId, ct);
             if (i is null) return Result.Failure(Guard.NotFound("Investor"));
+            if (admin == Actor.System && (i.VerificationStatus != VerificationStatus.Verified || i.VerifiedUntilUtc > now)) return Result.Success();
             i.VerificationStatus = VerificationStatus.Expired;
             foreach (var r in await connections.ListPendingForInvestorAsync(i.Id, ct)) { r.Status = RequestStatus.Cancelled; r.DecidedAtUtc = now; r.DecisionNote = "verification expired"; cancelled++; }
         }

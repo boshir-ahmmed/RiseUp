@@ -20,7 +20,7 @@ public sealed class PaymentFacade(IPaymentRepository payments, IWalletRepository
     {
         if (!actor.IsFounder || actor.StartupId is null) return Guard.Forbidden("Only the Main Startup Owner can buy credits.");
         var startup = await startups.GetByIdAsync(actor.StartupId.Value, ct);
-        if (startup is null || !startup.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Credit purchases open after verification.");
+        if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.NotVerified, "Credit purchases open after verification.");
         var package = await payments.GetPackageAsync(packageId, ct);
         if (package is null) return Guard.NotFound("Credit package");
         var order = new PaymentOrder
