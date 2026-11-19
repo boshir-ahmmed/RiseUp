@@ -1,12 +1,12 @@
 @model IReadOnlyList<PackageDto>
 @{ ViewData["Title"] = "Pricing"; }
 <section class="section" style="padding-top:40px"><div class="container">
-    <div class="sec-head"><h1 style="font-size:34px">Pricing</h1><p class="muted">Investors join free. Founders receive 20 welcome tokens on first verification and can top up with token packages paid in BDT.</p></div>
+    <div class="sec-head"><h1 style="font-size:34px">RiseUp Credits</h1><p class="muted">Investors join free. Founders receive 20 welcome credits when their startup is first verified. Purchased credits can be used for pitches and post promotions.</p><p class="muted">One credit delivers your pitch. If the investor accepts, you can start a conversation.</p></div>
     <div class="grid g3">
         @foreach (var p in Model)
         {
-            <div class="card mk-card card-b"><h3>@p.Tokens tokens</h3><div class="stat">@Ui.Bdt(p.PriceBdt)</div><div class="small muted">@Ui.Bdt(Math.Round(p.PriceBdt / p.Tokens)) per token · never expire</div><a class="btn btn-outline mt16" style="width:100%" href="/wallet">Buy in wallet</a></div>
+            <div class="card mk-card card-b"><h3>@p.Tokens credits</h3><div class="stat">@Ui.Bdt(p.PriceBdt)</div><div class="small muted">@Ui.Bdt(Math.Round(p.PriceBdt / p.Tokens)) per credit · credits never expire</div><a class="btn btn-outline mt16" style="width:100%" href="/wallet">Buy credits</a></div>
         }
     </div>
-    <p class="small muted mt16">Token purchases are for RiseUp platform services only. RiseUp does not handle investments, escrow or investor fund transfers.</p>
+    <p class="small muted mt16">Credit purchases are for RiseUp platform services only. RiseUp does not handle investments, escrow or investor fund transfers.</p>
 </div></section>

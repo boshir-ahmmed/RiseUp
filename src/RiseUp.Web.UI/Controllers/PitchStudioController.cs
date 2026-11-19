@@ -37,7 +37,7 @@ public sealed class PitchStudioController(IPitchPackageFacade package, IPitchRoo
         });
     }
 
-    // ------------------------------------------------------------ send (note → AI Model 1 only; 1 token on delivery)
+    // ------------------------------------------------------------ send (note → AI Model 1 only; 1 credit on delivery)
     [HttpPost("/pitches/send"), EnableRateLimiting("requests")]
     public async Task<IActionResult> Send(int investorId, string text, string idempotencyKey, int? draftId, int[]? documentIds, bool documentsChosen, CancellationToken ct)
     {

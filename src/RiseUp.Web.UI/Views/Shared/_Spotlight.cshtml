@@ -30,9 +30,9 @@
             @if (Model.ViewerIsVerifiedInvestor)
             {
                 if (Model.PendingPitchRequestId is int rid) { <a class="btn btn-primary" href="/pitch-room/@rid">Open pitch room</a> }
-                else if (Model.Connected) { <a class="btn btn-primary" href="/conversations">Message founder</a> }
+                else if (Model.Connected) { <span class="badge b-ver">Connected</span> <a class="btn btn-primary" href="/conversations">Message</a> }
                 else if (Model.InvitationPending) { <span class="badge b-pend">Invitation pending</span> }
-                else { <form method="post" action="/startups/@Model.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><input type="hidden" name="note" value="I'd like to see your full pitch." /><button class="btn btn-primary">Request full pitch</button></form> }
+                else { <form method="post" action="/startups/@Model.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><input type="hidden" name="note" value="I'd like to see your full pitch." /><button class="btn btn-primary">Invite to connect</button></form> }
                 <form method="post" action="/shortlist/@Model.StartupId/toggle" class="inline" asp-antiforgery="true"><button class="btn btn-outline">@(Model.Shortlisted ? "★ Shortlisted" : "☆ Shortlist")</button></form>
             }
             else if (!signedIn) { <a class="btn btn-primary" href="/register">Join to see the full pitch</a> }

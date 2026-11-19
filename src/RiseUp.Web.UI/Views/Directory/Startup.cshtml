@@ -12,10 +12,10 @@
         <div class="card-b" style="margin-top:-52px">
             <div class="row between" style="align-items:flex-end"><partial name="_Brand" model='(s.Name, s.ColorIndex, "lg", s.LogoUrl)' />
                 <div class="row">
-                    @if (s.ViewerIsConnected) { <a class="btn btn-primary" href="/conversations">Open conversation</a> }
+                    @if (s.ViewerIsConnected) { <span class="badge b-ver">Connected</span> <a class="btn btn-primary" href="/conversations">Message</a> }
                     else if (s.ViewerCanInvite)
                     {
-                        <form method="post" action="/startups/@s.Id/invite" class="row" style="flex-wrap:nowrap" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><label class="sr" for="note">Note</label><input class="input" id="note" name="note" maxlength="500" placeholder="Optional note" style="width:200px" /><button class="btn btn-primary">Send free invitation</button></form>
+                        <form method="post" action="/startups/@s.Id/invite" class="row" style="flex-wrap:nowrap" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><label class="sr" for="note">Note</label><input class="input" id="note" name="note" maxlength="500" placeholder="Optional note" style="width:200px" /><button class="btn btn-primary">Invite to connect</button></form>
                     }
                     @if (spot is { ViewerIsVerifiedInvestor: true, PendingPitchRequestId: int prid }) { <a class="btn btn-primary" href="/pitch-room/@prid">Open pitch room</a> }
                     @if (actor.IsInvestor) { <form method="post" action="/shortlist/@s.Id/toggle" class="inline" asp-antiforgery="true"><button class="btn btn-outline">@(spot?.Shortlisted == true ? "★ Shortlisted" : "☆ Shortlist")</button></form> }

@@ -26,7 +26,7 @@
             <details class="small"><summary class="linkbtn">View details</summary>
                 <div class="card card-b mt8" style="min-width:260px;box-shadow:none">
                     <dl class="kv" style="grid-template-columns:110px 1fr"><dt>Sent</dt><dd>@Ui.Dhaka(Model.SentAtUtc)</dd><dt>Expires</dt><dd>@Ui.Dhaka(Model.ExpiresAtUtc)</dd>
-                    @if (Model.Bucket is not null) {<dt>Token</dt><dd>1 @Model.Bucket (not refunded after delivery)</dd>}
+                    @if (Model.Bucket is not null) {<dt>Delivery cost</dt><dd>1 @Model.Bucket.Value.ToString().ToLowerInvariant() credit (non-refundable after delivery)</dd>}
                     @if (Model.DecisionNote is not null) {<dt>Note</dt><dd>@Model.DecisionNote</dd>}</dl>
                     <p class="small mt8 mb0" style="white-space:pre-wrap">@Model.Message</p>
                 </div>

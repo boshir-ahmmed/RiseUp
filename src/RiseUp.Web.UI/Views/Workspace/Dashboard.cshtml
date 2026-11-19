@@ -14,7 +14,7 @@
     @if (actor.IsFounder)
     {
         <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge @Ui.StatusClass(Model.Startup!.Status.ToString())">@Model.Startup.Status</span></div><div class="tiny muted mt8">@(Model.Startup.VerifiedUntilUtc is DateTime u ? "Valid until " + Ui.Dhaka(u) : "Awaiting manual review")</div></div>
-        <div class="card kpi"><div class="l">Tokens</div><div class="v">@((Model.Wallet?.WelcomeBalance ?? 0) + (Model.Wallet?.PurchasedBalance ?? 0))</div><div class="tiny muted">@(Model.Wallet?.WelcomeBalance ?? 0) Welcome · @(Model.Wallet?.PurchasedBalance ?? 0) Purchased</div></div>
+        <div class="card kpi"><div class="l">Credits</div><div class="v">@((Model.Wallet?.WelcomeBalance ?? 0) + (Model.Wallet?.PurchasedBalance ?? 0))</div><div class="tiny muted">@(Model.Wallet?.WelcomeBalance ?? 0) Welcome · @(Model.Wallet?.PurchasedBalance ?? 0) Purchased</div></div>
         <div class="card kpi"><div class="l">Profile views</div><div class="v">@Model.Startup.Views.ToString("N0")</div></div>
         <div class="card kpi"><div class="l">Team slots</div><div class="v">@Model.Team.Count / 5</div><div class="tiny muted">active + deactivated</div></div>
     }

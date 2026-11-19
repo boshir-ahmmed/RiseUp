@@ -19,9 +19,9 @@
                     @if (s.ViewerIsVerifiedInvestor)
                     {
                         if (s.PendingPitchRequestId is int rid) { <a class="btn btn-primary btn-sm" href="/pitch-room/@rid">Open pitch room</a> }
-                        else if (s.Connected) { <a class="btn btn-primary btn-sm" href="/conversations">Connected · open chat</a> }
+                        else if (s.Connected) { <span class="badge b-ver">Connected</span> <a class="btn btn-primary btn-sm" href="/conversations">Message</a> }
                         else if (s.InvitationPending) { <span class="badge b-pend">Invitation pending</span> }
-                        else { <form method="post" action="/startups/@s.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><input type="hidden" name="note" value="I'd like to see your full pitch." /><button class="btn btn-primary btn-sm">Request the full pitch (free invitation)</button></form> }
+                        else { <form method="post" action="/startups/@s.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><input type="hidden" name="note" value="I'd like to see your full pitch." /><button class="btn btn-primary btn-sm">Invite to connect</button></form> }
                     }
                     else if (!actor.IsAuthenticated) { <a class="btn btn-primary btn-sm" href="/register">Join to watch the full pitch</a> }
                     @if (s.Demo is not null) { <a class="btn btn-outline btn-sm" href="@s.Demo.Url" target="_blank" rel="noopener">Watch product demo</a> }

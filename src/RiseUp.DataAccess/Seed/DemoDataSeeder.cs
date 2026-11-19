@@ -165,14 +165,14 @@ public sealed partial class DemoDataSeeder(RiseUpDbContext db, IPasswordHasher h
         await db.SaveChangesAsync(ct);
         db.PostReactions.AddRange(new PostReaction { PostId = posts[0].Id, ActorAccountId = investorUsers[0].Id, CreatedAtUtc = now }, new PostReaction { PostId = posts[0].Id, ActorAccountId = investorUsers[3].Id, CreatedAtUtc = now });
         db.PostComments.Add(new PostComment { PostId = posts[0].Id, Depth = 1, AuthorAccountId = investorUsers[0].Id, AuthorName = "Sadia Haque", Body = "Impressive corridor efficiency gains.", CreatedAtUtc = now.AddDays(-1) });
-        // Nodi Freight bought 25 tokens and promoted post 1 for 3 days.
+        // Nodi Freight bought 25 credits and promoted post 1 for 3 days.
         var nodiWallet = await db.Wallets.FirstAsync(w => w.StartupId == nodi.Id, ct);
         nodiWallet.WelcomeBalance = 18; nodiWallet.PurchasedBalance = 18;
         db.PaymentOrders.Add(new PaymentOrder { OrderNumber = "PO-7001", StartupId = nodi.Id, PackageId = 2, TokensSnapshot = 25, PriceBdtSnapshot = 1100, Status = PaymentStatus.Paid, ProviderTransactionId = "SBX-88213", CreditedAtUtc = now.AddDays(-20), Method = "bKash (sandbox)", CreatedAtUtc = now.AddDays(-20) });
         db.TokenLedger.AddRange(
             new TokenLedgerEntry { StartupId = nodi.Id, Description = "Pitch delivered → Sadia Haque", Bucket = TokenBucket.Welcome, Amount = -1, Reference = "seed:r0", IdempotencyKey = "pitch:seed:r0", CreatedAtUtc = now.AddDays(-40) },
             new TokenLedgerEntry { StartupId = nodi.Id, Description = Mitigation(), Bucket = TokenBucket.Welcome, Amount = -1, Reference = "seed:r1", IdempotencyKey = "pitch:seed:r1", CreatedAtUtc = now.AddDays(-12) },
-            new TokenLedgerEntry { StartupId = nodi.Id, Description = "Token purchase · 25 tokens (order PO-7001)", Bucket = TokenBucket.Purchased, Amount = 25, Reference = "order:PO-7001", IdempotencyKey = "order:SBX-88213", CreatedAtUtc = now.AddDays(-20) },
+            new TokenLedgerEntry { StartupId = nodi.Id, Description = "Credit purchase · 25 credits (order PO-7001)", Bucket = TokenBucket.Purchased, Amount = 25, Reference = "order:PO-7001", IdempotencyKey = "order:SBX-88213", CreatedAtUtc = now.AddDays(-20) },
             new TokenLedgerEntry { StartupId = nodi.Id, Description = "Promotion · 3 days", Bucket = TokenBucket.Purchased, Amount = -7, Reference = $"post:{posts[0].Id}", IdempotencyKey = "promo:seed:1", CreatedAtUtc = now.AddDays(-1.5) });
         db.Promotions.Add(new Promotion { PostId = posts[0].Id, StartupId = nodi.Id, Days = 3, CostTokens = 7, RemainingSeconds = (long)TimeSpan.FromDays(1.5).TotalSeconds, Status = PromotionStatus.Active, StartedAtUtc = now.AddDays(-1.5), LastTickUtc = now, Impressions = 2140, Clicks = 96, Engagements = 31 });
 

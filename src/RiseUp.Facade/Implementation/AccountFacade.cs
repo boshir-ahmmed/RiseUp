@@ -152,7 +152,7 @@ public sealed class AccountFacade(
         return Result.Success("Password updated. Please sign in.");
     }
 
-    /// <summary>FR-161–166: revoke access, anonymise, cancel requests, forfeit tokens, erase identity evidence.</summary>
+    /// <summary>FR-161–166: revoke access, anonymise, cancel requests, forfeit credits, erase identity evidence.</summary>
     public async Task<Result> DeleteAccountAsync(Actor actor, string confirmation, CancellationToken ct = default)
     {
         if (confirmation != "DELETE") return Result.Failure(ErrorCodes.Validation, "Type DELETE to confirm.");

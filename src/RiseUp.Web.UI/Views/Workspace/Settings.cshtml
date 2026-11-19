@@ -44,7 +44,7 @@
                 <label class="field"><span>Incoming owner's legal name</span><input class="input" name="incomingName" required /></label><label class="field"><span>Incoming owner's email</span><input class="input" type="email" name="incomingEmail" required /></label><button class="btn btn-outline">Record my consent</button></form>
         }
         <form class="card card-b stack" method="post" action="/account/delete" style="border-color:#F4C7C3" asp-antiforgery="true"><h3 style="color:var(--danger)">Delete account</h3>
-            <p class="small muted">Permanent. @(s is not null ? "Your public startup and posts are removed, team accounts deactivated, pending requests cancelled, and unused Welcome and Purchased tokens forfeited." : "Pending requests are cancelled and your identity is anonymised in remaining conversations.") Identity documents are erased unless a legal hold applies.</p>
+            <p class="small muted">Permanent. @(s is not null ? "Your public startup and posts are removed, team accounts deactivated, pending requests cancelled, and unused welcome and purchased credits forfeited." : "Pending requests are cancelled and your identity is anonymised in remaining conversations.") Identity documents are erased unless a legal hold applies.</p>
             <label class="field"><span>Type DELETE to confirm</span><input class="input" name="confirmation" required /></label><button class="btn btn-danger">Delete my account</button></form>
     </div>
 </div>

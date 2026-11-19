@@ -18,11 +18,11 @@ public sealed class PaymentFacade(IPaymentRepository payments, IWalletRepository
 
     public async Task<Result<CheckoutDto>> CreateOrderAsync(Actor actor, int packageId, CancellationToken ct = default)
     {
-        if (!actor.IsFounder || actor.StartupId is null) return Guard.Forbidden("Only the Main Startup Owner can buy tokens.");
+        if (!actor.IsFounder || actor.StartupId is null) return Guard.Forbidden("Only the Main Startup Owner can buy credits.");
         var startup = await startups.GetByIdAsync(actor.StartupId.Value, ct);
-        if (startup is null || !startup.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Token purchases open after verification.");
+        if (startup is null || !startup.IsActiveVerified) return new Error(ErrorCodes.NotVerified, "Credit purchases open after verification.");
         var package = await payments.GetPackageAsync(packageId, ct);
-        if (package is null) return Guard.NotFound("Token package");
+        if (package is null) return Guard.NotFound("Credit package");
         var order = new PaymentOrder
         {
             OrderNumber = $"PO-{clock.UtcNow:yyMMdd}-{RandomNumberGenerator.GetInt32(100000, 999999)}", StartupId = startup.Id, PackageId = package.Id,
@@ -75,16 +75,16 @@ public sealed class PaymentFacade(IPaymentRepository payments, IWalletRepository
             await payments.AddEventAsync(new PaymentProviderEvent { OrderId = order.Id, ProviderTransactionId = txn, SignatureValid = true, PayloadHash = payloadHash, Result = "Duplicate — ignored (already credited)" }, ct);
             await uow.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
-            return Result.Failure(ErrorCodes.DuplicatePaymentEvent, "Duplicate confirmation ignored. Tokens were credited only once.");
+            return Result.Failure(ErrorCodes.DuplicatePaymentEvent, "Duplicate confirmation ignored. Credits were added only once.");
         }
         var wallet = await wallets.GetByStartupAsync(order.StartupId, ct);
         if (wallet is null) { wallet = new StartupWallet { StartupId = order.StartupId }; await wallets.AddAsync(wallet, ct); }
         wallet.PurchasedBalance += order.TokensSnapshot;
         order.Status = PaymentStatus.Paid; order.ProviderTransactionId = txn; order.CreditedAtUtc = clock.UtcNow; order.Method = method;
-        await wallets.AddLedgerAsync(new TokenLedgerEntry { StartupId = order.StartupId, Description = $"Token purchase · {order.TokensSnapshot} tokens (order {order.OrderNumber})", Bucket = TokenBucket.Purchased, Amount = order.TokensSnapshot, Reference = $"order:{order.OrderNumber}", IdempotencyKey = $"order:{txn}" }, ct);
+        await wallets.AddLedgerAsync(new TokenLedgerEntry { StartupId = order.StartupId, Description = $"Credit purchase · {order.TokensSnapshot} credits (order {order.OrderNumber})", Bucket = TokenBucket.Purchased, Amount = order.TokensSnapshot, Reference = $"order:{order.OrderNumber}", IdempotencyKey = $"order:{txn}" }, ct);
         await payments.AddEventAsync(new PaymentProviderEvent { OrderId = order.Id, ProviderTransactionId = txn, SignatureValid = true, PayloadHash = payloadHash, Result = $"Credited {order.TokensSnapshot} Purchased" }, ct);
         var owner = (await startups.GetByIdAsync(order.StartupId, ct))?.OwnerAccountId;
-        await activity.NotifyAccountAsync(owner, $"Payment received: {order.TokensSnapshot} tokens added.", "/wallet", ct);
+        await activity.NotifyAccountAsync(owner, $"Payment received: {order.TokensSnapshot} credits added.", "/wallet", ct);
         try
         {
             await uow.SaveChangesAsync(ct);
@@ -93,9 +93,9 @@ public sealed class PaymentFacade(IPaymentRepository payments, IWalletRepository
         catch (PersistenceConflictException)
         {
             await tx.RollbackAsync(ct);
-            return Result.Failure(ErrorCodes.DuplicatePaymentEvent, "Duplicate confirmation ignored. Tokens were credited only once.");
+            return Result.Failure(ErrorCodes.DuplicatePaymentEvent, "Duplicate confirmation ignored. Credits were added only once.");
         }
-        return Result.Success($"Verified payment — {order.TokensSnapshot} Purchased tokens credited.");
+        return Result.Success($"Payment verified. {order.TokensSnapshot} purchased credits added.");
     }
 
     public async Task<IReadOnlyList<OrderDto>> ListOrdersAsync(Actor actor, CancellationToken ct = default)

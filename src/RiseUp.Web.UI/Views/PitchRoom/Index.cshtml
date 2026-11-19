@@ -110,7 +110,7 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
         @if (p.Faq.Count > 0) { <div class="card card-b"><h3>FAQ</h3>@foreach (var f in p.Faq) {<details class="small" style="padding:6px 0;border-bottom:1px solid #EEF2F6"><summary>@f.Question</summary><p class="muted mt8 mb0">@f.Answer</p></details>}</div> }
         @if (Model.CanDecide)
         {
-            <div class="card card-b" style="border-color:var(--teal)"><h3>Your decision</h3><p class="tiny muted">Decide within @Ui.Left(Model.ExpiresAtUtc!.Value - DateTime.UtcNow). Declining starts the founder's 14-day cooldown. No tokens are refunded either way.</p>
+            <div class="card card-b" style="border-color:var(--teal)"><h3>Your decision</h3><p class="tiny muted">Decide within @Ui.Left(Model.ExpiresAtUtc!.Value - DateTime.UtcNow). Declining starts the founder's 14-day cooldown. The founder’s credit was spent when this pitch was delivered.</p>
                 <div class="stack">
                     <form method="post" action="/pitch-room/@Model.RequestId/respond" asp-antiforgery="true"><input type="hidden" name="accept" value="true" /><button class="btn btn-primary" style="width:100%">Accept &amp; open conversation</button></form>
                     <details><summary class="btn btn-outline" style="width:100%">Request more information</summary><form method="post" action="/pitch-room/@Model.RequestId/more-info" class="stack mt8" asp-antiforgery="true"><textarea class="input" name="message" rows="3" maxlength="500" required placeholder="What would help you decide?"></textarea><p class="tiny muted mb0">This does not pause the 14-day decision window.</p><button class="btn btn-dark btn-sm">Send request</button></form></details>
