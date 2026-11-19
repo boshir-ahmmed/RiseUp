@@ -1,0 +1,14 @@
+@if (TempData["flash"] is string msg && !string.IsNullOrEmpty(msg))
+{
+    var code = TempData["flashCode"] as string;
+    <div class="container" style="padding-top:14px;max-width:none">
+        <div class="notice @(string.IsNullOrEmpty(code) ? "n-ok" : "n-danger")" role="status">
+            @if (!string.IsNullOrEmpty(code)) { <code>@code</code> }
+            <span>@msg</span>
+        </div>
+    </div>
+}
+@if (TempData["devLink"] is string link)
+{
+    <div class="container" style="padding-top:8px"><div class="notice n-warn small">Development only — email link: <a href="@link">@link</a></div></div>
+}

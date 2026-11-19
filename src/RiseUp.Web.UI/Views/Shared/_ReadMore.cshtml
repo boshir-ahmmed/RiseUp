@@ -1,0 +1,3 @@
+@model (string Text, int Limit)
+@* Server renders the full text (works without JS); ui.js clamps it and adds a Read more / Show less toggle. *@
+<span class="clamp" data-limit="@Model.Limit">@Model.Text</span>

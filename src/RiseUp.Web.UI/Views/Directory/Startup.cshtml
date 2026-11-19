@@ -1,0 +1,65 @@
+@model StartupDetailViewModel
+@{
+    var s = Model.Startup;
+    ViewData["Title"] = s.Name;
+    var actor = CurrentActor.From(User);
+    var spot = Model.Spotlight;
+}
+<section class="section" style="padding-top:32px"><div class="container">
+    <a href="/startups" class="small">← All startups</a>
+    <div class="card mk-card mt16" style="overflow:hidden">
+        <div class="sd-cover" style="@(s.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(s.ColorIndex)},#0F766E 60%,#134E4A)" : $"background:url('{s.CoverUrl}') center/cover")"></div>
+        <div class="card-b" style="margin-top:-52px">
+            <div class="row between" style="align-items:flex-end"><partial name="_Brand" model='(s.Name, s.ColorIndex, "lg", s.LogoUrl)' />
+                <div class="row">
+                    @if (s.ViewerIsConnected) { <a class="btn btn-primary" href="/conversations">Open conversation</a> }
+                    else if (s.ViewerCanInvite)
+                    {
+                        <form method="post" action="/startups/@s.Id/invite" class="row" style="flex-wrap:nowrap" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><label class="sr" for="note">Note</label><input class="input" id="note" name="note" maxlength="500" placeholder="Optional note" style="width:200px" /><button class="btn btn-primary">Send free invitation</button></form>
+                    }
+                    @if (spot is { ViewerIsVerifiedInvestor: true, PendingPitchRequestId: int prid }) { <a class="btn btn-primary" href="/pitch-room/@prid">Open pitch room</a> }
+                    @if (actor.IsInvestor) { <form method="post" action="/shortlist/@s.Id/toggle" class="inline" asp-antiforgery="true"><button class="btn btn-outline">@(spot?.Shortlisted == true ? "★ Shortlisted" : "☆ Shortlist")</button></form> }
+                    @if (s.ViewerIsOwner) { <a class="btn btn-outline" href="/settings">Edit startup</a><a class="btn btn-outline" href="/pitches">Pitch Studio</a> }
+                    @if (actor.IsAuthenticated && !s.ViewerIsOwner)
+                    {
+                        <form method="post" action="/reports" class="inline" asp-antiforgery="true"><input type="hidden" name="kind" value="@ReportKind.Profile" /><input type="hidden" name="target" value="startup:@s.Id" /><input type="hidden" name="reason" value="Reported from profile page" /><button class="btn btn-ghost btn-sm">Report</button></form>
+                    }
+                </div>
+            </div>
+            <h1 style="font-size:30px;margin-top:14px">@s.Name</h1>
+            <p class="lead" style="font-size:17px;color:#3B475A">@s.Tagline</p>
+            <div class="row">@if (s.Status == VerificationStatus.Verified) {<span class="badge b-ver" title="Identity and business ownership manually checked. Not an investment endorsement.">✓ Verified Startup</span>} else {<span class="badge b-pend">Verification @s.Status.ToString().ToLowerInvariant()</span>}<span class="chip">@s.Industry</span><span class="chip">@Ui.Stage(s.Stage)</span><span class="chip">@s.Location</span><span class="chip">Founded @s.FoundingYear</span></div>
+            @if (s.Status != VerificationStatus.Verified) { <div class="notice n-warn mt16">This is a basic public profile. This startup cannot pitch, post or receive invitations until verified.</div> }
+        </div>
+    </div>
+    <div class="grid mt24 g-detail" style="align-items:start">
+        <div class="stack">
+            @if (spot is not null)
+            {
+                <div class="card card-b"><div class="row between"><h3 class="mb0">Teaser</h3><span class="tiny muted">@(spot.Teaser.Seconds / 60):@((spot.Teaser.Seconds % 60).ToString("00")) · public</span></div>
+                    <div class="vp mt8"><video src="@spot.Teaser.Url" poster="@spot.Teaser.PosterUrl" controls playsinline preload="metadata"></video></div>
+                    <div class="row mt8">@if (spot.Demo is not null) {<a class="btn btn-outline btn-sm" href="@spot.Demo.Url" target="_blank" rel="noopener">▶ Watch product demo</a>}<span class="tiny muted">The full investor pitch (video, deck, documents, ask) is shared privately in a pitch room.</span></div></div>
+            }
+            <div class="card card-b"><h3>About</h3><p><partial name="_ReadMore" model="(s.Description, 260)" /></p>
+                <dl class="kv"><dt>Business model</dt><dd>@(s.BusinessModel ?? "—")</dd><dt>Website</dt><dd>@(s.Website ?? "—")</dd><dt>Tags</dt><dd><div class="chips">@foreach (var t in s.Tags) {<span class="chip">@t</span>}</div></dd></dl></div>
+            <div class="card"><div class="card-h"><h3>Posts · @Model.Posts.Count</h3><span class="tiny muted">Tap a post to view details</span></div><div class="card-b">
+                @if (Model.Posts.Count == 0) { <div class="empty">No published posts yet</div> }
+                <div class="tiles">@foreach (var p in Model.Posts) {<a class="tile" href="/posts/@p.Id" aria-label="@p.Title — view details">@if (p.PosterUrl is not null) {<img src="@p.PosterUrl" alt="" class="ig-img" loading="lazy" /><span class="vd">▶</span>} else {<div class="ig-art" style="background:linear-gradient(150deg,@Ui.Color(p.ColorIndex) 0%,#101828 135%)"><div class="ig-art-t">@p.Title</div></div>}<span class="tile-o">♥ @p.Likes &nbsp; 💬 @p.Comments</span></a>}</div>
+            </div></div>
+        </div>
+        <div class="stack">
+            <div class="card card-b"><h3>Funding &amp; metrics</h3>
+                @if (s.FundingGoalUsd is not null)
+                {
+                    <dl class="kv" style="grid-template-columns:1fr auto"><dt>Funding goal</dt><dd>@Ui.Usd(s.FundingGoalUsd) USD</dd>@foreach (var m in s.Metrics!) {<dt>@m.Name</dt><dd>@m.Value</dd>}</dl><p class="tiny muted mt16 mb0">Founder-reported. Not independently audited by RiseUp.</p>
+                }
+                else { <div class="lock">🔒 Funding requirements and business metrics are visible to verified investors only.</div> }
+            </div>
+            <div class="card card-b"><h3>Contact</h3>
+                @if (s.ContactEmail is not null) { <dl class="kv" style="grid-template-columns:auto 1fr"><dt>Founder</dt><dd>@s.OwnerName</dd><dt>Email</dt><dd>@s.ContactEmail</dd><dt>Phone</dt><dd>@(s.ContactPhone ?? "—")</dd></dl> }
+                else { <div class="lock">🔒 Contact details are shared only after a pitch or invitation is accepted.</div> }
+            </div>
+            <div class="card card-b small muted">@s.Views.ToString("N0") profile views (deduplicated per viewer per 24h)</div>
+        </div>
+    </div>
+</div></section>

@@ -1,0 +1,23 @@
+{
+  "original": "RiseUp(1).zip",
+  "files_preserving_original_type_bodies": 158,
+  "moved_declarations_total": 158,
+  "facade_interface_files": 21,
+  "facade_implementation_files": 24,
+  "facade_dto_files": 63,
+  "facade_validator_files": 5,
+  "dataaccess_interface_files": 22,
+  "dataaccess_implementation_files": 21,
+  "xml_valid": true,
+  "dotnet_sdk_available": false,
+  "errors": [],
+  "existing_files_byte_unchanged": 326,
+  "existing_files_modified": [
+    "src/RiseUp.Entities/RiseUp.Entities.csproj",
+    "src/RiseUp.DataAccess/RiseUp.DataAccess.csproj",
+    "README.md"
+  ],
+  "original_grouped_files_replaced": 33,
+  "original_ui_files_unchanged": true,
+  "original_database_files_unchanged": true
+}

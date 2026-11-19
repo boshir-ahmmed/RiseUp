@@ -1,0 +1,1112 @@
+{
+  "facade_public_types_split": 112,
+  "repository_implementation_classes_split": 19,
+  "repository_contract_declarations_split": 24,
+  "moved_types": [
+    {
+      "from": "src/RiseUp.Facade/Media/MediaFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/MediaStream.cs",
+      "symbol": "MediaStream",
+      "kind": "record",
+      "sha256": "7219ace2cce3933f43f84720c919ebe383f3c2bb764fa954a0c5cf76868ee3d3"
+    },
+    {
+      "from": "src/RiseUp.Facade/Media/MediaFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IMediaFacade.cs",
+      "symbol": "IMediaFacade",
+      "kind": "interface",
+      "sha256": "57f49fff315c32cf91cd23908a245fd7ae662d3a319219e344615080d488de1f"
+    },
+    {
+      "from": "src/RiseUp.Facade/Media/MediaFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/MediaFacade.cs",
+      "symbol": "MediaFacade",
+      "kind": "class",
+      "sha256": "71f776e44f50b668341820be26552e39fd258370ec66f16965923a4805aca6f6"
+    },
+    {
+      "from": "src/RiseUp.Facade/Identity/AccountFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IAccountFacade.cs",
+      "symbol": "IAccountFacade",
+      "kind": "interface",
+      "sha256": "684283df39eadda17b88864211d47bd1ae49a210a74f6bc4f062b2a04c75a9a3"
+    },
+    {
+      "from": "src/RiseUp.Facade/Identity/AccountFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/AccountFacade.cs",
+      "symbol": "AccountFacade",
+      "kind": "class",
+      "sha256": "8f44a97431613f0ce6733df81fb129d860c45166eacdaeb779b824680da24f5c"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/SubmitPostRequest.cs",
+      "symbol": "SubmitPostRequest",
+      "kind": "record",
+      "sha256": "8b21e22f96330d9eb0c41f5f7fe9e7d5f56232179c75e0a827088f55a6f0913c"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/FeedItemDto.cs",
+      "symbol": "FeedItemDto",
+      "kind": "record",
+      "sha256": "22b64b77a911acc37a332954dffbd00c176fef6987d6e5b81d5b349ae6aff2bc"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/CommentDto.cs",
+      "symbol": "CommentDto",
+      "kind": "record",
+      "sha256": "f7cf9686b5d596fcb0dc04caa4c892233a42256ce40e8bb76ac7e858ce479cd9"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/PostDetailDto.cs",
+      "symbol": "PostDetailDto",
+      "kind": "record",
+      "sha256": "6ae49e4b67ac852bc46854185e84d0c80227a56a988e83c627540d3dd6272212"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/OwnPostDto.cs",
+      "symbol": "OwnPostDto",
+      "kind": "record",
+      "sha256": "db0cdde290eab7fe1587d539d01d45131e33e0873bf5515ead00c8eb835178e5"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/Validators/SubmitPostRequestValidator.cs",
+      "symbol": "SubmitPostRequestValidator",
+      "kind": "class",
+      "sha256": "2a687896ae397c9a10af4c76ef0f7c5a337abfadfaa12b8791fdd5d0a0085083"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IPostFacade.cs",
+      "symbol": "IPostFacade",
+      "kind": "interface",
+      "sha256": "00ceb1077529008b1a13670fc3aa1903d627215377926060e42d025463d82fa1"
+    },
+    {
+      "from": "src/RiseUp.Facade/Posts/PostFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/PostFacade.cs",
+      "symbol": "PostFacade",
+      "kind": "class",
+      "sha256": "f2eaaab3505ff784a55215f0ab99470c63695d02c297a4b803f1cdff696f9084"
+    },
+    {
+      "from": "src/RiseUp.Facade/Notifications/NotificationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/NotificationDto.cs",
+      "symbol": "NotificationDto",
+      "kind": "record",
+      "sha256": "0c85c85cab3535a7d3212fbd0d975843134fad28a01a24050b5979353801a095"
+    },
+    {
+      "from": "src/RiseUp.Facade/Notifications/NotificationFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/INotificationFacade.cs",
+      "symbol": "INotificationFacade",
+      "kind": "interface",
+      "sha256": "8d6f67bbb77b60a5358e4326bda750d436b08ead9175a28c94f19bf96d413912"
+    },
+    {
+      "from": "src/RiseUp.Facade/Notifications/NotificationFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/NotificationFacade.cs",
+      "symbol": "NotificationFacade",
+      "kind": "class",
+      "sha256": "2dd88f3fd548b079c744453b3bc421ebabd63264cabe67fbf53b2ca563358ccb"
+    },
+    {
+      "from": "src/RiseUp.Facade/TeamAccounts/TeamAccountFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/CreateTeamAccountRequest.cs",
+      "symbol": "CreateTeamAccountRequest",
+      "kind": "record",
+      "sha256": "f073d2104290312eac3c0fe8078cd339bb93885f5892ff49a89527721b9926a5"
+    },
+    {
+      "from": "src/RiseUp.Facade/TeamAccounts/TeamAccountFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/TeamAccountDto.cs",
+      "symbol": "TeamAccountDto",
+      "kind": "record",
+      "sha256": "66b84c72716ac4b1fd888bba526ba3284e8e2802caf5522097a3a9f591107862"
+    },
+    {
+      "from": "src/RiseUp.Facade/TeamAccounts/TeamAccountFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/OneTimeCredential.cs",
+      "symbol": "OneTimeCredential",
+      "kind": "record",
+      "sha256": "5c4f11bb41eee8059d863190370d1cf3aecd2864aa7d03618c51606f8d001cc3"
+    },
+    {
+      "from": "src/RiseUp.Facade/TeamAccounts/TeamAccountFacade.cs",
+      "to": "src/RiseUp.Facade/Validators/CreateTeamAccountRequestValidator.cs",
+      "symbol": "CreateTeamAccountRequestValidator",
+      "kind": "class",
+      "sha256": "9bebae367bf0cf47eac2136a97f72e1b5b987fcf63a649350a563165ff5fd818"
+    },
+    {
+      "from": "src/RiseUp.Facade/TeamAccounts/TeamAccountFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/ITeamAccountFacade.cs",
+      "symbol": "ITeamAccountFacade",
+      "kind": "interface",
+      "sha256": "12437ef837370fad6add50be5e6d9ce83c994beb3cbc8fb8e34048f1b42fc142"
+    },
+    {
+      "from": "src/RiseUp.Facade/TeamAccounts/TeamAccountFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/TeamAccountFacade.cs",
+      "symbol": "TeamAccountFacade",
+      "kind": "class",
+      "sha256": "82ee789a4cbbaf47d20a39ad7ec91f7781380e247fefcc3b9650b41b4b9fcb86"
+    },
+    {
+      "from": "src/RiseUp.Facade/Payments/PaymentFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/PackageDto.cs",
+      "symbol": "PackageDto",
+      "kind": "record",
+      "sha256": "4e168b56326d4deff34adefb5369be8523473c011febc38428ef1aa6af6f1575"
+    },
+    {
+      "from": "src/RiseUp.Facade/Payments/PaymentFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/OrderDto.cs",
+      "symbol": "OrderDto",
+      "kind": "record",
+      "sha256": "a4b175ef589cf60347e275fdbc9d0f793a554fdae872448b3fb66860f93724f9"
+    },
+    {
+      "from": "src/RiseUp.Facade/Payments/PaymentFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/CheckoutDto.cs",
+      "symbol": "CheckoutDto",
+      "kind": "record",
+      "sha256": "e70fe47cfc63b74512bc3238c5a6c948066b7bd13e868b64eb8512c1c166e0a0"
+    },
+    {
+      "from": "src/RiseUp.Facade/Payments/PaymentFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IPaymentFacade.cs",
+      "symbol": "IPaymentFacade",
+      "kind": "interface",
+      "sha256": "acd1156b1db509e0edbe32064843b74c259390af7f4e553909020cc84f79e63e"
+    },
+    {
+      "from": "src/RiseUp.Facade/Payments/PaymentFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/PaymentFacade.cs",
+      "symbol": "PaymentFacade",
+      "kind": "class",
+      "sha256": "565235eb3fc3bd351f1012edbd4af20dbdbf6b99857a49e9cfdc81e6bc971603"
+    },
+    {
+      "from": "src/RiseUp.Facade/Startups/StartupFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IStartupFacade.cs",
+      "symbol": "IStartupFacade",
+      "kind": "interface",
+      "sha256": "fcec91dbe7d28685ed0238328cdb07890a510ae18a6b54774b1f4e4bdd7f56da"
+    },
+    {
+      "from": "src/RiseUp.Facade/Startups/StartupFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/StartupFacade.cs",
+      "symbol": "StartupFacade",
+      "kind": "class",
+      "sha256": "c604d8f4677a6419e47655ab8b99a3cfebda2dd7bdfd384e6bf52256e4972539"
+    },
+    {
+      "from": "src/RiseUp.Facade/Profiles/ProfileFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/ShellStat.cs",
+      "symbol": "ShellStat",
+      "kind": "record",
+      "sha256": "6bf8a3966c15fd71808d849a236c372c1acce9d65fdf810df8437d5f61a3a2a3"
+    },
+    {
+      "from": "src/RiseUp.Facade/Profiles/ProfileFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/ShellDto.cs",
+      "symbol": "ShellDto",
+      "kind": "record",
+      "sha256": "f8f5807078bd7b27653b1f229cf2346c22ebf64f1972636b44e8b7b6a4349b38"
+    },
+    {
+      "from": "src/RiseUp.Facade/Profiles/ProfileFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/MyProfileDto.cs",
+      "symbol": "MyProfileDto",
+      "kind": "record",
+      "sha256": "936ef2301ceb33ae69ac9750ad7fa2f5b6207494830896c29c114f6bac24f0fe"
+    },
+    {
+      "from": "src/RiseUp.Facade/Profiles/ProfileFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/UpdateProfileRequest.cs",
+      "symbol": "UpdateProfileRequest",
+      "kind": "record",
+      "sha256": "bfd86141fbdc08d38c88a87861fe41bc52f11712f9aa69d9aaec273c0e706cf5"
+    },
+    {
+      "from": "src/RiseUp.Facade/Profiles/ProfileFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/NameChangeDto.cs",
+      "symbol": "NameChangeDto",
+      "kind": "record",
+      "sha256": "eab07a830857956a9fe281e63e15ffbf784cda5fe52ac64ecc36ea2f814e4c5c"
+    },
+    {
+      "from": "src/RiseUp.Facade/Profiles/ProfileFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IProfileFacade.cs",
+      "symbol": "IProfileFacade",
+      "kind": "interface",
+      "sha256": "28cd31b98ebf5b7b9e9a666da0c15b728fd222cf5923afa7aef9d507b39a0ef6"
+    },
+    {
+      "from": "src/RiseUp.Facade/Profiles/ProfileFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/ProfileFacade.cs",
+      "symbol": "ProfileFacade",
+      "kind": "class",
+      "sha256": "417348e15694c43d823862dd284a743723470408896197118b338e772a5543b9"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/ShortlistFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IShortlistFacade.cs",
+      "symbol": "IShortlistFacade",
+      "kind": "interface",
+      "sha256": "33d6b4af0721817bb9bbc8662f55259aa7194955127c9477c501def58ce1e39c"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/ShortlistFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/ShortlistFacade.cs",
+      "symbol": "ShortlistFacade",
+      "kind": "class",
+      "sha256": "2ec4f0dcd76d8277947c88f8ca3d41291dbe53eb8828f79091a47abb6523bcb0"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchRoomFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IPitchRoomFacade.cs",
+      "symbol": "IPitchRoomFacade",
+      "kind": "interface",
+      "sha256": "1c0f70c0398dccd32e479442e13b249a2cbf6ef2cc94291e387b2fc121acafc8"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchRoomFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/PitchRoomFacade.cs",
+      "symbol": "PitchRoomFacade",
+      "kind": "class",
+      "sha256": "91c98f4cb20942652e24bc2e8dfe9e869b26d8126cd56142f007611a664a5ec7"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchPackageFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IPitchPackageFacade.cs",
+      "symbol": "IPitchPackageFacade",
+      "kind": "interface",
+      "sha256": "37d27eaf4337ea431a74299c3ddec71ac87d6db202ce3b81d6becad4c972de10"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchPackageFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/PitchPackageFacade.cs",
+      "symbol": "PitchPackageFacade",
+      "kind": "class",
+      "sha256": "004f7d98089878173f9172573008d037f08879bfc86da666a15611c80bf36a58"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/MeetingFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IMeetingFacade.cs",
+      "symbol": "IMeetingFacade",
+      "kind": "interface",
+      "sha256": "33b91daca959bd4809d8b42aab705a81542e555304fe72d4579fdf670b40b238"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/MeetingFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/MeetingFacade.cs",
+      "symbol": "MeetingFacade",
+      "kind": "class",
+      "sha256": "cec66c3491732c3158c51deb9ae28d7b76c8c1629a22cf004112eb55ae53a4d7"
+    },
+    {
+      "from": "src/RiseUp.Facade/Moderation/ModerationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/ReportDto.cs",
+      "symbol": "ReportDto",
+      "kind": "record",
+      "sha256": "ef5229281f354c7c03fa03a7357a5420cf74241e59a4ab8b91731f0765eaad81"
+    },
+    {
+      "from": "src/RiseUp.Facade/Moderation/ModerationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/AuditDto.cs",
+      "symbol": "AuditDto",
+      "kind": "record",
+      "sha256": "862b7bbc4f300665fa10ac9bc040aadaf6786bc39a986bcf73b87a967111d116"
+    },
+    {
+      "from": "src/RiseUp.Facade/Moderation/ModerationFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IModerationFacade.cs",
+      "symbol": "IModerationFacade",
+      "kind": "interface",
+      "sha256": "1d195f97b8aad4190bfc8beea7684e39222ea816dac5f744693a7188583950b9"
+    },
+    {
+      "from": "src/RiseUp.Facade/Moderation/ModerationFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/ModerationFacade.cs",
+      "symbol": "ModerationFacade",
+      "kind": "class",
+      "sha256": "a4c9e06154311016990a192543aa2cf8f75e6a9b69da3db0c28bde6d8e7bbe24"
+    },
+    {
+      "from": "src/RiseUp.Facade/Discovery/MatchingFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/MatchItem.cs",
+      "symbol": "MatchItem",
+      "kind": "record",
+      "sha256": "7a2c319110a72be724234303d870cb6c9f2ce26564c95729d10b52c0c0f4385d"
+    },
+    {
+      "from": "src/RiseUp.Facade/Discovery/MatchingFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/MatchList.cs",
+      "symbol": "MatchList",
+      "kind": "record",
+      "sha256": "808684d987a0a1dcfa19026338dff911688e69138d49dcbe5d79359a02238aed"
+    },
+    {
+      "from": "src/RiseUp.Facade/Discovery/MatchingFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IMatchingFacade.cs",
+      "symbol": "IMatchingFacade",
+      "kind": "interface",
+      "sha256": "f73085814397c9c300b3921c9733b5750a702ecfdca9b992eec3ae026f1b5c02"
+    },
+    {
+      "from": "src/RiseUp.Facade/Discovery/MatchingFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/MatchingFacade.cs",
+      "symbol": "MatchingFacade",
+      "kind": "class",
+      "sha256": "47d3e68c493bcd61b7a7829133187539d9ca8e7afbec198143330b752342eb25"
+    },
+    {
+      "from": "src/RiseUp.Facade/Conversations/ConversationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/ConversationSummaryDto.cs",
+      "symbol": "ConversationSummaryDto",
+      "kind": "record",
+      "sha256": "ffdd67a223537d8863b5ee806b3f9dfb3b49cdb12456354de1bdb05bf1602719"
+    },
+    {
+      "from": "src/RiseUp.Facade/Conversations/ConversationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/MessageDto.cs",
+      "symbol": "MessageDto",
+      "kind": "record",
+      "sha256": "743020e6dc78b6ee1a33963f1b4719f834a6d6c619fad4cc9c6dfcb89c6d5768"
+    },
+    {
+      "from": "src/RiseUp.Facade/Conversations/ConversationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/ConversationDto.cs",
+      "symbol": "ConversationDto",
+      "kind": "record",
+      "sha256": "74bacf1226f1b5693f2f94bfa38d830a564bb414a033d20e94014f8d4b0419d3"
+    },
+    {
+      "from": "src/RiseUp.Facade/Conversations/ConversationFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IConversationFacade.cs",
+      "symbol": "IConversationFacade",
+      "kind": "interface",
+      "sha256": "e3be2ce84820921c577cc3af44b4de538070679f7bfbd93b0416e9d9432b78f8"
+    },
+    {
+      "from": "src/RiseUp.Facade/Conversations/ConversationFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/ConversationFacade.cs",
+      "symbol": "ConversationFacade",
+      "kind": "class",
+      "sha256": "9547efe5dec5bde932cae579d6e165fc7b0c564b7aa0e5bff30747a48fdc3413"
+    },
+    {
+      "from": "src/RiseUp.Facade/Investors/InvestorFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/InvestorCardDto.cs",
+      "symbol": "InvestorCardDto",
+      "kind": "record",
+      "sha256": "1e04535017348cccb571d108319278bb1b4960a8174823699ccfaeb20659bdb0"
+    },
+    {
+      "from": "src/RiseUp.Facade/Investors/InvestorFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/InvestorDetailDto.cs",
+      "symbol": "InvestorDetailDto",
+      "kind": "record",
+      "sha256": "009bdb5e2a6734c077c6fc661fe75ba55a69c4fd92069b02c4a8d2d379971c4a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Investors/InvestorFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IInvestorFacade.cs",
+      "symbol": "IInvestorFacade",
+      "kind": "interface",
+      "sha256": "2f15588cb995a83cfa5df698d78de75e94d1d9213abcda6cd67d6445101e26d2"
+    },
+    {
+      "from": "src/RiseUp.Facade/Investors/InvestorFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/InvestorFacade.cs",
+      "symbol": "InvestorFacade",
+      "kind": "class",
+      "sha256": "bdf67ae9e087962fcc676ad15637adde1d35ea23ee39613ed9e4e91ad05b7e9f"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConfidentialDocuments/DocumentFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/DocumentDto.cs",
+      "symbol": "DocumentDto",
+      "kind": "record",
+      "sha256": "e8e97ffd8212e468d0281ad8964380f2c7f05c35ec76253017b4071957765d01"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConfidentialDocuments/DocumentFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IDocumentFacade.cs",
+      "symbol": "IDocumentFacade",
+      "kind": "interface",
+      "sha256": "e3069bd193670810143625c92d3061dfcd3345d1e032a47f5a4fa97968307763"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConfidentialDocuments/DocumentFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/DocumentFacade.cs",
+      "symbol": "DocumentFacade",
+      "kind": "class",
+      "sha256": "a03c983f9347b5d4390a28a9fd6e4af090e5d165b24cd14f56e091fcd466e835"
+    },
+    {
+      "from": "src/RiseUp.Facade/Verification/VerificationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/SubmitVerificationRequest.cs",
+      "symbol": "SubmitVerificationRequest",
+      "kind": "record",
+      "sha256": "ccf49dd499da087b47be2e8fa396ed064e51f89b65275185601b5f8a4fcb8f17"
+    },
+    {
+      "from": "src/RiseUp.Facade/Verification/VerificationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/ApplicationDto.cs",
+      "symbol": "ApplicationDto",
+      "kind": "record",
+      "sha256": "bd3a316d7d3fc4a10b14c5e11814507f570f3228c8a07b82cb64e6aeb80e2bdb"
+    },
+    {
+      "from": "src/RiseUp.Facade/Verification/VerificationFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/TransferDto.cs",
+      "symbol": "TransferDto",
+      "kind": "record",
+      "sha256": "9c8f83ef159e84594a032b6af11c59f3aadf94baafef67029d77c39fc32c0363"
+    },
+    {
+      "from": "src/RiseUp.Facade/Verification/VerificationFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IVerificationFacade.cs",
+      "symbol": "IVerificationFacade",
+      "kind": "interface",
+      "sha256": "da4533383ffcb9a8238f6ac37013069127bbb00ef4df327b4b30e67e71135801"
+    },
+    {
+      "from": "src/RiseUp.Facade/Verification/VerificationFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/VerificationFacade.cs",
+      "symbol": "VerificationFacade",
+      "kind": "class",
+      "sha256": "631023ad90d74e9979a1661b69b2c8af32d1ec0d50e3a8fc340e572b298e408f"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConnectionRequests/ConnectionRequestFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/SendPitchRequest.cs",
+      "symbol": "SendPitchRequest",
+      "kind": "record",
+      "sha256": "a3d8373dacb543db5d40602ff49bf5cb32814bcfdb63cc9db954f9705b8e0a16"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConnectionRequests/ConnectionRequestFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/RequestDto.cs",
+      "symbol": "RequestDto",
+      "kind": "record",
+      "sha256": "59378788eef6fdf82d42f738b9f01582d5e1dff506828d2babd0f7e5bf8509ee"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConnectionRequests/ConnectionRequestFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/DraftDto.cs",
+      "symbol": "DraftDto",
+      "kind": "record",
+      "sha256": "35970c959fa7894eef75469d25b26e3f46ea7db602cbca09fac4f43da5d6a34d"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConnectionRequests/ConnectionRequestFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IConnectionRequestFacade.cs",
+      "symbol": "IConnectionRequestFacade",
+      "kind": "interface",
+      "sha256": "59fea3ffc0982b8ba77be140b48e274fb98193d9c655f4340d2bf5c60377f6e3"
+    },
+    {
+      "from": "src/RiseUp.Facade/ConnectionRequests/ConnectionRequestFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/ConnectionRequestFacade.cs",
+      "symbol": "ConnectionRequestFacade",
+      "kind": "class",
+      "sha256": "3ba7a928a280abe281a10514094b2bcf61cb86990bc0b3fb8a1b476ce5e8020a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Wallets/WalletFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/LedgerLine.cs",
+      "symbol": "LedgerLine",
+      "kind": "record",
+      "sha256": "4e0bdab9a091b033cf33813b123c5341890ec11e3f7b1c5dde4e9f37cb61d36d"
+    },
+    {
+      "from": "src/RiseUp.Facade/Wallets/WalletFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/WalletDto.cs",
+      "symbol": "WalletDto",
+      "kind": "record",
+      "sha256": "60b3720af3fc71dc2f463c4f8be217fa1edd2e7915e13631863e17dc3e12c59e"
+    },
+    {
+      "from": "src/RiseUp.Facade/Wallets/WalletFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IWalletFacade.cs",
+      "symbol": "IWalletFacade",
+      "kind": "interface",
+      "sha256": "6b0a78e840f15d5b0bd4434b552966a0e25dc4df9b371004eb78ef6ae73117ee"
+    },
+    {
+      "from": "src/RiseUp.Facade/Wallets/WalletFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/WalletFacade.cs",
+      "symbol": "WalletFacade",
+      "kind": "class",
+      "sha256": "33c786f10cb58600c640c4c254ad3b9349ef84d1f6568354ee495a566dd392fc"
+    },
+    {
+      "from": "src/RiseUp.Facade/Promotions/PromotionFacade.cs",
+      "to": "src/RiseUp.Facade/DTOs/PromotionDto.cs",
+      "symbol": "PromotionDto",
+      "kind": "record",
+      "sha256": "c68c313a7a747f9e5f847143837a763f9c787d744a2c4f08a6a63f44e75e0149"
+    },
+    {
+      "from": "src/RiseUp.Facade/Promotions/PromotionFacade.cs",
+      "to": "src/RiseUp.Facade/Interface/IPromotionFacade.cs",
+      "symbol": "IPromotionFacade",
+      "kind": "interface",
+      "sha256": "0a0c45527a0be980f98f2ed710e8d0b5b3a94d0f5c022617496d5540bef3ae96"
+    },
+    {
+      "from": "src/RiseUp.Facade/Promotions/PromotionFacade.cs",
+      "to": "src/RiseUp.Facade/Implementation/PromotionFacade.cs",
+      "symbol": "PromotionFacade",
+      "kind": "class",
+      "sha256": "e88d2e7902b658131dcbf1440f39d4fa7c7f5e6e9452afaea361f67977ce656b"
+    },
+    {
+      "from": "src/RiseUp.Facade/Identity/AccountDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/RegisterRequest.cs",
+      "symbol": "RegisterRequest",
+      "kind": "record",
+      "sha256": "69abd4ce92a8340539c31e1b8d76c5fe58994ea55488332fd842631ff1304c12"
+    },
+    {
+      "from": "src/RiseUp.Facade/Identity/AccountDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/RegisteredAccount.cs",
+      "symbol": "RegisteredAccount",
+      "kind": "record",
+      "sha256": "d9f377fc3cc9158425175f3f44415c40978626a380d53d465523d487e311d671"
+    },
+    {
+      "from": "src/RiseUp.Facade/Identity/AccountDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/SignedInUser.cs",
+      "symbol": "SignedInUser",
+      "kind": "record",
+      "sha256": "64a01b3da9832cfa238c857406d50cd61752fb34c5787170437c59c05848542b"
+    },
+    {
+      "from": "src/RiseUp.Facade/Identity/AccountDtos.cs",
+      "to": "src/RiseUp.Facade/Validators/RegisterRequestValidator.cs",
+      "symbol": "RegisterRequestValidator",
+      "kind": "class",
+      "sha256": "46376d00318edcb80ad63467172afab792bc7203d9fa7bcd5e64f64d1d32668b"
+    },
+    {
+      "from": "src/RiseUp.Facade/Startups/StartupDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/StartupCardDto.cs",
+      "symbol": "StartupCardDto",
+      "kind": "record",
+      "sha256": "d56a345e449d14ec094df5e1506002ecc026f26834fb4e49a651b077ee9e8680"
+    },
+    {
+      "from": "src/RiseUp.Facade/Startups/StartupDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/StartupDetailDto.cs",
+      "symbol": "StartupDetailDto",
+      "kind": "record",
+      "sha256": "ee4fdec51aadee481f37ed625f2a9637bfa31b3ab69e4914847a4e25a9cf2eab"
+    },
+    {
+      "from": "src/RiseUp.Facade/Startups/StartupDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/SearchStartupsRequest.cs",
+      "symbol": "SearchStartupsRequest",
+      "kind": "record",
+      "sha256": "17787e5b24dde2916e0aede0b3785e6a9ab7716c74c317b85d9752babc391dd0"
+    },
+    {
+      "from": "src/RiseUp.Facade/Startups/StartupDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/UpdateStartupRequest.cs",
+      "symbol": "UpdateStartupRequest",
+      "kind": "record",
+      "sha256": "020947c0a1b6855e364dd3a8618d10e7c2ac2a1df593b9ad3bdfc33d54b9e3a9"
+    },
+    {
+      "from": "src/RiseUp.Facade/Startups/StartupDtos.cs",
+      "to": "src/RiseUp.Facade/Validators/UpdateStartupRequestValidator.cs",
+      "symbol": "UpdateStartupRequestValidator",
+      "kind": "class",
+      "sha256": "4b496fece6d5f03d384c8bdf667f87e0bcd74ae3f25f4601511a3a2498bc243a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/VideoDto.cs",
+      "symbol": "VideoDto",
+      "kind": "record",
+      "sha256": "8609e934de806ab233ad7c8a3557ccbe3cc76e7d1ac331744ff8be009e36c41a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/FileDto.cs",
+      "symbol": "FileDto",
+      "kind": "record",
+      "sha256": "c8622e3337e9341d29c05098ef66adc052c482a86267e263ce62b79084f896a7"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/PitchDocumentDto.cs",
+      "symbol": "PitchDocumentDto",
+      "kind": "record",
+      "sha256": "134623b4ad595608bf19b1da8ad43edafc8ee6cf086527a9be785ce9a448883d"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/FundsItem.cs",
+      "symbol": "FundsItem",
+      "kind": "record",
+      "sha256": "d66c08788c8e63f07ca385c49adef27d877891cc242ed6a98aa6fdf8ef59fb65"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/AskDto.cs",
+      "symbol": "AskDto",
+      "kind": "record",
+      "sha256": "7cf3f6f352e5000f3f90de98b076b748522ba27a6a5a9ff7002182b94ee23fbd"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/SlideDto.cs",
+      "symbol": "SlideDto",
+      "kind": "record",
+      "sha256": "fbfee3536aacedd78b73be1f39d8970b98c255dc241ef11148e652b7a9177840"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/TeamDto.cs",
+      "symbol": "TeamDto",
+      "kind": "record",
+      "sha256": "523e8804365dec650be19363db75de5313d3ee9e1732e59a56cb2d356bce1025"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/FaqDto.cs",
+      "symbol": "FaqDto",
+      "kind": "record",
+      "sha256": "33782cd5fa55d08c5d52abb89e15b72abc6d63e52af9bcf00da91bf2e826807a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/PitchPackageDto.cs",
+      "symbol": "PitchPackageDto",
+      "kind": "record",
+      "sha256": "871635ebd43abe01c45a0bad859eea06cbb617923c130a503405bb6f03d34e37"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/AskInput.cs",
+      "symbol": "AskInput",
+      "kind": "record",
+      "sha256": "75f19473e93ccc1f300efc1d02bc74798d91514f61e602753baa968804420303"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/Validators/AskInputValidator.cs",
+      "symbol": "AskInputValidator",
+      "kind": "class",
+      "sha256": "cdb203879c8652ea121de1282e999442a45bf4ac909a292c102083a188410e92"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/SpotlightDto.cs",
+      "symbol": "SpotlightDto",
+      "kind": "record",
+      "sha256": "501003004d15cf7d21dfcc49caebd55b62692de1e7833a1b480ae86f85f77d24"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/RoomQuestionDto.cs",
+      "symbol": "RoomQuestionDto",
+      "kind": "record",
+      "sha256": "3c1cf0f5ed4c0f05bceb6ff90bd6552cd336b659ea4215694cb20b322cda61b2"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/RoomStatsDto.cs",
+      "symbol": "RoomStatsDto",
+      "kind": "record",
+      "sha256": "9842fc7969f4f7f2f470e6a25a438d931ed1d52cf1375a5e5a23a28c9e6c8b50"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/PitchRoomDto.cs",
+      "symbol": "PitchRoomDto",
+      "kind": "record",
+      "sha256": "09297956f89667894a50205d1ae30bd9022306e9bf52c041560b80ab4b187f0a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/SentPitchDto.cs",
+      "symbol": "SentPitchDto",
+      "kind": "record",
+      "sha256": "87a4a7782aa39bac6b57c19d3025b3ec337df0b404acc3a97081671cc07f4fcb"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/TrackInput.cs",
+      "symbol": "TrackInput",
+      "kind": "record",
+      "sha256": "13a903a96c97be9e89c6546d826058fa0c5f78d1e430ff8ecdb6a90c152df95a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/ShortlistItemDto.cs",
+      "symbol": "ShortlistItemDto",
+      "kind": "record",
+      "sha256": "7ed2db7a0fdab830309e0beeb2fc161b28df79449459a6088c4af5f94fb7568b"
+    },
+    {
+      "from": "src/RiseUp.Facade/Pitching/PitchDtos.cs",
+      "to": "src/RiseUp.Facade/DTOs/MeetingDto.cs",
+      "symbol": "MeetingDto",
+      "kind": "record",
+      "sha256": "7199660e34bd4e398d7400aa2603f661ee958995d9ebbfc9b6f57c08068559ce"
+    },
+    {
+      "from": "src/RiseUp.Facade/Media/MediaIntake.cs",
+      "to": "src/RiseUp.Facade/DTOs/UploadedFile.cs",
+      "symbol": "UploadedFile",
+      "kind": "record",
+      "sha256": "e4d7f0cc017daab6241e7fb61d7fc3e9b904b9c2e464771107b2763fbe6b6ea7"
+    },
+    {
+      "from": "src/RiseUp.Facade/Media/MediaIntake.cs",
+      "to": "src/RiseUp.Facade/Implementation/MediaTypes.cs",
+      "symbol": "MediaTypes",
+      "kind": "class",
+      "sha256": "3c77f4498ae71e4cfcef5b43832171c58b52c4f62d0f6713affdef8d67f98565"
+    },
+    {
+      "from": "src/RiseUp.Facade/Media/MediaIntake.cs",
+      "to": "src/RiseUp.Facade/Implementation/MediaIntake.cs",
+      "symbol": "MediaIntake",
+      "kind": "class",
+      "sha256": "b5af2e1aee8062345887b1cb1f6acd3703b24c2711f6939927c07557c487377a"
+    },
+    {
+      "from": "src/RiseUp.Facade/Discovery/RuleBasedMatcher.cs",
+      "to": "src/RiseUp.Facade/Implementation/RuleBasedMatcher.cs",
+      "symbol": "RuleBasedMatcher",
+      "kind": "class"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/UserAccountRepository.cs",
+      "symbol": "UserAccountRepository",
+      "kind": "class",
+      "sha256": "b42e0bf4e11f6b856687e0ddf691d1c068cdff19be7fe2a0bdce84edaced3149"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/StartupRepository.cs",
+      "symbol": "StartupRepository",
+      "kind": "class",
+      "sha256": "c4aa0546438b1a72771ab17eeaddad91175d247d11e5b8e56d1f865da930b238"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/InvestorRepository.cs",
+      "symbol": "InvestorRepository",
+      "kind": "class",
+      "sha256": "e237aed585763e4a7381ef7ae56f9719bf9f2659df73539ccc40e37ae6fd0f06"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/ConnectionRepository.cs",
+      "symbol": "ConnectionRepository",
+      "kind": "class",
+      "sha256": "656cdf848849f162f4123b5c1e617d513edb3119a2e9e31bbff1cd0200500af3"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/ConversationRepository.cs",
+      "symbol": "ConversationRepository",
+      "kind": "class",
+      "sha256": "94f818c353c3c376d6537f387c3a12c6cce06abbc23d2c2b958315299c468eed"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/WalletRepository.cs",
+      "symbol": "WalletRepository",
+      "kind": "class",
+      "sha256": "b25b2e3e3e46a51f3b4561c85f16e39aa7d0a8db1e29db7c4508a80856f51ebe"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/PaymentRepository.cs",
+      "symbol": "PaymentRepository",
+      "kind": "class",
+      "sha256": "e441429a244d956faf2d4a4a55ad775f0774d5c2dd7c6b8a4dcef1ec8f502607"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/PostRepository.cs",
+      "symbol": "PostRepository",
+      "kind": "class",
+      "sha256": "0f52cc94c55941899cfd65ad87036259b126802fa0eace8a4a0f261c4ddea2b7"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/PromotionRepository.cs",
+      "symbol": "PromotionRepository",
+      "kind": "class",
+      "sha256": "d25a4d60a3ee4c1c4c1d9e0638bc8554d0390aaf962a706adac819ca97745907"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/TeamAccountRepository.cs",
+      "symbol": "TeamAccountRepository",
+      "kind": "class",
+      "sha256": "ac93cbd43e13842ae6136fa91c6a9147a17cc1ac1fb3ff3d5b885bc4542cfb18"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/DocumentRepository.cs",
+      "symbol": "DocumentRepository",
+      "kind": "class",
+      "sha256": "eb572750938eba8b9fd358f8efd467071c31635065cb50d9efeb1f4d7495952a"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/VerificationRepository.cs",
+      "symbol": "VerificationRepository",
+      "kind": "class",
+      "sha256": "6a4793dd7a49764d08163324d2a99a3e20df43aec7012ac8444bd29c83edd917"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/GovernanceRepository.cs",
+      "symbol": "GovernanceRepository",
+      "kind": "class",
+      "sha256": "44f2ea1632a28341acb2614079187ac3f1aefd73fc6f0d5590dd4278e1f499b1"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/MediaRepository.cs",
+      "symbol": "MediaRepository",
+      "kind": "class",
+      "sha256": "ec44cee24ae495d231fda2c67aac59a8eaceeeeaa1d63abfff002e0a080028c8"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/ProfileRepository.cs",
+      "symbol": "ProfileRepository",
+      "kind": "class",
+      "sha256": "6c292a52b6a7254ffafc140b2fc163498d9c2343a750e1add1d9bb8669aba324"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/PitchRepository.cs",
+      "symbol": "PitchRepository",
+      "kind": "class",
+      "sha256": "94cd120e174074c7a4948c5ca9f1daf0748005b90f84ce4e0869015978304454"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/ShortlistRepository.cs",
+      "symbol": "ShortlistRepository",
+      "kind": "class",
+      "sha256": "6ce4d20b61408e18d8108b456e93beb1d8ddae0532db3696d6c002b8b7b428a1"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/MeetingRepository.cs",
+      "symbol": "MeetingRepository",
+      "kind": "class",
+      "sha256": "f33f314215808e7826cf97a4a4d04be71f026280b8610b27ec1d31b8429e9fd1"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/SavedPostRepository.cs",
+      "symbol": "SavedPostRepository",
+      "kind": "class",
+      "sha256": "d81ed047bda25e9f1e612e5c35767f6a6eaf2784d03fc3d972a399a32a47815b"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/Repository.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/Repository.cs",
+      "symbol": "Repository",
+      "kind": "class"
+    },
+    {
+      "from": "src/RiseUp.DataAccess/Repositories/UnitOfWork.cs",
+      "to": "src/RiseUp.DataAccess/Implementation/UnitOfWork.cs",
+      "symbol": "UnitOfWork",
+      "kind": "class"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IUserAccountRepository.cs",
+      "symbol": "IUserAccountRepository",
+      "kind": "interface",
+      "sha256": "66dfa662d2a19d79903cd6e2ba05751eabd196733971c405c513771743aa5afc"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.Entities/Abstractions/StartupSearch.cs",
+      "symbol": "StartupSearch",
+      "kind": "record",
+      "sha256": "83e20fbf4bd0b169fd455229862be2a073a1d09617824de84f17f27fe04c7bd6"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IStartupRepository.cs",
+      "symbol": "IStartupRepository",
+      "kind": "interface",
+      "sha256": "7ebe272698f499fd1b1b9c3bfd9fe5004ff5f1d3f210877d7218ae3bb37311ed"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IInvestorRepository.cs",
+      "symbol": "IInvestorRepository",
+      "kind": "interface",
+      "sha256": "12b93c5e6a08b3b5f775ba932f489563adeee6f2024b23473ddc428551f10ea3"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IConnectionRepository.cs",
+      "symbol": "IConnectionRepository",
+      "kind": "interface",
+      "sha256": "5f0bd2f2a0612010bb77e769afbd7c9e02f1aca8a54ddb951f74f80585e2177c"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IConversationRepository.cs",
+      "symbol": "IConversationRepository",
+      "kind": "interface",
+      "sha256": "14bef95168e9864c85cf8553f8192fc74d9ecd521a107fa7d82b9b458475d099"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IWalletRepository.cs",
+      "symbol": "IWalletRepository",
+      "kind": "interface",
+      "sha256": "63c88e3e99df32395d99327a949bdbf359b68b00d07e1e7309abf8c2552cf657"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IPaymentRepository.cs",
+      "symbol": "IPaymentRepository",
+      "kind": "interface",
+      "sha256": "42a7a19f8a7bc3a7cc31006922df367cd4aa51424090995c3d6608e6eb8946d3"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IPostRepository.cs",
+      "symbol": "IPostRepository",
+      "kind": "interface",
+      "sha256": "bd0c753d07019cfc4b7a1d050661bf6348605814de54adde58608b59dc828d72"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IPromotionRepository.cs",
+      "symbol": "IPromotionRepository",
+      "kind": "interface",
+      "sha256": "dddf988b4cd04d2530275f526aec78705f79f239f8156318b78717083d72e505"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/ITeamAccountRepository.cs",
+      "symbol": "ITeamAccountRepository",
+      "kind": "interface",
+      "sha256": "e129a28fea373c42263cb577d10ccceb1ae123c9922037675a529959d64e9e49"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IDocumentRepository.cs",
+      "symbol": "IDocumentRepository",
+      "kind": "interface",
+      "sha256": "25ef8baba2ea7f6a39fcb3d4427bec9b208fd17036c1f79aaa6f0a7b2d784b84"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IVerificationRepository.cs",
+      "symbol": "IVerificationRepository",
+      "kind": "interface",
+      "sha256": "fb507936fdbd2aaa6dd913783fd3def518cb41afe6742255be98f33fc1065b7e"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/Repositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IGovernanceRepository.cs",
+      "symbol": "IGovernanceRepository",
+      "kind": "interface",
+      "sha256": "3e1e106750caecfb2e71b6a400049396a98093fda037a5604b2884980806b756"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IMediaRepository.cs",
+      "symbol": "IMediaRepository",
+      "kind": "interface",
+      "sha256": "661528a2b3d56572c04ac8b6e61fd8f442295628e2cf758d86ad9071579298b4"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IProfileRepository.cs",
+      "symbol": "IProfileRepository",
+      "kind": "interface",
+      "sha256": "94aceefe7a7745e615bd35035a7c9a730c936e9d07735723a0e4c6454abc2d98"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IPitchRepository.cs",
+      "symbol": "IPitchRepository",
+      "kind": "interface",
+      "sha256": "5d49f54c8262a79968f92d6ea26cc317569f26d3e94f284aa8dd080c3a2820e9"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IShortlistRepository.cs",
+      "symbol": "IShortlistRepository",
+      "kind": "interface",
+      "sha256": "1102e59ab82e1a57684dc7dba1722adc71c7c7c59f100b553a207dca10464714"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IMeetingRepository.cs",
+      "symbol": "IMeetingRepository",
+      "kind": "interface",
+      "sha256": "7e69e9bc8cc2b9852b773446c4d457a0941dc5659234952623da9aad86d4261c"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/PitchingRepositories.cs",
+      "to": "src/RiseUp.DataAccess/Interface/ISavedPostRepository.cs",
+      "symbol": "ISavedPostRepository",
+      "kind": "interface",
+      "sha256": "2322cee5aa4b34600d8956372facbb2b26a86d52d16b59f4a6041cd42f580da7"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/IRepository.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IRepository.cs",
+      "symbol": "IRepository",
+      "kind": "interface",
+      "sha256": "f99294fcb0a1839205b9d5277c238aa0b258f5ba84ec356436b107847b7fc535"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/IRepository.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IUnitOfWork.cs",
+      "symbol": "IUnitOfWork",
+      "kind": "interface",
+      "sha256": "898c556b48bcc753011975e6509b7ac7b129dce278b9a0735820bee2a203cc5e"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/IRepository.cs",
+      "to": "src/RiseUp.DataAccess/Interface/IUnitOfWorkTransaction.cs",
+      "symbol": "IUnitOfWorkTransaction",
+      "kind": "interface",
+      "sha256": "9982a5153d6b1820820d949f75f596e4d4fedfa3aceb251d31a60f0fbad564d6"
+    },
+    {
+      "from": "src/RiseUp.Entities/Abstractions/IRepository.cs",
+      "to": "src/RiseUp.Entities/Abstractions/PersistenceConflictException.cs",
+      "symbol": "PersistenceConflictException",
+      "kind": "class",
+      "sha256": "0b6d42831d1064a10e8658164db3fca65b695dd8acc1d4c6209cb2359944749b"
+    }
+  ],
+  "duplicate_full_type_names": {},
+  "build_run": false
+}

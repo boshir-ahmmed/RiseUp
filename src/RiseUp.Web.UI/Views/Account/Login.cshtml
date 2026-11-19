@@ -1,0 +1,15 @@
+@model LoginViewModel
+@{ ViewData["Title"] = "Sign in"; }
+<section class="section" style="padding-top:48px"><div class="container" style="max-width:460px">
+    <form class="card mk-card card-b stack" method="post" action="/login" asp-antiforgery="true">
+        <h1 style="font-size:26px">Sign in</h1><p class="small muted">Founders, investors, team members and administrators.</p>
+        <div asp-validation-summary="ModelOnly" class="notice n-danger"></div>
+        <input type="hidden" asp-for="ReturnUrl" />
+        <label class="field"><span>Email or team username</span><input class="input" asp-for="Identifier" autocomplete="username" /><span asp-validation-for="Identifier" class="err"></span></label>
+        <label class="field"><span>Password</span><input class="input" asp-for="Password" autocomplete="current-password" /><span asp-validation-for="Password" class="err"></span></label>
+        <label class="check"><input type="checkbox" asp-for="RememberMe" /> <span>Keep me signed in</span></label>
+        <button class="btn btn-primary">Sign in</button>
+        <div class="row between small"><a href="/account/forgot-password">Forgot password?</a><a href="/register">Create account</a></div>
+        <p class="tiny muted mb0">After 5 failed attempts the account is locked for 15 minutes. Administrators must also enter a two-factor code.</p>
+    </form>
+</div></section>

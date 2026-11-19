@@ -1,0 +1,71 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var actor = CurrentActor.From(User);
+    var pending = Model.Requests.Where(r => r.Status == RequestStatus.Pending).ToList();
+}
+<div class="page-h"><div><h1>Good to see you, @actor.Name.Split(' ')[0]</h1><p>@(Model.Startup?.Name ?? Model.Investor?.Card.Affiliation)</p></div>
+    <div class="row">@if (actor.IsFounder) {<a class="btn btn-primary" href="/pitches">Write a pitch</a>} else {<a class="btn btn-primary" href="/discover">Discover startups</a>}</div></div>
+@if (actor.IsFounder && Model.Startup is { } s && s.Status != VerificationStatus.Verified)
+{
+    <div class="notice n-warn" style="margin-bottom:18px"><div><strong>Verification @s.Status.ToString().ToLowerInvariant().</strong> Your basic profile is public, but pitching, posting, promotions and invitations unlock after manual review. <a href="/settings#verification">Submit documents</a></div></div>
+}
+<div class="grid g4">
+    @if (actor.IsFounder)
+    {
+        <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge @Ui.StatusClass(Model.Startup!.Status.ToString())">@Model.Startup.Status</span></div><div class="tiny muted mt8">@(Model.Startup.VerifiedUntilUtc is DateTime u ? "Valid until " + Ui.Dhaka(u) : "Awaiting manual review")</div></div>
+        <div class="card kpi"><div class="l">Tokens</div><div class="v">@((Model.Wallet?.WelcomeBalance ?? 0) + (Model.Wallet?.PurchasedBalance ?? 0))</div><div class="tiny muted">@(Model.Wallet?.WelcomeBalance ?? 0) Welcome · @(Model.Wallet?.PurchasedBalance ?? 0) Purchased</div></div>
+        <div class="card kpi"><div class="l">Profile views</div><div class="v">@Model.Startup.Views.ToString("N0")</div></div>
+        <div class="card kpi"><div class="l">Team slots</div><div class="v">@Model.Team.Count / 5</div><div class="tiny muted">active + deactivated</div></div>
+    }
+    else
+    {
+        <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge b-ver">✓ Verified Investor</span></div></div>
+        <div class="card kpi"><div class="l">Pitches awaiting you</div><div class="v">@pending.Count(r => r.Type == RequestType.Pitch)</div></div>
+        <div class="card kpi"><div class="l">Invitations today</div><div class="v">@Model.InvitationsUsedToday / 10</div><div class="tiny muted">Resets 00:00 Asia/Dhaka</div></div>
+        <div class="card kpi"><div class="l">Receive Pitches</div><form method="post" action="/settings/receive-pitches" class="mt8" asp-antiforgery="true"><input type="hidden" name="receive" value="@((!(Model.Investor?.Card.ReceivePitches ?? true)).ToString().ToLowerInvariant())" /><button class="btn btn-outline btn-sm">@(Model.Investor?.Card.ReceivePitches == true ? "ON — turn off" : "OFF — turn on")</button></form></div>
+    }
+</div>
+<div class="grid g2 mt24" style="align-items:start">
+    <div class="card"><div class="card-h"><h3>Pending requests</h3><a class="small" href="/requests">All requests</a></div>
+        @if (pending.Count == 0) { <div class="empty">No pending requests</div> }
+        else
+        {
+            <div class="req-list">
+                @foreach (var r in pending.Take(6))
+                {
+                    var incoming = (r.Type == RequestType.Pitch && actor.IsInvestor) || (r.Type == RequestType.Invitation && actor.IsFounder);
+                    <div class="req">
+                        <div style="min-width:0"><strong>@(actor.IsInvestor ? r.StartupName : r.InvestorName)</strong><div class="tiny muted">@(r.Type == RequestType.Pitch ? "Pitch" : "Invitation") · @(incoming ? "received" : "sent") · expires in @Ui.Left(r.ExpiresAtUtc - DateTime.UtcNow)</div></div>
+                        <div class="row" style="gap:6px">
+                            @if (incoming)
+                            {
+                                <form method="post" action="/requests/@r.Id/respond" class="inline" asp-antiforgery="true"><input type="hidden" name="accept" value="true" /><button class="btn btn-primary btn-sm">Accept</button></form>
+                                <form method="post" action="/requests/@r.Id/respond" class="inline" asp-antiforgery="true"><input type="hidden" name="accept" value="false" /><button class="btn btn-outline btn-sm" data-confirm="Decline? A new request is only possible 14 days after the original send time.">Decline</button></form>
+                            }
+                            <a class="btn btn-ghost btn-sm" href="/requests">View details</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+    <div class="card"><div class="card-h"><h3>Recommended</h3>@if (Model.Matches is not null) {<span class="badge @(Model.Matches.UsedFallback ? "b-warn" : "b-ver")">@Model.Matches.Engine</span>}</div>
+        @foreach (var m in Model.Matches?.Items ?? [])
+        {
+            <div class="row" style="padding:12px 20px;border-bottom:1px solid #EEF2F6;flex-wrap:nowrap"><partial name="_Logo" model="(m.Name, m.ColorIndex, string.Empty)" /><div style="flex:1;min-width:0"><a href="/@(actor.IsInvestor ? "startups" : "investors")/@m.Id" style="font-weight:650;color:var(--ink)">@m.Name</a><div>@foreach (var reason in m.Reasons.Take(2)) {<span class="reason">@reason</span>}</div></div><a class="btn btn-ghost btn-sm" href="/@(actor.IsInvestor ? "startups" : "investors")/@m.Id">View details</a></div>
+        }
+        <div class="card-b tiny muted">Explanations of overlap with stated preferences — not investment advice.</div>
+    </div>
+    <div class="card"><div class="card-h"><h3>Conversations</h3><a class="small" href="/conversations">Open</a></div>
+        @if (Model.Conversations.Count == 0) { <div class="empty">A private group chat opens when a request is accepted.</div> }
+        @foreach (var c in Model.Conversations) { <a class="row" href="/conversations/@c.Id" style="padding:12px 20px;border-bottom:1px solid #EEF2F6;color:var(--ink)"><strong>@c.Title</strong><span class="tiny muted" style="margin-left:auto">@(c.LastMessage?.Length > 40 ? c.LastMessage[..40] + "…" : c.LastMessage)</span></a> }
+    </div>
+    @if (actor.IsFounder)
+    {
+        <div class="card"><div class="card-h"><h3>Promotions</h3><a class="small" href="/my-posts">Manage</a></div>
+            @if (Model.Promotions.Count == 0) { <div class="empty">No promotions yet</div> }
+            @foreach (var p in Model.Promotions.Take(4)) { <div style="padding:12px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><strong class="small">@p.PostTitle</strong><span class="badge @Ui.StatusClass(p.Status.ToString())">@p.Status</span></div><div class="tiny muted mt8">@Ui.Left(p.Remaining) remaining · @p.Impressions.ToString("N0") impressions · @p.Clicks clicks</div></div> }
+        </div>
+    }
+</div>

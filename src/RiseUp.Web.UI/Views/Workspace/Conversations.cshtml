@@ -1,0 +1,91 @@
+@model ConversationsViewModel
+@{ ViewData["Title"] = "Conversations"; var actor = CurrentActor.From(User); var sel = Model.Selected; }
+<partial name="_PageHeader" model='("Conversations", (string?)"One private group per startup–investor pair. Messages are never read by AI.")' />
+@if (Model.List.Count == 0)
+{
+    <div class="card"><div class="empty">@(actor.IsTeamMember ? "You haven't been assigned to any conversations." : "A private group chat opens when a pitch or invitation is accepted.")</div></div>
+}
+else
+{
+    <div class="card chat" data-conversation="@sel?.Summary.Id">
+        <div class="chat-list" role="list">
+            @foreach (var c in Model.List)
+            {
+                <a class="chat-item @(c.Id == sel?.Summary.Id ? "on" : "")" href="/conversations/@c.Id" role="listitem"><div style="min-width:0;flex:1"><div class="row between"><strong class="small">@c.Title</strong>@if (c.Muted) {<span class="tiny muted">muted</span>}</div><div class="tiny muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@(c.LastMessage ?? "No messages yet")</div></div></a>
+            }
+        </div>
+        @if (sel is not null)
+        {
+            <div class="chat-pane">
+                <div class="card-h" style="padding:12px 16px"><div><strong>@sel.Summary.Title</strong><div class="tiny muted">@string.Join(" · ", sel.Members)</div></div>
+                    <div class="row" style="gap:6px">
+                        @if (!actor.IsTeamMember) {<a class="btn btn-ghost btn-sm" href="@(actor.IsInvestor ? "/startups/" + sel.Summary.StartupId : "/investors/" + sel.Summary.InvestorId)">View profile</a>}
+                        <form method="post" action="/conversations/@sel.Summary.Id/mute" class="inline" asp-antiforgery="true"><input type="hidden" name="muted" value="@((!sel.Summary.Muted).ToString().ToLowerInvariant())" /><button class="btn btn-ghost btn-sm">@(sel.Summary.Muted ? "Unmute" : "Mute")</button></form>
+                        @if (!actor.IsTeamMember) {<form method="post" action="/conversations/@sel.Summary.Id/block" class="inline" asp-antiforgery="true"><input type="hidden" name="blocked" value="@((sel.Summary.DisabledReason?.Contains("blocked") != true).ToString().ToLowerInvariant())" /><button class="btn btn-ghost btn-sm">@(sel.Summary.DisabledReason?.Contains("blocked") == true ? "Unblock" : "Block")</button></form>}
+                    </div>
+                </div>
+                @if (sel.ContactEmail is not null) { <div class="tiny" style="padding:8px 16px;background:#F8FAFC;border-bottom:1px solid var(--border)">Contact: @sel.ContactEmail · @(sel.ContactPhone ?? "—")</div> }
+                @if (actor.IsFounder && Model.Team.Any(t => t.Status == TeamAccountStatus.Active))
+                {
+                    <details style="padding:8px 16px;border-bottom:1px solid var(--border)"><summary class="small">Team members in this conversation</summary>
+                        <form method="post" action="/conversations/@sel.Summary.Id/members" class="row mt8" asp-antiforgery="true">
+                            @foreach (var t in Model.Team.Where(t => t.Status == TeamAccountStatus.Active)) { <label class="check"><input type="checkbox" name="teamIds" value="@t.Id" checked="@t.ConversationIds.Contains(sel.Summary.Id)" /> <span>@t.FullName</span></label> }
+                            <button class="btn btn-dark btn-sm">Save</button><span class="tiny muted">New members see full history; the investor is notified.</span>
+                        </form></details>
+                }
+                <div class="chat-msgs" id="msgs">
+                    @foreach (var m in sel.Messages)
+                    {
+                        if (m.IsSystem) { <div class="msg sys">@m.Body</div> continue; }
+                        <div class="msg @(m.IsMine ? "me" : "") @(m.Deleted ? "del" : "")" data-msg="@m.Id">
+                            <div class="meta"><partial name="_Avatar" model="(m.AuthorName, m.AuthorPhotoUrl, m.AuthorName.Length, 22)" /><strong style="color:var(--ink)">@m.AuthorName</strong><span>@Ui.Dhaka(m.SentAtUtc)</span>@if (m.Edited && !m.Deleted) {<span>· edited</span>}</div>
+                            @if (m.Deleted) {<span>This message was deleted.</span>} else {<span style="white-space:pre-wrap">@m.Body</span>}
+                            <div class="acts">
+                                @if (m.CanEdit) { <details><summary class="linkbtn tiny">Edit (15 min)</summary><form method="post" action="/messages/@m.Id/edit" asp-antiforgery="true"><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><textarea class="input" name="body" maxlength="2000">@m.Body</textarea><button class="btn btn-dark btn-sm mt8">Save</button></form></details> }
+                                @if (m.CanDelete) { <form method="post" action="/messages/@m.Id/delete" class="inline" asp-antiforgery="true"><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><button class="linkbtn tiny" data-confirm="Delete this message for everyone?">Delete for everyone</button></form> }
+                                @if (!m.IsMine && !m.Deleted) { <form method="post" action="/reports" class="inline" asp-antiforgery="true"><input type="hidden" name="kind" value="@ReportKind.GroupMessage" /><input type="hidden" name="target" value="message:@m.Id" /><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><input type="hidden" name="messageId" value="@m.Id" /><input type="hidden" name="reason" value="Reported from conversation" /><button class="linkbtn tiny">Report</button></form> }
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div id="meetings" style="padding:10px 16px;border-top:1px solid var(--border)">
+                    @foreach (var mt in Model.Meetings ?? [])
+                    {
+                        <div class="meeting"><div class="small"><strong>📅 Meeting @(mt.Status == MeetingStatus.Confirmed ? "confirmed" : mt.Status == MeetingStatus.Cancelled ? "cancelled" : "proposed")</strong> · by @mt.ProposedByName@if (mt.Agenda.Length > 0) {<span class="muted"> · @mt.Agenda</span>}</div>
+                            @if (mt.Status == MeetingStatus.Confirmed) { <div class="small mt8">@Ui.Dhaka(mt.ConfirmedSlotUtc!.Value) (Dhaka) · <a href="/meetings/@mt.Id/calendar.ics">Add to calendar (.ics)</a></div> }
+                            else if (mt.Status == MeetingStatus.Proposed)
+                            {
+                                foreach (var slot in mt.SlotsUtc)
+                                {
+                                    <div class="row between small" style="padding:4px 0">@Ui.Dhaka(slot) (Dhaka)
+                                        @if (mt.CanAccept && slot > DateTime.UtcNow) { <form method="post" action="/meetings/@mt.Id/accept" class="inline" asp-antiforgery="true"><input type="hidden" name="slotTicks" value="@slot.Ticks" /><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><button class="btn btn-primary btn-sm">Accept</button></form> }</div>
+                                }
+                                if (mt.CanCancel) { <form method="post" action="/meetings/@mt.Id/cancel" asp-antiforgery="true"><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><button class="linkbtn tiny">Cancel proposal</button></form> }
+                                else if (!mt.CanAccept) { <div class="tiny muted">Waiting for the other side to pick a slot.</div> }
+                            }
+                        </div>
+                    }
+                    @if (!actor.IsTeamMember && sel.Summary.DisabledReason is null)
+                    {
+                        <details><summary class="btn btn-outline btn-sm">📅 Propose a meeting</summary>
+                            <form method="post" action="/conversations/@sel.Summary.Id/meetings" class="stack mt8" asp-antiforgery="true">
+                                <p class="tiny muted mb0">Offer up to 3 slots (Asia/Dhaka time). The call itself happens on your own video tool — RiseUp does not host calls or handle any investment.</p>
+                                <div class="grid g3">@for (var i = 0; i < 3; i++) {<input class="input" type="datetime-local" name="slots" aria-label="Slot @(i + 1)" required="@(i == 0)" />}</div>
+                                <input class="input" name="agenda" maxlength="140" placeholder="Agenda (optional), e.g. corridor unit economics" />
+                                <button class="btn btn-primary btn-sm" style="justify-self:start">Send proposal</button>
+                            </form></details>
+                    }
+                </div>
+                @if (sel.Summary.DisabledReason is not null) { <div class="notice n-warn" style="margin:12px">@sel.Summary.DisabledReason</div> }
+                else
+                {
+                    <form class="chat-in" method="post" action="/conversations/@sel.Summary.Id/messages" asp-antiforgery="true"><label class="sr" for="mtext">Message</label><textarea class="input" id="mtext" name="body" maxlength="2000" required placeholder="Write a message (max 2,000 characters)"></textarea><button class="btn btn-primary">Send</button></form>
+                }
+            </div>
+        }
+    </div>
+}
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/pages/chat.js" type="module" asp-append-version="true"></script>
+}

@@ -1,0 +1,23 @@
+@model NameChangesViewModel
+@{ ViewData["Title"] = "Profile name changes"; }
+<div class="page-h"><div><h1>Profile name changes</h1><p>Verified accounts must keep the name on their ID. Compare against the verification file before approving. Every decision is audited.</p></div></div>
+<div class="card">
+    @if (Model.Requests.Count == 0) { <div class="empty">No name-change requests.</div> }
+    else
+    {
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Account</th><th>Current → requested</th><th>Requested</th><th>Status</th><th></th></tr></thead><tbody>
+        @foreach (var r in Model.Requests)
+        {
+            <tr><td class="small">@r.AccountLabel</td><td>@r.FromName → <strong>@r.ToName</strong></td><td class="small">@Ui.Dhaka(r.RequestedAtUtc)</td>
+                <td><span class="badge @Ui.StatusClass(r.Status.ToString())">@r.Status</span>@if (r.Reason is not null) {<div class="tiny muted">@r.Reason</div>}</td>
+                <td>@if (r.Status == NameChangeStatus.Pending)
+                {
+                    <div class="row" style="gap:6px;flex-wrap:nowrap">
+                        <form method="post" action="/admin/profile-changes/@r.Id/decide" asp-antiforgery="true"><input type="hidden" name="approve" value="true" /><button class="btn btn-primary btn-sm">Approve</button></form>
+                        <form method="post" action="/admin/profile-changes/@r.Id/decide" class="row" style="gap:6px;flex-wrap:nowrap" asp-antiforgery="true"><input type="hidden" name="approve" value="false" /><input class="input" name="reason" minlength="5" maxlength="500" required placeholder="Reason (shown to user)" style="width:200px" /><button class="btn btn-danger btn-sm">Reject</button></form>
+                    </div>
+                }</td></tr>
+        }
+        </tbody></table></div>
+    }
+</div>

@@ -1,0 +1,23 @@
+@model InvestorDetailDto
+@{ var i = Model.Card; ViewData["Title"] = i.Name; }
+<section class="section" style="padding-top:32px"><div class="container" style="max-width:980px">
+    <a href="/investors" class="small">← All investors</a>
+    <div class="card mk-card card-b mt16"><div class="row between" style="align-items:flex-start">
+        <div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div class="avatar" style="width:72px;height:72px;font-size:24px;background:@Ui.Color(i.ColorIndex)" aria-hidden="true">@Ui.Initials(i.Name)</div>
+            <div><h1 style="font-size:28px;margin-bottom:4px">@i.Name</h1><div class="muted">@i.Affiliation · @i.Type · @i.Location</div>
+            <div class="row mt8"><span class="badge b-ver">✓ Verified Investor</span>@if (i.ReceivePitches) {<span class="badge b-ver">Accepting pitches</span>} else {<span class="badge b-warn">Not accepting pitches</span>}</div></div></div>
+        <div class="row">@if (Model.ViewerConnected) {<a class="btn btn-primary" href="/conversations">Open conversation</a>} else if (Model.ViewerCanPitch) {<a class="btn btn-primary" href="/pitches?to=@i.Id">Write a pitch</a>}</div>
+    </div></div>
+    <div class="grid mt24 g-detail" style="align-items:start">
+        <div class="stack">
+            <div class="card card-b"><h3>About</h3><p><partial name="_ReadMore" model="(i.Bio, 300)" /></p>
+                <dl class="kv"><dt>Preferred industries</dt><dd><div class="chips">@foreach (var x in i.Industries) {<span class="chip">@x</span>}</div></dd><dt>Preferred stages</dt><dd>@string.Join(", ", i.Stages.Select(Ui.Stage))</dd>
+                <dt>Ticket range</dt><dd>@if (i.TicketMinUsd is not null) {<span>@Ui.Usd(i.TicketMinUsd) – @Ui.Usd(i.TicketMaxUsd) USD</span>} else {<span class="muted">🔒 Visible to verified startups</span>}</dd></dl></div>
+            <div class="card card-b"><h3>Prior investments</h3>
+                @if (Model.Claims.Count == 0) { <p class="small muted mb0">No prior investments listed.</p> }
+                @foreach (var c in Model.Claims) { <div class="row between small" style="padding:8px 0;border-bottom:1px solid #EEF2F6"><span><strong>@c.Startup</strong> · @c.Round · @c.Year</span>@if (c.Confirmed) {<span class="badge b-ver">Confirmed</span>} else {<span class="badge b-gray" title="Not independently confirmed">Unconfirmed claim</span>}</div> }
+            </div>
+        </div>
+        <div class="card card-b"><h3>Contact</h3>@if (Model.ContactEmail is not null) {<dl class="kv" style="grid-template-columns:auto 1fr"><dt>Email</dt><dd>@Model.ContactEmail</dd><dt>Phone</dt><dd>@(Model.ContactPhone ?? "—")</dd></dl>} else {<div class="lock">🔒 Contact details are shared only after a pitch or invitation is accepted.</div>}</div>
+    </div>
+</div></section>

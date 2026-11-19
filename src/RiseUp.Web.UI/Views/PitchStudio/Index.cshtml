@@ -1,0 +1,163 @@
+@model PitchStudioViewModel
+@{
+    ViewData["Title"] = "Pitch Studio";
+    Layout = "_AppLayout";
+    var p = Model.Package;
+    var w = Model.Wallet;
+    string Dur(int s) => $"{s / 60}:{s % 60:00}";
+    var draft = Model.EditDraftId is int did ? Model.Drafts.FirstOrDefault(d => d.Id == did) : null;
+}
+<div class="page-h"><div><h1>Pitch Studio</h1><p>One reusable pitch package — videos, deck, documents and your ask. Sending to an investor costs 1 token; only your written note is checked by AI Model 1.</p></div>
+    <div class="row"><span class="badge b-gray" style="font-size:13px;padding:6px 12px">@(w?.WelcomeBalance ?? 0) Welcome · @(w?.PurchasedBalance ?? 0) Purchased</span><a class="btn btn-outline" href="/pitch-room/0">Preview as investor</a></div></div>
+<nav class="studio-tabs" aria-label="Pitch Studio">
+    <a href="/pitches?tab=package" class="@(Model.Tab == "package" ? "on" : "")">Pitch package · @p.Completeness% complete</a>
+    <a href="/pitches?tab=send" class="@(Model.Tab == "send" ? "on" : "")">Send a pitch</a>
+    <a href="/pitches?tab=sent" class="@(Model.Tab == "sent" ? "on" : "")">Sent pitches &amp; analytics · @Model.Sent.Count</a>
+    <a href="/pitches?tab=guide" class="@(Model.Tab == "guide" ? "on" : "")">Pitch checklist</a>
+</nav>
+
+@if (Model.Tab == "package")
+{
+    <div class="notice n-info" style="margin-bottom:16px;display:block">Videos and documents are malware-scanned and reviewed by people when reported. They are <strong>never</strong> sent to AI, and RiseUp never writes or edits your pitch. Videos: MP4, MOV or WebM up to 200 MB (pitch ≤ 3 min, demo ≤ 2 min, teaser ≤ 60 s). Deck: PDF/PPTX ≤ 20 MB. Up to 6 pitch documents ≤ 10 MB each.</div>
+    <div class="grid g3">
+        @foreach (var (slot, label, v, hint, max) in new (PitchVideoSlot, string, VideoDto?, string, int)[] {
+            (PitchVideoSlot.Pitch, "Investor pitch video", p.Pitch, "Up to 3 minutes. Shark-Tank style: who you are, the problem, the product, traction, the ask.", BusinessRules.PitchVideoMaxSeconds),
+            (PitchVideoSlot.Demo, "Product demo", p.Demo, "Up to 2 minutes of the real product in use. Investors watch this second.", BusinessRules.DemoVideoMaxSeconds),
+            (PitchVideoSlot.Teaser, "Public teaser (Reels)", p.Teaser, "Up to 60 seconds. Shown publicly in Reels when enabled — no funding figures.", BusinessRules.TeaserMaxSeconds) })
+        {
+            <div class="card card-b vcard">
+                <div class="row between"><h4 class="mb0">@label</h4>@if (v is not null) {<span class="badge @(v.Scan == ScanStatus.Clean ? "b-ver" : "b-pend")">@Dur(v.Seconds) · @(v.Scan == ScanStatus.Clean ? "Clean" : "Scanning")</span>} else {<span class="badge b-warn">Missing</span>}</div>
+                <div class="mt8">@if (v is not null) {<video src="@v.Url" poster="@v.PosterUrl" controls playsinline preload="metadata"></video>} else {<div class="ph">No video yet</div>}</div>
+                <p class="tiny muted mt8">@hint</p>
+                <form method="post" action="/pitches/package/video/@slot" enctype="multipart/form-data" asp-antiforgery="true">
+                    <label class="btn btn-outline btn-sm upl">@(v is null ? "Upload video" : "Replace video")<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime,.mov" data-video-upload data-max-seconds="@max" /></label>
+                    <div class="progress-line mt8"><i></i></div><div class="tiny muted mt8" data-status></div>
+                </form>
+                @if (v is not null) { <form method="post" action="/pitches/package/video/@slot/remove" asp-antiforgery="true"><button class="linkbtn tiny" data-confirm="Remove this video?">Remove</button></form> }
+            </div>
+        }
+    </div>
+    <form method="post" action="/pitches/package/visibility" class="row mt8" asp-antiforgery="true">
+        <label class="switch"><input type="checkbox" name="publicTeaser" value="true" checked="@p.PublicTeaser" data-autosubmit /> Show teaser publicly in Reels</label>
+        <label class="switch"><input type="checkbox" name="publicDemo" value="true" checked="@p.PublicDemo" data-autosubmit /> Show product demo publicly</label>
+        <label class="switch"><input type="checkbox" name="captions" value="true" checked="@p.Captions" data-autosubmit /> Captions uploaded (VTT)</label>
+        <noscript><button class="btn btn-dark btn-sm">Save</button></noscript>
+    </form>
+
+    <div class="grid g-detail mt24" style="align-items:start">
+        <div class="stack">
+            <div class="card" id="deck"><div class="card-h"><h3>Pitch deck</h3>
+                <div class="row" style="gap:6px"><form method="post" action="/pitches/package/deck" enctype="multipart/form-data" asp-antiforgery="true"><label class="btn btn-outline btn-sm upl">Import PDF / PPTX<input type="file" name="file" accept=".pdf,.pptx" data-autosubmit /></label></form>
+                @if (p.DeckFile is not null) { <form method="post" action="/pitches/package/deck/remove" asp-antiforgery="true"><button class="btn btn-ghost btn-sm">Remove file</button></form> }</div></div>
+                <div class="card-b">
+                    @if (p.DeckFile is not null) { <div class="tiny muted" style="margin-bottom:8px">Source file: <a href="@p.DeckFile.Url" target="_blank" rel="noopener">@p.DeckFile.FileName</a> · @((p.DeckFile.SizeBytes / 1048576.0).ToString("0.0")) MB · @p.DeckFile.Scan · investors read the slides in-app; download stays off</div> }
+                    <form method="post" action="/pitches/package/slides" class="stack" asp-antiforgery="true">
+                        @for (var i = 0; i < Math.Max(p.Slides.Count + 1, 5) && i < BusinessRules.DeckSlidesMax; i++)
+                        {
+                            var sl = i < p.Slides.Count ? p.Slides[i] : null;
+                            <div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="tiny muted" style="width:22px;padding-top:10px">@(i + 1)</span><input class="input" name="titles" value="@sl?.Title" maxlength="80" placeholder="Slide title" style="width:34%" /><input class="input" name="bodies" value="@sl?.Body" maxlength="240" placeholder="Slide text" /></div>
+                        }
+                        <div class="row"><button class="btn btn-primary btn-sm">Save slides</button><span class="tiny muted">Leave a title empty to remove a slide. Max @BusinessRules.DeckSlidesMax.</span></div>
+                    </form>
+                </div></div>
+            <form class="card card-b stack" id="story" method="post" action="/pitches/package/story" asp-antiforgery="true"><h3>Highlights, team &amp; FAQ</h3>
+                <label class="field"><span>Highlights (one per line, max 5)</span><textarea class="input" name="highlights" rows="4" maxlength="1100">@string.Join("\n", p.Highlights)</textarea></label>
+                <label class="field"><span>Team (Name — role, one per line)</span><textarea class="input" name="team" rows="3" maxlength="1600">@string.Join("\n", p.Team.Select(t => $"{t.Name} — {t.Role}"))</textarea></label>
+                <label class="field"><span>FAQ (Question? Answer, one per line)</span><textarea class="input" name="faq" rows="4" maxlength="6400">@string.Join("\n", p.Faq.Select(f => $"{f.Question} {f.Answer}"))</textarea></label>
+                <button class="btn btn-primary" style="justify-self:start">Save</button>
+            </form>
+        </div>
+        <div class="stack">
+            <form class="card card-b stack" id="ask" method="post" action="/pitches/package/ask" asp-antiforgery="true"><h3>The ask</h3>
+                <div class="kv-ask"><label class="field"><span>Amount raising (USD)</span><input class="input" type="number" name="amountUsd" min="1" value="@p.Ask.AmountUsd.ToString("0")" required /></label>
+                    <label class="field"><span>Instrument</span><select class="input" name="instrument">@foreach (var ins in Enum.GetValues<FundingInstrument>()) {<option value="@ins" selected="@(p.Ask.Instrument == ins)">@(new AskDto(0, ins, 0, 0, 1, 0, []).InstrumentLabel)</option>}</select></label>
+                    <label class="field"><span>Pre-money / cap (USD)</span><input class="input" type="number" name="valuationUsd" min="0" value="@p.Ask.ValuationUsd.ToString("0")" /></label>
+                    <label class="field"><span>Discount %</span><input class="input" type="number" name="discountPercent" min="0" max="50" value="@p.Ask.DiscountPercent" /></label>
+                    <label class="field"><span>Runway after raise (months)</span><input class="input" type="number" name="runwayMonths" min="1" max="120" value="@p.Ask.RunwayMonths" /></label>
+                    <label class="field"><span>Minimum ticket (USD)</span><input class="input" type="number" name="minTicketUsd" min="0" value="@p.Ask.MinTicketUsd.ToString("0")" /></label></div>
+                <div><span class="small" style="font-weight:600">Use of funds (must total 100%)</span>
+                    @for (var i = 0; i < Math.Max(p.Ask.UseOfFunds.Count + 1, 3) && i < BusinessRules.UseOfFundsMax; i++)
+                    {
+                        var u = i < p.Ask.UseOfFunds.Count ? p.Ask.UseOfFunds[i] : null;
+                        <div class="row mt8" style="flex-wrap:nowrap"><input class="input" name="fundLabels" value="@u?.Label" maxlength="40" placeholder="e.g. Hiring" /><input class="input" type="number" name="fundPercents" min="0" max="100" value="@(u?.Percent.ToString() ?? "")" style="width:90px" placeholder="%" /></div>
+                    }
+                </div>
+                <button class="btn btn-primary" style="justify-self:start">Save ask</button>
+                <p class="tiny muted mb0">Visible only to investors who receive your pitch, and to verified investors on your spotlight card. Never shown publicly.</p>
+            </form>
+            <div class="card" id="documents"><div class="card-h"><h3>Pitch documents · @p.Documents.Count/@BusinessRules.PitchDocumentsMax</h3></div>
+                <div class="card-b">
+                    @foreach (var d in p.Documents)
+                    {
+                        <div class="row between" style="padding:8px 0;border-bottom:1px solid #EEF2F6"><div style="min-width:0"><a href="@d.Url" target="_blank" rel="noopener" class="small" style="font-weight:650">@d.FileName</a><div class="tiny muted">@d.Label · @((d.SizeBytes / 1024.0).ToString("0")) KB · <span class="badge @Ui.StatusClass(d.Scan.ToString())">@d.Scan</span></div></div>
+                            <div class="row" style="gap:6px"><form method="post" action="/pitches/package/documents/@d.Id/download" asp-antiforgery="true"><label class="switch tiny"><input type="checkbox" name="allow" value="true" checked="@d.AllowDownload" data-autosubmit /> Allow download</label></form>
+                                <form method="post" action="/pitches/package/documents/@d.Id/remove" asp-antiforgery="true"><button class="btn btn-ghost btn-sm" data-confirm="Remove this document? Investors who received it lose access.">Remove</button></form></div></div>
+                    }
+                    @if (p.Documents.Count == 0) { <div class="empty-sm">No pitch documents yet. Add a one-pager or financial model.</div> }
+                    @if (p.Documents.Count < BusinessRules.PitchDocumentsMax)
+                    {
+                        <form method="post" action="/pitches/package/documents" enctype="multipart/form-data" class="row mt8" asp-antiforgery="true"><input class="input" name="label" maxlength="60" placeholder="Label, e.g. Financial model" style="flex:1" /><label class="btn btn-outline btn-sm upl">Add document<input type="file" name="file" accept=".pdf,.pptx,.xlsx" data-autosubmit /></label></form>
+                    }
+                    <p class="tiny muted mt8 mb0">Pitch documents travel with each pitch you send (you choose which). The Confidential Library stays separate for due diligence after connection.</p>
+                </div></div>
+        </div>
+    </div>
+}
+else if (Model.Tab == "send")
+{
+    <div class="grid g-detail" style="align-items:start">
+        <div class="card"><div class="card-h"><h3>@(draft is null ? "Send your pitch package" : "Edit draft")</h3><span class="tiny muted">1 token · only if delivered</span></div>
+            <form class="card-b stack" method="post" action="/pitches/send" asp-antiforgery="true">
+                @if (!Model.StartupVerified) { <div class="notice n-warn">Your startup must be verified before you can send pitches.</div> }
+                else if (p.Completeness < 60) { <div class="notice n-warn">Your package is @p.Completeness% complete. Pitches with a video and deck get far more replies — you can still send.</div> }
+                <input type="hidden" name="idempotencyKey" value="@Model.IdempotencyKey" /><input type="hidden" name="draftId" value="@draft?.Id" /><input type="hidden" name="documentsChosen" value="true" />
+                <label class="field"><span>To (verified investor)</span><select class="input" name="investorId" required><option value="">Choose an investor…</option>@foreach (var i in Model.Investors) {<option value="@i.Id" selected="@((draft?.InvestorId ?? Model.ToInvestorId) == i.Id)">@i.Name — @i.Affiliation@(i.ReceivePitches ? "" : " (not accepting pitches)")</option>}</select></label>
+                <label class="field"><span>Personal note (checked by AI Model 1 — approve/reject only)</span><textarea class="input" name="text" rows="6" maxlength="3000" data-count="3000" required placeholder="Why this investor, and what you'd like from the conversation. Your videos, deck and ask are attached automatically.">@draft?.Text</textarea></label>
+                <div><span class="small" style="font-weight:600">Attach pitch documents</span>
+                    @foreach (var d in p.Documents) { <label class="check mt8"><input type="checkbox" name="documentIds" value="@d.Id" checked="@(d.Scan == ScanStatus.Clean)" disabled="@(d.Scan != ScanStatus.Clean)" /> <span>@d.FileName <span class="tiny muted">· @d.Label@(d.Scan != ScanStatus.Clean ? " · still scanning" : "")</span></span></label> }
+                    @if (p.Documents.Count == 0) { <div class="tiny muted mt8">No pitch documents in your package yet.</div> }</div>
+                <div class="card card-b small" style="background:var(--canvas);box-shadow:none"><strong>The investor receives:</strong> @(p.Pitch is null ? "no pitch video" : "pitch video ✓") · @(p.Demo is null ? "no demo" : "product demo ✓") · @(p.Slides.Count > 0 ? $"deck ({p.Slides.Count} slides) ✓" : "no deck") · ask: @Ui.Usd(p.Ask.AmountUsd) @p.Ask.InstrumentLabel · Q&amp;A inside the pitch room</div>
+                <div class="row" style="justify-content:flex-end"><button class="btn btn-outline" formaction="/pitches/draft" formnovalidate>Save draft</button><button class="btn btn-primary" disabled="@(!Model.StartupVerified)">Check note &amp; send pitch (1 token)</button></div>
+            </form></div>
+        <div class="card"><div class="card-h"><h3>Drafts</h3></div>
+            @foreach (var d in Model.Drafts)
+            {
+                <div style="padding:12px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><strong class="small">@(Model.Investors.FirstOrDefault(i => i.Id == d.InvestorId)?.Name ?? "No recipient")</strong><span class="badge @Ui.StatusClass(d.State.ToString())">@d.State</span></div>
+                    <div class="tiny muted mt8"><partial name="_ReadMore" model="(d.Text, 90)" /></div>@if (d.ReasonCode is not null) {<div class="tiny mt8">Reason code: <code>@d.ReasonCode</code></div>}
+                    <a class="btn btn-outline btn-sm mt8" href="/pitches?tab=send&draft=@d.Id">Edit</a></div>
+            }
+            @if (Model.Drafts.Count == 0) { <div class="empty-sm">No drafts</div> }
+        </div>
+    </div>
+}
+else if (Model.Tab == "sent")
+{
+    var opened = Model.Sent.Count(s => s.Stats.OpenedAtUtc is not null); var acc = Model.Sent.Count(s => s.Status == RequestStatus.Accepted);
+    <div class="grid g4" style="margin-bottom:18px">
+        <div class="card kpi"><div class="l">Pitches sent</div><div class="v">@Model.Sent.Count</div></div>
+        <div class="card kpi"><div class="l">Opened</div><div class="v">@opened</div><div class="tiny muted">@(Model.Sent.Count == 0 ? 0 : opened * 100 / Model.Sent.Count)% open rate</div></div>
+        <div class="card kpi"><div class="l">Avg. pitch video watched</div><div class="v">@(Model.Sent.Count == 0 ? 0 : (int)Model.Sent.Average(s => s.Stats.PitchWatch))%</div></div>
+        <div class="card kpi"><div class="l">Accepted</div><div class="v">@acc</div><div class="tiny muted">@(Model.Sent.Count == 0 ? 0 : acc * 100 / Model.Sent.Count)% conversion</div></div>
+    </div>
+    <div class="card">@if (Model.Sent.Count == 0) {<div class="empty">No pitches sent yet</div>} else {
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Investor</th><th>Sent</th><th>Status</th><th>Opened</th><th>Pitch video</th><th>Deck</th><th>Docs</th><th>Questions</th><th></th></tr></thead><tbody>
+        @foreach (var s in Model.Sent)
+        {
+            <tr><td><a href="/investors/@s.InvestorId" style="font-weight:650;color:var(--ink)">@s.InvestorName</a><div class="tiny muted">pkg v@(s.PackageVersion ?? 0)@(s.InfoRequested ? " · more info requested" : "")</div></td>
+                <td class="small">@Ui.Dhaka(s.SentAtUtc)</td>
+                <td><span class="badge @Ui.StatusClass(s.Status.ToString())">@s.Status</span>@if (s.Status == RequestStatus.Pending) {<div class="tiny muted mt8">@Ui.Left(s.ExpiresAtUtc - DateTime.UtcNow) left</div>}</td>
+                <td>@if (s.Stats.OpenedAtUtc is DateTime o) {<span class="badge b-ver">@Ui.Ago(o)</span>} else {<span class="badge b-gray">Not yet</span>}</td>
+                <td><div class="bar" style="width:90px"><i style="width:@(s.Stats.PitchWatch)%"></i></div><span class="tiny muted">@s.Stats.PitchWatch%</span></td>
+                <td class="small">@s.Stats.SlidesViewed/@p.Slides.Count</td><td class="small">@s.Stats.DocsViewed/@s.AttachedDocuments</td>
+                <td class="small">@s.Questions@if (s.Unanswered > 0) {<text> </text><span class="badge b-warn">@s.Unanswered to answer</span>}</td>
+                <td><a class="btn btn-outline btn-sm" href="/pitch-room/@s.RequestId">Open room</a></td></tr>
+        }
+        </tbody></table></div>}</div>
+    <p class="tiny muted mt8">Engagement is measured only inside the pitch room you sent. Investors see the standard privacy notice; no device data is collected.</p>
+}
+else
+{
+    <div class="notice n-info" style="margin-bottom:16px;display:block">A human checklist, not AI. RiseUp never writes, scores or rewrites your pitch (FR-066).</div>
+    <div class="card">@foreach (var c in p.Checklist) {<div class="row" style="padding:12px 20px;border-bottom:1px solid #EEF2F6;flex-wrap:nowrap"><span class="badge @(c.Done ? "b-ver" : "b-gray")" style="width:28px;justify-content:center">@(c.Done ? "✓" : "·")</span><div><strong class="small">@c.Item</strong><div class="tiny muted">@c.Hint</div></div></div>}</div>
+}
+@section Scripts { <script src="~/js/pages/studio.js" type="module" asp-append-version="true"></script> }

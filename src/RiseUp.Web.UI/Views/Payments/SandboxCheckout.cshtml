@@ -1,0 +1,13 @@
+@model string
+@{ ViewData["Title"] = "Sandbox checkout"; }
+<section class="section" style="padding-top:48px"><div class="container" style="max-width:520px">
+    <form class="card mk-card card-b stack" method="post" action="/wallet/sandbox-checkout/@Model" asp-antiforgery="true">
+        <h1 style="font-size:24px">Sandbox checkout</h1>
+        <div class="notice n-warn small">SANDBOX ADAPTER — development only. It cannot be enabled in Production.</div>
+        <p class="small">Order <code>@Model</code>. Choose what the gateway does:</p>
+        <button class="btn btn-primary" name="outcome" value="paid">Pay with bKash (sandbox) — signed webhook</button>
+        <button class="btn btn-outline" name="outcome" value="redirect-only">Browser success redirect only (credits nothing)</button>
+        <button class="btn btn-outline" name="outcome" value="fail">Payment fails</button>
+        <button class="btn btn-outline" name="outcome" value="tampered">Tampered webhook signature</button>
+    </form>
+</div></section>

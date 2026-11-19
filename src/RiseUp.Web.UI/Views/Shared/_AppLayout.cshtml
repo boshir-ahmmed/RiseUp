@@ -1,0 +1,41 @@
+@{
+    var token = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="csrf-token" content="@token" />
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")RiseUp</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" />
+    <!-- Bootstrap 5 foundation layers (Reboot + Utilities). RiseUp components come from site.css. -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap-reboot.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap-utilities.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @if (HostEnv.IsDevelopment())
+    {
+        <div class="devbar">DEVELOPMENT · SQLite demo database · sandbox AI, payments &amp; malware scanner · demo password <code>Demo#2026pass</code></div>
+    }
+    @await Component.InvokeAsync("Shell", new { part = "TopBar" })
+    <div class="app">
+        <aside class="side" id="side" aria-label="Navigation">
+            @await Component.InvokeAsync("Shell", new { part = "Side" })
+        </aside>
+        <main class="main" id="main">
+            <button class="btn btn-outline btn-sm mtoggle" type="button" data-toggle="#side" style="margin-bottom:12px" aria-controls="side">☰ Menu</button>
+            <partial name="_Flash" />
+            @RenderBody()
+        </main>
+    </div>
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <script src="~/js/core/http.js" asp-append-version="true" type="module"></script>
+    <script src="~/js/core/ui.js" asp-append-version="true" type="module"></script>
+    <script src="~/js/pages/feed.js" asp-append-version="true" type="module"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

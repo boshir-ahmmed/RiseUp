@@ -1,0 +1,100 @@
+@model FeedViewModel
+@{
+    ViewData["Title"] = "Home";
+    ViewData["HideFooter"] = true;
+    var actor = CurrentActor.From(User);
+    Layout = actor.IsAuthenticated ? "_AppLayout" : "_Layout";
+    var canInteract = actor.IsFounder || actor.IsInvestor;   // re-checked server-side on every action
+    ViewData["CanInteract"] = canInteract;
+    var catQ = Model.Category is null ? "" : "&category=" + Model.Category;
+    IReadOnlyList<SpotlightDto> spots = Model.Tab == "saved" ? Array.Empty<SpotlightDto>() : Model.Spotlight;
+}
+@functions {
+    static readonly int[] SpotlightAfter = [0, 3, 6];
+}
+<div class="@(actor.IsAuthenticated ? "feed-wrap in-app" : "container feed-wrap pub3")">
+    @if (!actor.IsAuthenticated)
+    {
+        <aside class="feed-left" aria-label="Explore">
+            <nav class="card side-nav"><div class="grp">Explore</div><a href="/" class="on"><span>🏠 Home feed</span></a><a href="/reels"><span>▶ Reels</span></a><a href="/startups"><span>🚀 Startups</span></a><a href="/investors"><span>💼 Investors</span></a><a href="/how-it-works"><span>🧭 How it works</span></a><a href="/pricing"><span>🪙 Pricing</span></a><a href="/faq"><span>❓ FAQ</span></a></nav>
+            <div class="card side-card mt16 join-card"><strong>Join the verified network</strong><p class="small muted mt8">Founders pitch with video. Investors discover with confidence.</p><a class="btn btn-primary btn-sm" style="width:100%" href="/register">Create account</a><a class="btn btn-ghost btn-sm mt8" style="width:100%" href="/login">Sign in</a></div>
+        </aside>
+    }
+    <div style="min-width:0">
+        @if (actor.IsFounder)
+        {
+            <div class="card comp"><div class="comp-top"><a href="/me" aria-label="Your profile" style="line-height:0">@await Component.InvokeAsync("Shell", new { part = "Avatar" })</a><a class="comp-fake" href="/my-posts">@(Model.CanPost ? "Share an update from your startup…" : "Posting unlocks after verification")</a></div>
+                <div class="comp-acts"><a href="/my-posts" style="color:#378FE9"><partial name="_Icon" model='"cam"' /><span>Photo</span></a><a href="/my-posts" style="color:#5F9B41"><partial name="_Icon" model='"vid"' /><span>Video</span></a><a href="/my-posts" style="color:#C37D16"><partial name="_Icon" model='"flag"' /><span>Milestone</span></a><a href="/pitches" style="color:#E06847"><partial name="_Icon" model='"pitch"' /><span>Pitch</span></a></div></div>
+        }
+        <nav class="stories" aria-label="Verified startups">
+            @foreach (var s in Model.Stories)
+            {
+                <a class="story" href="/startups/@s.Id"><span class="ring"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" /></span><span class="tiny">@s.Name</span></a>
+            }
+        </nav>
+        <form class="feed-tabs" method="get" action="/" role="tablist" aria-label="Feed">
+            <a class="pill @(Model.Tab is not ("latest" or "saved") ? "on" : "")" href="/?tab=foryou@catQ">For you</a>
+            <a class="pill @(Model.Tab == "latest" ? "on" : "")" href="/?tab=latest@catQ">Latest</a>
+            <a class="pill" href="/reels">▶ Reels</a>
+            @if (canInteract) { <a class="pill @(Model.Tab == "saved" ? "on" : "")" href="/?tab=saved">🔖 Saved</a> }
+            <input type="hidden" name="tab" value="@Model.Tab" />
+            <label class="sr" for="category">Category</label>
+            <select id="category" name="category" class="input" style="width:auto;margin-left:auto;padding:6px 10px;border-radius:999px;font-size:13px" data-autosubmit>
+                <option value="">All categories</option>
+                @foreach (var c in Enum.GetValues<PostCategory>()) { <option value="@c" selected="@(Model.Category == c)">@c</option> }
+            </select>
+            <noscript><button class="btn btn-dark btn-sm">Filter</button></noscript>
+        </form>
+        @if (actor.IsInvestor && Model.Tab == "foryou") { <p class="tiny muted" style="margin:-6px 0 12px">Ordered by relevance to your preferences (@(Model.Recommended?.Engine ?? "rule-based")). Promoted posts are always labelled.</p> }
+        @if (Model.Posts.Count == 0)
+        {
+            <div class="card"><div class="empty"><div class="ic">◌</div><div style="font-weight:650;color:var(--ink)">@(Model.Tab == "saved" ? "No saved posts yet" : "No posts in this category yet")</div><div class="small muted">@(Model.Tab == "saved" ? "Tap Save on any post to keep it here." : "Try another category.")</div></div></div>
+        }
+        @{ var si = 0; }
+        @for (var i = 0; i < Model.Posts.Count; i++)
+        {
+            <partial name="_PostCard" model="Model.Posts[i]" view-data="ViewData" />
+            if (SpotlightAfter.Contains(i) && si < spots.Count) { <partial name="_Spotlight" model="spots[si++]" /> }
+        }
+        @if (Model.Posts.Count >= Model.Take)
+        {
+            <a class="btn btn-outline" style="width:100%" href="/?tab=@Model.Tab&take=@(Model.Take + 10)@catQ">Load more posts</a>
+        }
+        else if (Model.Posts.Count > 0)
+        {
+            <p class="small muted" style="text-align:center">✓ You're all caught up</p>
+        }
+    </div>
+    <aside class="feed-side" aria-label="Suggestions">
+        @if (!actor.IsAuthenticated)
+        {
+            <div class="card side-card hero-mini"><strong>Bangladesh's verified startup network</strong><p class="small mt8">Every founder and investor is manually verified. Browse freely — join to like, comment and connect.</p><div class="row"><a class="btn btn-primary btn-sm" href="/register">Join RiseUp</a><a class="btn btn-ghost btn-sm" style="color:#fff" href="/about">Learn more</a></div></div>
+        }
+        @if (Model.Spotlight.Count > 0)
+        {
+            <div class="card side-card @(actor.IsAuthenticated ? "" : "mt16")"><div class="row between"><h4 class="mb0">🔥 Trending pitches</h4><a class="tiny" href="/reels">See all</a></div>
+                @foreach (var s in Model.Spotlight.Take(4))
+                {
+                    <a class="tp" href="/reels#s-@s.StartupId"><span class="tp-th">@if (s.Teaser.PosterUrl is not null) {<img src="@s.Teaser.PosterUrl" alt="" loading="lazy" />}<span>▶</span></span><span style="min-width:0;text-align:left"><strong class="small ell" style="display:block">@s.Name</strong><span class="tiny muted ell" style="display:block">@s.Industry · @Ui.Stage(s.Stage)</span></span></a>
+                }
+            </div>
+        }
+        <div class="card side-card mt16">
+            <div class="row between"><h4 class="mb0">@(Model.Recommended is null ? "Popular startups" : "Recommended for you")</h4>@if (Model.Recommended is not null) {<span class="badge @(Model.Recommended.UsedFallback ? "b-warn" : "b-ver")">@Model.Recommended.Engine</span>}</div>
+            @foreach (var s in (Model.Recommended?.Items.Select(i => (i.Id, i.Name, i.Subtitle, i.ColorIndex, (string?)null)) ?? Model.Stories.Take(4).Select(s => (s.Id, s.Name, s.Industry + " · " + Ui.Stage(s.Stage), s.ColorIndex, s.LogoUrl))).Take(4))
+            {
+                <div class="sugg"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.Item5)" /><div style="flex:1;min-width:0"><a href="/startups/@s.Id" class="small" style="font-weight:650;color:var(--ink)">@s.Name</a><div class="tiny muted ell">@s.Item3</div></div><a class="btn btn-outline btn-sm" href="/startups/@s.Id">View</a></div>
+            }
+            <a class="small" href="/startups">See all startups →</a>
+        </div>
+        <div class="card side-card mt16"><h4>Verified investors</h4>
+            @foreach (var i in Model.Investors)
+            {
+                <div class="sugg"><partial name="_Avatar" model="(i.Name, i.PhotoUrl, i.ColorIndex, 36)" /><div style="flex:1;min-width:0"><a href="/investors/@i.Id" class="small" style="font-weight:650;color:var(--ink)">@i.Name</a><div class="tiny muted ell">@i.Affiliation</div></div><a class="btn btn-outline btn-sm" href="/investors/@i.Id">View</a></div>
+            }
+            <a class="small" href="/investors">See all investors →</a>
+        </div>
+        <p class="tiny muted mt16">RiseUp is not an investment adviser or broker. Posts are founder-published and pass an automated safety check. <a href="/about">About</a> · <a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
+    </aside>
+</div>
+@section Scripts { <script src="~/js/pages/studio.js" type="module" asp-append-version="true"></script> }

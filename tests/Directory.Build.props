@@ -1,0 +1,7 @@
+<Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <PropertyGroup>
+    <!-- Test method names use underscores; test helpers dereference seeded ids. -->
+    <NoWarn>$(NoWarn);CA1707;CS8629;CA1051</NoWarn>
+  </PropertyGroup>
+</Project>

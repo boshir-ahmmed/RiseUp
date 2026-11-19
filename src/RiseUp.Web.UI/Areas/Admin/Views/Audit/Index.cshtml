@@ -1,0 +1,9 @@
+@model IReadOnlyList<AuditDto>
+@{ ViewData["Title"] = "Audit log"; }
+<div class="page-h"><div><h1>Audit log</h1><p>Immutable record of privileged actions.</p></div></div>
+<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Role</th><th>Action</th><th>Target</th><th>Reason</th></tr></thead><tbody>
+@foreach (var a in Model)
+{
+    <tr><td class="small">@Ui.Dhaka(a.AtUtc)</td><td class="small">@a.ActorRole</td><td class="small">@a.Action @if (a.Restricted) {<span class="badge b-warn">restricted access</span>}</td><td class="small">@a.Target</td><td class="small"><partial name="_ReadMore" model="(a.Reason, 60)" /></td></tr>
+}
+</tbody></table></div></div>

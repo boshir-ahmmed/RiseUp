@@ -1,0 +1,48 @@
+@model MyPostsViewModel
+@{ ViewData["Title"] = "Posts & promotions"; }
+<div class="page-h"><div><h1>Posts &amp; promotions</h1><p>Each new or edited post passes AI Model 1 before going public. Promotions use Purchased tokens only.</p></div><span class="badge b-gray" style="font-size:13px;padding:6px 12px">@(Model.Wallet?.PurchasedBalance ?? 0) Purchased tokens</span></div>
+<div class="grid g-detail" style="align-items:start">
+    <div class="card"><div class="card-h"><h3>Your posts</h3></div>
+        @if (Model.Posts.Count == 0) { <div class="empty">No posts yet</div> }
+        @foreach (var p in Model.Posts)
+        {
+            <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6">
+                <div class="row between"><strong>@(p.LiveTitle ?? p.PendingTitle)</strong>
+                    <div class="row" style="gap:4px">@if (p.LiveTitle is not null) {<span class="badge b-ver">Live</span>}@if (p.PendingTitle is not null) {<span class="badge @Ui.StatusClass(p.PendingState.ToString())">Edit: @p.PendingState</span>}@if (p.HasOpenPromotion) {<span class="badge b-promo">Promoted</span>}</div></div>
+                @if (p.PendingTitle is not null && p.LiveTitle is not null) { <div class="tiny muted mt8">The last approved version stays live until the edit passes.</div> }
+                @if (p.ReasonCode is not null) { <div class="tiny mt8">Reason code: <code>@p.ReasonCode</code></div> }
+                <div class="row mt8">
+                    @if (p.LiveTitle is not null) { <a class="btn btn-outline btn-sm" href="/posts/@p.Id">View post</a> }
+                    <a class="btn btn-outline btn-sm" href="/my-posts?edit=@p.Id">Edit</a>
+                    <form method="post" action="/my-posts/@p.Id/video" enctype="multipart/form-data" class="inline" asp-antiforgery="true"><label class="btn btn-outline btn-sm upl">🎬 Add video (≤90 s)<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime,.mov" data-video-upload data-max-seconds="90" /></label><span class="tiny muted" data-status></span><div class="progress-line" style="width:120px;display:inline-block;vertical-align:middle"><i></i></div></form>
+                    @if (p.LiveTitle is not null && !p.HasOpenPromotion)
+                    {
+                        <form method="post" action="/my-posts/@p.Id/promote" class="row inline" style="flex-wrap:nowrap" asp-antiforgery="true"><select class="input" name="days" style="width:auto;padding:5px 8px"><option value="1">1 day · 3 tokens</option><option value="3" selected>3 days · 7 tokens</option><option value="7">7 days · 15 tokens</option></select><button class="btn btn-primary btn-sm">Promote</button></form>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <form class="card card-b stack" method="post" action="/my-posts" asp-antiforgery="true">
+        @{ var editing = Model.Posts.FirstOrDefault(p => p.Id == Model.EditId); }
+        <h3>@(editing is null ? "New post" : "Edit post")</h3>
+        <input type="hidden" name="postId" value="@editing?.Id" />
+        <label class="field"><span>Category</span><select class="input" name="category">@foreach (var c in Enum.GetValues<PostCategory>()) {<option value="@c" selected="@(editing?.Category == c)">@c</option>}</select></label>
+        <label class="field"><span>Title</span><input class="input" name="title" maxlength="150" data-count="150" required value="@(editing?.PendingTitle ?? editing?.LiveTitle)" /></label>
+        <label class="field"><span>Body</span><textarea class="input" name="body" maxlength="5000" data-count="5000" rows="7" required>@editing?.Body</textarea></label>
+        <button class="btn btn-primary">Submit for safety check</button>
+        <p class="tiny muted mb0">Try “guaranteed returns” to see a rejection. Comments and private chats are never sent to AI.</p>
+    </form>
+</div>
+<div class="card mt24"><div class="card-h"><h3>Promotions</h3></div>
+    @if (Model.Promotions.Count == 0) { <div class="empty">No promotions yet</div> }
+    @foreach (var p in Model.Promotions)
+    {
+        <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><strong class="small">@p.PostTitle</strong><span class="badge @Ui.StatusClass(p.Status.ToString())">@p.Status</span></div>
+            <div class="tiny muted mt8">@p.Days-day package · @p.Cost Purchased tokens · @Ui.Left(p.Remaining) of paid time remaining@(p.PauseReason is null ? "" : " · paused: " + p.PauseReason)</div>
+            <details class="small mt8"><summary class="linkbtn">View details</summary><dl class="kv mt8"><dt>Impressions</dt><dd>@p.Impressions.ToString("N0")</dd><dt>Clicks</dt><dd>@p.Clicks</dd><dt>Engagements</dt><dd>@p.Engagements</dd><dt>Served via fallback</dt><dd>@p.FallbackImpressions impressions during AI outages</dd><dt>Refunds</dt><dd>Non-refundable unless RiseUp fails to activate it</dd></dl></details>
+        </div>
+    }
+</div>
+
+@section Scripts { <script src="~/js/pages/studio.js" type="module" asp-append-version="true"></script> }

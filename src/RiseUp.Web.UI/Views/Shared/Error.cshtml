@@ -1,0 +1,15 @@
+@model int
+@{
+    ViewData["Title"] = Model == 404 ? "Not found" : Model == 403 ? "Access denied" : "Error";
+    var (title, text) = Model switch
+    {
+        404 => ("Page not found", "The page you're looking for doesn't exist or isn't public."),
+        403 => ("Access denied", "Your role does not have permission to view this page."),
+        429 => ("Too many requests", "Please wait a moment and try again."),
+        _ => ("Something went wrong", "The error was logged with a correlation ID. Please try again."),
+    };
+}
+<section class="section"><div class="container" style="max-width:560px;text-align:center">
+    <div class="stat" style="font-size:56px;color:var(--teal)">@Model</div><h1 style="font-size:28px">@title</h1><p class="muted">@text</p>
+    <p class="tiny muted">Reference: @Context.TraceIdentifier</p><a class="btn btn-outline" href="/">Go home</a>
+</div></section>

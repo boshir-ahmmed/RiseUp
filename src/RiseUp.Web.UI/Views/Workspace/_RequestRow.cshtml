@@ -1,0 +1,36 @@
+@model RequestDto
+@{
+    var actor = CurrentActor.From(User);
+    var incoming = (Model.Type == RequestType.Pitch && actor.IsInvestor) || (Model.Type == RequestType.Invitation && actor.IsFounder);
+    var counterpart = actor.IsInvestor ? Model.StartupName : Model.InvestorName;
+    var href = actor.IsInvestor ? $"/startups/{Model.StartupId}" : $"/investors/{Model.InvestorId}";
+    var remaining = Model.ExpiresAtUtc - DateTime.UtcNow;
+}
+<tr>
+    <td><a href="@href" style="font-weight:650;color:var(--ink)">@counterpart</a><div class="tiny muted">@(Model.Type == RequestType.Pitch ? "Pitch" : "Invitation") · @(incoming ? "received" : "sent")</div></td>
+    <td class="small" style="max-width:360px"><partial name="_ReadMore" model="(Model.Message, 90)" /></td>
+    <td class="small">@Ui.Dhaka(Model.SentAtUtc)</td>
+    <td>
+        <span class="badge @Ui.StatusClass(Model.Status.ToString())">@Model.Status</span>
+        @if (Model.Status == RequestStatus.Pending) { <div class="tiny muted mt8">Expires in @Ui.Left(remaining)</div> }
+        @if (Model.ResendAllowedAtUtc is DateTime r && r > DateTime.UtcNow) { <div class="tiny muted mt8">New request after @Ui.Dhaka(r)</div> }
+    </td>
+    <td>
+        <div class="row" style="flex-wrap:nowrap;gap:6px">
+            @if (Model.Type == RequestType.Pitch) { <a class="btn @(incoming && Model.Status == RequestStatus.Pending ? "btn-primary" : "btn-outline") btn-sm" href="/pitch-room/@Model.Id">Open pitch room</a> }
+            @if (incoming && Model.Status == RequestStatus.Pending)
+            {
+                <form method="post" action="/requests/@Model.Id/respond" class="inline" asp-antiforgery="true"><input type="hidden" name="accept" value="true" /><button class="btn @(Model.Type == RequestType.Pitch ? "btn-outline" : "btn-primary") btn-sm">Accept</button></form>
+                <form method="post" action="/requests/@Model.Id/respond" class="inline" asp-antiforgery="true"><input type="hidden" name="accept" value="false" /><button class="btn btn-outline btn-sm" data-confirm="Decline? A new request will only be possible 14 days after the original send time.">Decline</button></form>
+            }
+            <details class="small"><summary class="linkbtn">View details</summary>
+                <div class="card card-b mt8" style="min-width:260px;box-shadow:none">
+                    <dl class="kv" style="grid-template-columns:110px 1fr"><dt>Sent</dt><dd>@Ui.Dhaka(Model.SentAtUtc)</dd><dt>Expires</dt><dd>@Ui.Dhaka(Model.ExpiresAtUtc)</dd>
+                    @if (Model.Bucket is not null) {<dt>Token</dt><dd>1 @Model.Bucket (not refunded after delivery)</dd>}
+                    @if (Model.DecisionNote is not null) {<dt>Note</dt><dd>@Model.DecisionNote</dd>}</dl>
+                    <p class="small mt8 mb0" style="white-space:pre-wrap">@Model.Message</p>
+                </div>
+            </details>
+        </div>
+    </td>
+</tr>

@@ -1,0 +1,23 @@
+@model IReadOnlyList<ShortlistItemDto>
+@{ ViewData["Title"] = "Shortlist"; Layout = "_AppLayout"; }
+<partial name="_PageHeader" model='("Shortlist", (string?)"Your private deal pipeline. Founders never see stages or notes.")' />
+<div class="row" style="margin-bottom:14px">@foreach (var st in Enum.GetValues<ShortlistStage>()) {<span class="badge b-gray">@st · @Model.Count(x => x.Stage2 == st)</span>}</div>
+<div class="card">
+    @if (Model.Count == 0) { <div class="empty">Your shortlist is empty. Add startups from Discover, Reels or any pitch room.</div> }
+    @foreach (var x in Model)
+    {
+        <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6">
+            <div class="row between"><div class="row" style="flex-wrap:nowrap"><partial name="_Brand" model="(x.Name, x.ColorIndex, string.Empty, x.LogoUrl)" /><div><a href="/startups/@x.StartupId" style="font-weight:650;color:var(--ink)">@x.Name</a><div class="tiny muted">@x.Industry · @Ui.Stage(x.Stage)@(x.AskUsd is decimal a && a > 0 ? $" · raising {Ui.Usd(a)}" : "")</div></div></div>
+                <div class="row">
+                    @if (x.PendingPitchRequestId is int rid) { <a class="btn btn-primary btn-sm" href="/pitch-room/@rid">Open pitch room</a> }
+                    else if (x.Connected) { <a class="btn btn-outline btn-sm" href="/conversations">Open chat</a> }
+                    else if (x.InvitationPending) { <span class="badge b-pend">Invitation pending</span> }
+                    else { <form method="post" action="/startups/@x.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><button class="btn btn-outline btn-sm">Invite</button></form> }
+                    <form method="post" action="/shortlist/@x.StartupId/toggle" class="inline" asp-antiforgery="true"><button class="btn btn-ghost btn-sm">Remove</button></form>
+                </div></div>
+            <form method="post" action="/shortlist/@x.StartupId" class="row mt8" style="flex-wrap:nowrap" asp-antiforgery="true">
+                <select class="input" name="stage" style="width:auto;padding:6px 10px">@foreach (var st in Enum.GetValues<ShortlistStage>()) {<option value="@st" selected="@(x.Stage2 == st)">@st</option>}</select>
+                <input class="input" name="note" value="@x.Note" maxlength="300" placeholder="Private note" /><button class="btn btn-ghost btn-sm">Save</button></form>
+        </div>
+    }
+</div>

@@ -1,0 +1,29 @@
+@model StartupSearchViewModel
+@{ ViewData["Title"] = "Browse startups"; var q = Model.Query; }
+<section class="section" style="padding-top:40px"><div class="container">
+    <div class="sec-head"><h1 style="font-size:34px">Browse startups</h1><p class="muted">Search public profiles. Unverified startups may show a basic profile but cannot pitch or receive invitations.</p></div>
+    <form class="card card-b" method="get" action="/startups" role="search">
+        <div class="grid g-search4">
+            <label class="field"><span>Search</span><input class="input" name="Text" value="@q.Text" placeholder="Name, tagline or description" maxlength="100" /></label>
+            <label class="field"><span>Industry</span><select class="input" name="Industry"><option value="">All</option>@foreach (var i in new[] { "Fintech", "Logistics", "Healthtech", "Edtech", "Agritech", "Climate & Energy", "E-commerce", "Manufacturing", "SaaS" }) {<option selected="@(q.Industry == i)">@i</option>}</select></label>
+            <label class="field"><span>Stage</span><select class="input" name="Stage"><option value="">All</option>@foreach (var s in Enum.GetValues<FundingStage>()) {<option value="@s" selected="@(q.Stage == s)">@Ui.Stage(s)</option>}</select></label>
+            <label class="field"><span>Sort by</span><select class="input" name="Sort"><option value="newest" selected="@(q.Sort == "newest")">Newest</option><option value="views" selected="@(q.Sort == "views")">Most viewed</option></select></label>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:14px"><a class="btn btn-ghost btn-sm" href="/startups">Clear</a><button class="btn btn-dark">Search</button></div>
+    </form>
+    <div class="small muted mt16" aria-live="polite">@Model.Result.Total result@(Model.Result.Total == 1 ? "" : "s")</div>
+    @if (Model.Result.Items.Count == 0)
+    {
+        <div class="card mt16"><div class="empty"><div class="ic">◌</div><div style="font-weight:650;color:var(--ink)">No startups match these filters</div><div class="small">Try removing a filter or searching a broader term.</div></div></div>
+    }
+    <div class="grid g3 mt16">@foreach (var s in Model.Result.Items) { <partial name="_StartupCard" model="s" /> }</div>
+    @if (Model.Result.TotalPages > 1)
+    {
+        <nav class="row mt24" aria-label="Pagination" style="justify-content:center">
+            @for (var p = 1; p <= Model.Result.TotalPages; p++)
+            {
+                <a class="btn btn-sm @(p == Model.Result.Page ? "btn-dark" : "btn-outline")" aria-current="@(p == Model.Result.Page ? "page" : null)" href="/startups?Text=@q.Text&Industry=@q.Industry&Stage=@q.Stage&Sort=@q.Sort&Page=@p">@p</a>
+            }
+        </nav>
+    }
+</div></section>

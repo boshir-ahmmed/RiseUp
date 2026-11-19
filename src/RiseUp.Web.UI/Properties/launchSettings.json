@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "RiseUp (SQLite demo)": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:7180;http://localhost:5180",
+      "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development" }
+    },
+    "RiseUp (SQL Server LocalDB)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:7180;http://localhost:5180",
+      "environmentVariables": { "ASPNETCORE_ENVIRONMENT": "Development", "Database__Provider": "SqlServer" }
+    }
+  }
+}

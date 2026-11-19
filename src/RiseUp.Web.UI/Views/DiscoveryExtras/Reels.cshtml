@@ -1,0 +1,33 @@
+@model IReadOnlyList<SpotlightDto>
+@{
+    ViewData["Title"] = "Reels";
+    var actor = CurrentActor.From(User);
+    Layout = actor.IsAuthenticated ? "_AppLayout" : "_Layout";
+}
+<div class="@(actor.IsAuthenticated ? "" : "container")" style="max-width:720px;@(actor.IsAuthenticated ? "" : "padding-top:24px;padding-bottom:48px")">
+    <div class="page-h"><div><h1>Reels</h1><p>Short public teasers from verified startups. No funding figures are shown publicly.</p></div><a class="btn btn-ghost btn-sm" href="/">← Feed</a></div>
+    @if (!actor.IsAuthenticated) { <div class="notice n-info" style="margin-bottom:14px;display:block"><a href="/register">Join</a> as a verified investor to request full pitches and see each startup's ask.</div> }
+    @if (Model.Count == 0) { <div class="card"><div class="empty">No public teasers yet.</div></div> }
+    @foreach (var s in Model)
+    {
+        <article class="ig card reel" id="s-@s.StartupId">
+            <div class="ig-media" style="aspect-ratio:16/9"><video src="@s.Teaser.Url" poster="@s.Teaser.PosterUrl" muted playsinline loop preload="metadata" data-feedvideo class="ig-img" aria-label="@s.Name teaser"></video><button type="button" class="snd" data-sound aria-label="Toggle sound">🔇</button><span class="ig-cat" style="background:rgba(0,0,0,.55);color:#fff;display:block">Teaser · @(s.Teaser.Seconds / 60):@((s.Teaser.Seconds % 60).ToString("00"))</span></div>
+            <div class="ig-body" style="padding:12px 16px 16px">
+                <div class="row" style="flex-wrap:nowrap"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" /><div style="flex:1;min-width:0"><a href="/startups/@s.StartupId" class="ig-name">@s.Name</a> <span class="vtick">✓</span><div class="tiny muted">@s.Industry · @Ui.Stage(s.Stage) · @s.Location</div></div></div>
+                <p class="small mt8">@s.Tagline</p>
+                <div class="row mt8">
+                    @if (s.ViewerIsVerifiedInvestor)
+                    {
+                        if (s.PendingPitchRequestId is int rid) { <a class="btn btn-primary btn-sm" href="/pitch-room/@rid">Open pitch room</a> }
+                        else if (s.Connected) { <a class="btn btn-primary btn-sm" href="/conversations">Connected · open chat</a> }
+                        else if (s.InvitationPending) { <span class="badge b-pend">Invitation pending</span> }
+                        else { <form method="post" action="/startups/@s.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><input type="hidden" name="note" value="I'd like to see your full pitch." /><button class="btn btn-primary btn-sm">Request the full pitch (free invitation)</button></form> }
+                    }
+                    else if (!actor.IsAuthenticated) { <a class="btn btn-primary btn-sm" href="/register">Join to watch the full pitch</a> }
+                    @if (s.Demo is not null) { <a class="btn btn-outline btn-sm" href="@s.Demo.Url" target="_blank" rel="noopener">Watch product demo</a> }
+                    <a class="btn btn-ghost btn-sm" href="/startups/@s.StartupId">View details</a>
+                </div>
+            </div>
+        </article>
+    }
+</div>

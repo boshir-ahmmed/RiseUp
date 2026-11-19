@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/Library/">
+    <Project Path="src/RiseUp.Framework/RiseUp.Framework.csproj" />
+    <Project Path="src/RiseUp.Entities/RiseUp.Entities.csproj" />
+    <Project Path="src/RiseUp.DataAccess/RiseUp.DataAccess.csproj" />
+  </Folder>
+  <Folder Name="/Business/">
+    <Project Path="src/RiseUp.Facade/RiseUp.Facade.csproj" />
+  </Folder>
+  <Folder Name="/Presentation/">
+    <Project Path="src/RiseUp.Web.UI/RiseUp.Web.UI.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="tests/RiseUp.Facade.Tests/RiseUp.Facade.Tests.csproj" />
+    <Project Path="tests/RiseUp.Architecture.Tests/RiseUp.Architecture.Tests.csproj" />
+    <Project Path="tests/RiseUp.Web.SmokeTests/RiseUp.Web.SmokeTests.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="ARCHITECTURE.md" />
+    <File Path="REQUIREMENTS_TRACEABILITY.md" />
+    <File Path="SECURITY.md" />
+    <File Path="DEPLOYMENT.md" />
+    <File Path="QA_REPORT.md" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+</Solution>

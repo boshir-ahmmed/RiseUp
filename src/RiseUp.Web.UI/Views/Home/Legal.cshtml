@@ -1,0 +1,9 @@
+@model string
+@{
+    var title = Model switch { "terms" => "Terms of Use", "privacy" => "Privacy Policy", "retention" => "Data Retention Policy", "guidelines" => "Community Guidelines", _ => "Legal" };
+    ViewData["Title"] = title;
+}
+<section class="section" style="padding-top:40px"><div class="container" style="max-width:820px"><h1 style="font-size:34px">@title</h1>
+    <div class="notice n-warn">Draft template for review by qualified Bangladeshi counsel. It does not assert compliance with any specific law.</div>
+    <div class="card card-b mt16 small"><p>Version 0.1 · Effective date: to be confirmed.</p><p>RiseUp provides discovery and communication services between founders and investors. RiseUp does not provide investment advice, brokerage, underwriting, custody or escrow services, and does not process investment transactions.</p></div>
+</div></section>

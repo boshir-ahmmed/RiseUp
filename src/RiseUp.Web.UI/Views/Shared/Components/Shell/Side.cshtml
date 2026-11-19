@@ -1,0 +1,23 @@
+@model RiseUp.Web.UI.Components.ShellModel
+@{ var s = Model.Shell; }
+<div class="card spc">
+    <div class="spc-cover" style="@(s.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(s.ColorIndex)} 0%,#0F766E 55%,#134E4A 100%)" : $"background:url('{s.CoverUrl}') center/cover")"></div>
+    <a href="/me" class="spc-av" aria-label="View your profile"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 64)" /></a>
+    <div class="spc-b"><a href="/me" class="spc-n">@s.Name</a>@if (s.IsVerified) {<text> </text><span class="vtick" title="Verified account">✓</span>}<div class="tiny muted">@s.Headline</div>
+        @if (s.HasPendingName) { <div class="tiny mt8"><span class="badge b-pend">Name change pending review</span></div> }</div>
+    @if (s.Stats.Count > 0) { <div class="spc-s">@foreach (var st in s.Stats) {<a href="@st.Href"><span>@st.Label</span><b>@st.Value</b></a>}</div> }
+    <a class="spc-e" href="/me/edit"><partial name="_Icon" model='"edit"' /> Edit profile</a>
+</div>
+<nav class="card side-nav" aria-label="Workspace">
+    @foreach (var g in Model.Nav.GroupBy(i => i.Group))
+    {
+        <div class="grp">@g.Key</div>
+        @foreach (var i in g)
+        {
+            var on = Model.IsOn(i.Href) && !(i.Href == "/me" && Model.Path.StartsWith("/me/edit"));
+            <a href="@i.Href" class="@(on ? "on" : "")" aria-current="@(on ? "page" : null)"><span>@i.Label</span>@if (i.Badge > 0) {<span class="cnt">@i.Badge</span>}</a>
+        }
+    }
+    <div class="grp">More</div><a href="/reels"><span>▶ Reels</span></a><a href="/startups"><span>Browse all startups</span></a>
+</nav>
+<p class="tiny muted side-foot"><a href="/about">About</a> · <a href="/how-it-works">How it works</a> · <a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a><br />RiseUp © @DateTime.UtcNow.Year</p>

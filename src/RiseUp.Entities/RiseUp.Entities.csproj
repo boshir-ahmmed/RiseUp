@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\RiseUp.Framework\RiseUp.Framework.csproj" />
+  </ItemGroup>
+
+  <!-- Repository ports are physically in DataAccess/Interface to match the CRM layout.
+       Compile them into Entities (not DataAccess), keeping Facade and Entities independent
+       of EF Core and the infrastructure assembly. See ARCHITECTURE_REFACTOR.md. -->
+  <ItemGroup>
+    <Compile Include="..\RiseUp.DataAccess\Interface\*.cs" Link="Abstractions\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

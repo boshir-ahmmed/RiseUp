@@ -1,0 +1,46 @@
+@model IReadOnlyList<TeamAccountDto>
+@{ ViewData["Title"] = "Team accounts"; var full = Model.Count >= BusinessRules.MaxTeamAccounts; }
+<partial name="_PageHeader" model='("Team accounts", (string?)"Chat-only logins. Up to 5 active or deactivated accounts; deleting frees a slot.")' />
+@if (TempData["oneTime"] is string cred)
+{
+    var parts = cred.Split('|');
+    <div class="notice n-warn" style="margin-bottom:16px"><div><strong>Shown once.</strong> Username <code>@parts[0]</code> · temporary password <code style="font-size:15px">@parts[1]</code><br /><span class="small">Copy it now and share it securely. It is stored only as a one-way hash and will never be displayed or emailed again.</span></div></div>
+}
+<div class="card card-b" style="margin-bottom:16px"><div class="row between"><strong>@Model.Count / 5 slots used</strong><span class="small muted">Team members cannot change or reset their own passwords.</span></div><div class="bar mt8"><i style="width:@(Model.Count * 20)%"></i></div></div>
+<div class="grid g-detail" style="align-items:start">
+    <div class="card">
+        @if (Model.Count == 0) { <div class="empty">No team accounts yet</div> }
+        else
+        {
+            <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Member</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+            @foreach (var t in Model)
+            {
+                <tr><td><strong>@t.FullName</strong><div class="tiny muted">@t.Designation · <code>@t.Username</code> · @t.Email</div><div class="tiny muted">@t.ConversationIds.Count conversation(s)</div></td>
+                    <td><span class="badge @Ui.StatusClass(t.Status.ToString())">@t.Status</span></td>
+                    <td><div class="row" style="gap:4px">
+                        @if (t.Status == TeamAccountStatus.Active)
+                        {
+                            <form method="post" action="/team/@t.Id/reset" class="inline" asp-antiforgery="true"><button class="btn btn-outline btn-sm">Reset password</button></form>
+                            <form method="post" action="/team/@t.Id/deactivate" class="inline" asp-antiforgery="true"><button class="btn btn-outline btn-sm">Deactivate</button></form>
+                        }
+                        else
+                        {
+                            <form method="post" action="/team/@t.Id/reactivate" class="row inline" style="flex-wrap:nowrap" asp-antiforgery="true"><label class="check tiny"><input type="checkbox" name="restore" value="true" checked /> restore previous chats</label><button class="btn btn-outline btn-sm">Reactivate</button></form>
+                        }
+                        <form method="post" action="/team/@t.Id/delete" class="inline" asp-antiforgery="true"><button class="btn btn-danger btn-sm" data-confirm="Delete permanently? This frees a slot and cannot be undone.">Delete</button></form>
+                    </div></td></tr>
+            }
+            </tbody></table></div>
+        }
+    </div>
+    <form class="card card-b stack" method="post" action="/team" asp-antiforgery="true">
+        <h3>Add team member</h3>
+        @if (full) { <div class="notice n-warn small">All 5 slots are used. Delete an account to free a slot.</div> }
+        <label class="field"><span>Full name</span><input class="input" name="FullName" required maxlength="150" /></label>
+        <label class="field"><span>Designation</span><input class="input" name="Designation" required maxlength="100" /></label>
+        <label class="field"><span>Username</span><input class="input" name="Username" required pattern="[a-z0-9._]{3,30}" /></label>
+        <label class="field"><span>Email (unique)</span><input class="input" type="email" name="Email" required /></label>
+        <label class="field"><span>LinkedIn (optional)</span><input class="input" name="LinkedInUrl" maxlength="200" /></label>
+        <button class="btn btn-primary" disabled="@full">Create account</button>
+    </form>
+</div>

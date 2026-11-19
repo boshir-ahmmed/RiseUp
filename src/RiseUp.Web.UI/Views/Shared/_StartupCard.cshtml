@@ -1,0 +1,7 @@
+@model StartupCardDto
+<article class="card mk-card card-b" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="gap:12px;flex-wrap:nowrap"><partial name="_Logo" model="(Model.Name, Model.ColorIndex, string.Empty)" /><div style="min-width:0"><h3 class="mb0"><a href="/startups/@Model.Id" style="color:inherit">@Model.Name</a></h3><div class="small muted">@Model.Industry · @Ui.Stage(Model.Stage) · @Model.Location</div></div></div>
+    <p class="mb0 small" style="color:#334155"><strong>@Model.Tagline</strong><br /><partial name="_ReadMore" model="(Model.Description, 110)" /></p>
+    <div class="row" style="gap:6px">@if (Model.Status == VerificationStatus.Verified) {<span class="badge b-ver">✓ Verified Startup</span>} else {<span class="badge b-pend">Verification pending</span>}</div>
+    <div class="row between small muted mt8" style="margin-top:auto"><span>@Model.Views.ToString("N0") views</span><a class="btn btn-outline btn-sm" href="/startups/@Model.Id">View details</a></div>
+</article>

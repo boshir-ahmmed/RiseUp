@@ -1,0 +1,26 @@
+@model RiseUp.Web.UI.Components.ShellModel
+@{ var s = Model.Shell; }
+<header class="tb" role="banner"><div class="tb-in">
+    <a class="brand" href="/" aria-label="RiseUp home feed"><span class="brand-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 12l4-4 2.5 2.5L13 5" stroke="#36D3C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 5H13v3.5" stroke="#36D3C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hide-s">RiseUp</span></a>
+    <form class="tb-search" method="get" action="/startups" role="search"><partial name="_Icon" model='"search"' /><label class="sr" for="tbq">Search startups</label><input id="tbq" name="Text" placeholder="Search startups, industries…" autocomplete="off" /></form>
+    <nav class="tb-nav" aria-label="Primary">
+        @foreach (var i in Model.Top)
+        {
+            var on = Model.IsOn(i.Href);
+            <a href="@i.Href" class="@(on ? "on" : "")" aria-current="@(on ? "page" : null)"><partial name="_Icon" model="i.Icon" /><span class="lbl">@i.Label</span>@if (i.Badge > 0) {<span class="dot">@(i.Badge > 9 ? "9+" : i.Badge.ToString())</span>}</a>
+        }
+    </nav>
+    <div class="tb-me">
+        <button type="button" class="tb-mebtn" data-toggle="#memenu" aria-haspopup="true" aria-controls="memenu"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 26)" /><span class="lbl">Me ▾</span></button>
+        <div class="menu" id="memenu" role="menu">
+            <div class="menu-h"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 48)" /><div style="min-width:0"><strong>@s.Name</strong><div class="tiny muted ell">@s.Headline</div></div></div>
+            <a class="btn btn-outline btn-sm" style="width:100%;margin:4px 0 8px" href="/me">View profile</a>
+            <a role="menuitem" href="/me/edit">✏️ Edit profile &amp; photo</a>
+            @if (Model.Actor.IsFounder || Model.Actor.IsInvestor) { <a role="menuitem" href="/dashboard">📊 Dashboard</a> }
+            @if (Model.Actor.IsFounder) { <a role="menuitem" href="/settings">🏢 Startup profile</a><a role="menuitem" href="/wallet">🪙 Wallet</a> }
+            @if (Model.Actor.IsInvestor) { <a role="menuitem" href="/shortlist">★ Shortlist</a><a role="menuitem" href="/settings">⚙️ Preferences</a> }
+            @if (Model.Actor.IsAnyAdmin) { <a role="menuitem" href="/admin">🛡 Admin console</a> }
+            <form method="post" action="/logout" asp-antiforgery="true"><button role="menuitem">↩ Sign out</button></form>
+        </div>
+    </div>
+</div></header>

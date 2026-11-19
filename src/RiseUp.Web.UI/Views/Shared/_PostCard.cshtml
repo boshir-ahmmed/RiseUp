@@ -1,0 +1,72 @@
+@model FeedItemDto
+@{
+    var canInteract = ViewData["CanInteract"] is true;
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var (bg, fg) = Model.Category switch
+    {
+        PostCategory.Announcements => ("#EEF4FF", "#3538CD"), PostCategory.Milestones => ("#ECFDF3", "#067647"), PostCategory.Products => ("#F4F3FF", "#5925DC"),
+        PostCategory.Achievements => ("#FFFAEB", "#B54708"), PostCategory.Funding => ("#FDF2FA", "#C11574"), _ => ("#F0F9FF", "#026AA2"),
+    };
+}
+<article class="ig card pc" aria-labelledby="pt-@Model.Id">
+    <header class="pc-h">
+        <a href="/startups/@Model.StartupId" aria-label="@Model.StartupName profile"><partial name="_Brand" model="(Model.StartupName, Model.ColorIndex, string.Empty, Model.LogoUrl)" /></a>
+        <div style="flex:1;min-width:0">
+            <div class="row" style="gap:6px;flex-wrap:nowrap"><a href="/startups/@Model.StartupId" class="ig-name">@Model.StartupName</a>@if (Model.StartupVerified) {<span class="vtick" title="Verified Startup — identity and ownership checked, not an investment endorsement">✓</span>}<span class="tiny muted">· @Ui.Stage(Model.StartupStage)</span></div>
+            <div class="tiny muted ell">@Model.StartupTagline</div>
+            <div class="tiny muted">@if (Model.IsPromoted) {<span class="promo-l">Promoted</span><text> · </text>}@Ui.Ago(Model.PublishedAtUtc) · @Model.StartupLocation</div>
+        </div>
+        <a class="btn btn-ghost btn-sm" href="/posts/@Model.Id">View details</a>
+    </header>
+    <div class="pc-text">
+        <span class="catc" style="background:@bg;color:@fg">@Model.Category</span>
+        <h3 class="pc-title" id="pt-@Model.Id">@Model.Title</h3>
+        <div class="small pc-body"><partial name="_ReadMore" model="(Model.Body, 190)" /></div>
+    </div>
+    <div class="ig-media" data-dbl="@Model.Id" title="Double-tap to like">
+        @if (Model.VideoUrl is not null)
+        {
+            <video src="@Model.VideoUrl" poster="@Model.PosterUrl" class="ig-img" muted playsinline loop preload="metadata" data-feedvideo aria-label="@Model.Title"></video>
+            <button type="button" class="snd" data-sound aria-label="Toggle sound">🔇</button>
+            @if (Model.VideoSeconds is int secs) {<span class="vd">▶ @(secs / 60):@((secs % 60).ToString("00"))</span>}
+        }
+        else
+        {
+            <div class="ig-art" style="background:linear-gradient(150deg,@Ui.Color(Model.ColorIndex) 0%,@Ui.Color(Model.ColorIndex) 35%,#101828 135%)">
+                <div class="ig-art-t">@Model.Title</div>
+                <div class="ig-art-s">@Model.StartupName · @Model.StartupLocation</div>
+            </div>
+        }
+        <div class="ig-burst" data-burst="@Model.Id">♥</div>
+    </div>
+    <div class="pc-stats"><span><span class="hb">♥</span> <span data-likes="@Model.Id">@Model.Likes</span></span><span><a href="/posts/@Model.Id#comments">@Model.Comments comment@(Model.Comments == 1 ? "" : "s")</a> · @Model.Shares shares · @Model.Views.ToString("N0") views</span></div>
+    <div class="pc-acts">
+        <button type="button" class="@(Model.LikedByMe ? "on" : "")" data-like="@Model.Id" data-can="@(canInteract ? "1" : "0")" aria-pressed="@(Model.LikedByMe ? "true" : "false")" aria-label="Like"><svg width="20" height="20" viewBox="0 0 24 24" fill="@(Model.LikedByMe ? "#E11D48" : "none")" stroke="@(Model.LikedByMe ? "#E11D48" : "currentColor")" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5S3.5 15.4 3.5 9.3A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8.5 2.7c0 6.1-8.5 11.2-8.5 11.2z"/></svg><span>Like</span></button>
+        <a href="/posts/@Model.Id#comments" class="pc-act"><partial name="_Icon" model='"cmt"' /><span>Comment</span></a>
+        <button type="button" data-share="@Model.Id" data-can="@(canInteract ? "1" : "0")" aria-label="Share link"><partial name="_Icon" model='"share"' /><span>Share</span></button>
+        @if (signedIn) { <button type="button" class="@(Model.SavedByMe ? "on" : "")" data-save="@Model.Id" aria-pressed="@(Model.SavedByMe ? "true" : "false")" aria-label="Save"><partial name="_Icon" model='"save"' /><span>@(Model.SavedByMe ? "Saved" : "Save")</span></button> }
+        else { <a href="/login" class="pc-act"><partial name="_Icon" model='"save"' /><span>Save</span></a> }
+    </div>
+    @if (Model.LatestComments is { Count: > 0 } latest)
+    {
+        <div class="pc-cmts">
+            @if (Model.Comments > latest.Count) { <a href="/posts/@Model.Id#comments" class="small muted">View all @Model.Comments comments</a> }
+            @foreach (var c in latest)
+            {
+                <div class="pc-c"><partial name="_Avatar" model="(c.AuthorName, c.AuthorPhotoUrl, c.AuthorName.Length, 32)" /><div class="pc-cb"><strong class="small">@c.AuthorName</strong><div class="small"><partial name="_ReadMore" model="(c.Body, 110)" /></div></div></div>
+            }
+        </div>
+    }
+    @if (canInteract)
+    {
+        <form class="ig-cform" method="post" action="/posts/@Model.Id/comments" asp-antiforgery="true">
+            <label class="sr" for="c-@Model.Id">Add a comment</label>
+            <input id="c-@Model.Id" name="body" maxlength="1000" placeholder="Add a comment…" autocomplete="off" required />
+            <button>Post</button>
+        </form>
+    }
+    else
+    {
+        <div class="ig-cform tiny muted" style="padding:10px 16px">@if (!signedIn) {<span><a href="/login">Sign in</a> as a verified founder or investor to like or comment.</span>} else {<span>Only verified founders and investors can like or comment.</span>}</div>
+    }
+</article>

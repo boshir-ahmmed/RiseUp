@@ -1,0 +1,2 @@
+@model (string Title, string? Subtitle)
+<div class="page-h"><div><h1>@Model.Title</h1>@if (Model.Subtitle is not null) {<p>@Model.Subtitle</p>}</div></div>

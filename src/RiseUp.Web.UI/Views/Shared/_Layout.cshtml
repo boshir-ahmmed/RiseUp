@@ -1,0 +1,76 @@
+@{
+    var actor = CurrentActor.From(User);
+    var path = Context.Request.Path.Value ?? "/";
+    string On(string p) => (p == "/" ? path == "/" : path.StartsWith(p)) ? "on" : "";
+    var token = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="csrf-token" content="@token" />
+    <title>@(ViewData["Title"] is string t ? t + " · " : "")RiseUp</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" />
+    <!-- Bootstrap 5 foundation layers (Reboot + Utilities). RiseUp components (.row/.btn/.card/.badge) come from site.css. -->
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap-reboot.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap-utilities.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @if (HostEnv.IsDevelopment())
+    {
+        <div class="devbar">DEVELOPMENT · SQLite demo database · sandbox AI, payments &amp; malware scanner · demo password <code>Demo#2026pass</code></div>
+    }
+    @if (actor.IsAuthenticated)
+    {
+        @await Component.InvokeAsync("Shell", new { part = "TopBar" })
+    }
+    else
+    {
+    <header class="site-h" style="top:0">
+        <div class="container">
+            <a class="brand" href="/" aria-label="RiseUp home"><span class="brand-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 12l4-4 2.5 2.5L13 5" stroke="#36D3C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 5H13v3.5" stroke="#36D3C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>RiseUp</a>
+            <nav class="nav" id="pubnav" aria-label="Main">
+                <a href="/" class="@On("/")">Home</a>
+                <a href="/startups" class="@On("/startups")">Startups</a>
+                <a href="/investors" class="@On("/investors")">Investors</a>
+                <a href="/how-it-works" class="@On("/how-it-works")">How it works</a>
+                <a href="/about" class="@On("/about")">About</a>
+                <a href="/pricing" class="@On("/pricing")">Pricing</a>
+                <a href="/faq" class="@On("/faq")">FAQ</a>
+            </nav>
+            <div class="row h-actions" style="gap:8px;margin-left:auto">
+                <a class="btn btn-ghost btn-sm hide-m" href="/login">Sign in</a>
+                <a class="btn btn-primary btn-sm" href="/register">Join RiseUp</a>
+                <button class="btn btn-outline btn-sm hamb" type="button" data-toggle="#pubnav" aria-label="Open menu" aria-controls="pubnav">☰</button>
+            </div>
+        </div>
+    </header>
+    }
+    <main id="main">
+        <partial name="_Flash" />
+        @RenderBody()
+    </main>
+    @if (ViewData["HideFooter"] is not true)
+    {
+        <footer class="foot">
+            <div class="container">
+                <div class="grid g4">
+                    <div><div class="brand" style="color:#fff!important">RiseUp</div><p class="mt8 small">Verified startup–investor discovery and communication for Bangladesh. RiseUp is not a broker, adviser or escrow provider; investment agreements and transfers happen outside the platform.</p></div>
+                    <div><h4>Platform</h4><div class="small"><a href="/startups">Browse startups</a><br /><a href="/investors">Investors</a><br /><a href="/pricing">Pricing</a></div></div>
+                    <div><h4>Company</h4><div class="small"><a href="/how-it-works">How it works</a><br /><a href="/faq">FAQ</a><br /><a href="/legal/guidelines">Community guidelines</a></div></div>
+                    <div><h4>Legal (drafts for review)</h4><div class="small"><a href="/legal/terms">Terms of Use</a><br /><a href="/legal/privacy">Privacy Policy</a><br /><a href="/legal/retention">Data retention</a></div></div>
+                </div>
+                <div class="mt24 tiny" style="border-top:1px solid #24324A;padding-top:18px">© @DateTime.UtcNow.Year RiseUp · Demonstration content — all organisations and people shown are fictional.</div>
+            </div>
+        </footer>
+    }
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+    <script src="~/js/core/http.js" asp-append-version="true" type="module"></script>
+    <script src="~/js/core/ui.js" asp-append-version="true" type="module"></script>
+    <script src="~/js/pages/feed.js" asp-append-version="true" type="module"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

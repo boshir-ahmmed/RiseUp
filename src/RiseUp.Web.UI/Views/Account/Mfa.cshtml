@@ -1,0 +1,12 @@
+@model MfaViewModel
+@{ ViewData["Title"] = "Two-factor authentication"; }
+<section class="section" style="padding-top:48px"><div class="container" style="max-width:460px">
+    <form class="card mk-card card-b stack" method="post" action="/account/mfa" asp-antiforgery="true">
+        <h1 style="font-size:24px">Two-factor authentication</h1>
+        <p class="small muted">Enter the 6-digit code from your authenticator app.@if (Model.DemoHint) {<br /><strong>Development:</strong> <span>any 6 digits work for seeded admins.</span>}</p>
+        <div asp-validation-summary="ModelOnly" class="notice n-danger"></div>
+        <input type="hidden" asp-for="ReturnUrl" />
+        <label class="field"><span>Authentication code</span><input class="input" asp-for="Code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" /></label>
+        <button class="btn btn-primary">Verify</button>
+    </form>
+</div></section>

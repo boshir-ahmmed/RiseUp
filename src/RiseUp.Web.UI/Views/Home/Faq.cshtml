@@ -1,0 +1,15 @@
+@{
+    ViewData["Title"] = "FAQ";
+    var faqs = new (string Q, string A)[]
+    {
+        ("Does a Verified badge mean a startup is a safe investment?", "No. It confirms identity and business or credential documents were reviewed by a person. It is not an assessment of performance, solvency or risk."),
+        ("Can AI write my pitch?", "No. RiseUp never generates or rewrites pitches. An automated safety check only approves or rejects the text you wrote."),
+        ("What happens if the safety check is down?", "Your pitch or post stays as an editable draft. Nothing is sent and no token is charged."),
+        ("Can I close a connection?", "No, but you can mute the conversation or block the other party, which pauses messaging."),
+        ("Who can read private chats?", "Only participants. A Moderator can view a specific reported message during an investigation, and that access is audited."),
+        ("Can team members change their password?", "No. Only the Main Startup Owner sets or resets team passwords; they are shown once and never again."),
+    };
+}
+<section class="section" style="padding-top:40px"><div class="container" style="max-width:820px"><h1 style="font-size:34px">Frequently asked questions</h1>
+@foreach (var f in faqs) { <details class="card card-b mt16"><summary>@f.Q</summary><p class="small muted mt8 mb0">@f.A</p></details> }
+</div></section>

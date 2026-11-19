@@ -1,0 +1,34 @@
+@model LibraryViewModel
+@{ ViewData["Title"] = "Confidential library"; var actor = CurrentActor.From(User); }
+@if (actor.IsInvestor)
+{
+    <partial name="_PageHeader" model='("Shared documents", (string?)"Files a startup owner has explicitly shared with you. Access can be revoked at any time.")' />
+    <div class="card">@if (Model.Documents.Count == 0) {<div class="empty">No documents shared with you. Being connected does not grant document access automatically.</div>}
+        @foreach (var d in Model.Documents) { <div class="row between" style="padding:14px 20px;border-bottom:1px solid #EEF2F6"><div><strong>@d.FileName</strong><div class="tiny muted">@d.Kind · @((d.SizeBytes / 1048576.0).ToString("0.0")) MB</div></div><a class="btn btn-outline btn-sm" href="/library/@d.Id/download">Download</a></div> }
+    </div>
+}
+else
+{
+    <partial name="_PageHeader" model='("Confidential library", (string?)"Separate from chat. Investors see a file only when you grant it to them individually.")' />
+    <div class="notice n-info" style="margin-bottom:16px">One pitch deck (PDF/PPTX, max 20 MB) and up to 10 supporting PDFs (max 10 MB each). Files are checked, malware-scanned and quarantined until clean.</div>
+    <form class="card card-b row" method="post" action="/library/upload" enctype="multipart/form-data" style="margin-bottom:16px" asp-antiforgery="true">
+        <label class="field"><span>Type</span><select class="input" name="kind"><option value="@DocumentKind.PitchDeck">Pitch deck</option><option value="@DocumentKind.Supporting">Supporting PDF</option></select></label>
+        <label class="field" style="flex:1"><span>File</span><input class="input" type="file" name="file" accept=".pdf,.pptx" required /></label>
+        <button class="btn btn-primary" style="align-self:flex-end">Upload</button>
+    </form>
+    <div class="card">
+        @if (Model.Documents.Count == 0) { <div class="empty">No documents yet</div> }
+        @foreach (var d in Model.Documents)
+        {
+            <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><div><strong>@d.FileName</strong><div class="tiny muted">@d.Kind · @((d.SizeBytes / 1048576.0).ToString("0.0")) MB</div></div><span class="badge @Ui.StatusClass(d.Scan.ToString())">Scan: @d.Scan</span></div>
+                <div class="row mt8">
+                    @foreach (var inv in Model.ConnectedInvestors)
+                    {
+                        var granted = d.GrantedInvestorIds.Contains(inv.InvestorId);
+                        <form method="post" action="/library/@d.Id/grant" class="inline" asp-antiforgery="true"><input type="hidden" name="investorId" value="@inv.InvestorId" /><input type="hidden" name="grant" value="@((!granted).ToString().ToLowerInvariant())" /><button class="btn btn-sm @(granted ? "btn-primary" : "btn-outline")" disabled="@(d.Scan != ScanStatus.Clean)">@inv.Name: @(granted ? "Granted — revoke" : "Grant access")</button></form>
+                    }
+                    @if (Model.ConnectedInvestors.Count == 0) {<span class="tiny muted">Grants can be given to investors you're connected with.</span>}
+                </div></div>
+        }
+    </div>
+}

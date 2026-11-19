@@ -1,0 +1,16 @@
+@model RegisterViewModel
+@{ ViewData["Title"] = $"{Model.Role} registration"; }
+<section class="section" style="padding-top:48px"><div class="container" style="max-width:560px">
+    <form class="card mk-card card-b stack" method="post" action="/register" asp-antiforgery="true">
+        <div class="row between"><h1 style="font-size:24px;margin:0">@Model.Role registration</h1><a class="btn btn-ghost btn-sm" href="/register">Change role</a></div>
+        <div asp-validation-summary="All" class="notice n-danger"></div>
+        <input type="hidden" asp-for="Role" />
+        <div class="grid g2"><label class="field"><span>Full legal name</span><input class="input" asp-for="FullName" autocomplete="name" /></label><label class="field"><span>Mobile number</span><input class="input" asp-for="Phone" placeholder="+880 1…" autocomplete="tel" /></label></div>
+        <label class="field"><span>Email</span><input class="input" asp-for="Email" autocomplete="email" /></label>
+        @if (Model.Role == PrimaryRole.Founder) { <label class="field"><span>Startup name</span><input class="input" asp-for="StartupName" /></label> }
+        else { <label class="field"><span>Firm / affiliation</span><input class="input" asp-for="Affiliation" placeholder="Fund, angel network or Independent" /></label> }
+        <label class="field"><span>Password</span><input class="input" asp-for="Password" autocomplete="new-password" /><span class="help"><span>At least 10 characters with letters and numbers.</span></span></label>
+        <label class="check"><input type="checkbox" asp-for="AcceptTerms" /> <span>I accept the <a href="/legal/terms">Terms of Use v@(BusinessRules.TermsVersion)</a> and <a href="/legal/privacy">Privacy Policy v@(BusinessRules.PrivacyVersion)</a>.</span></label>
+        <button class="btn btn-primary">Create @Model.Role account</button>
+    </form>
+</div></section>

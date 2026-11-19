@@ -1,0 +1,61 @@
+@model PostDetailDto
+@{
+    var p = Model.Post;
+    ViewData["Title"] = p.Title;
+    ViewData["CanInteract"] = Model.CanInteract;
+    var byParent = Model.Comments.ToLookup(c => c.ParentId);
+}
+@functions {
+    async Task RenderComments(ILookup<int?, CommentDto> byParent, int? parent, bool canInteract)
+    {
+        foreach (var c in byParent[parent])
+        {
+            <div class="cmt">
+                <div class="small row" style="gap:8px;flex-wrap:nowrap"><partial name="_Avatar" model="(c.AuthorName, c.AuthorPhotoUrl, c.AuthorName.Length, 28)" /><span><strong>@c.AuthorName</strong> <span class="muted">· @Ui.Ago(c.AtUtc)</span></span></div>
+                <div class="small"><partial name="_ReadMore" model="(c.Body, 180)" /></div>
+                <div class="row small" style="gap:6px">
+                    @if (canInteract && c.Depth < BusinessRules.MaxCommentDepth)
+                    {
+                        <details><summary class="linkbtn tiny">Reply</summary><form method="post" action="/posts/@Model.Post.Id/comments" class="row mt8" style="flex-wrap:nowrap" asp-antiforgery="true"><input type="hidden" name="parentId" value="@c.Id" /><input class="input" name="body" maxlength="1000" required placeholder="Write a reply" /><button class="btn btn-dark btn-sm">Reply</button></form></details>
+                    }
+                    @if (c.IsMine) { <form method="post" action="/comments/@c.Id/delete" class="inline" asp-antiforgery="true"><button class="linkbtn tiny">Delete</button></form> }
+                    @if (User.Identity!.IsAuthenticated && !c.IsMine) { <form method="post" action="/reports" class="inline" asp-antiforgery="true"><input type="hidden" name="kind" value="@ReportKind.Comment" /><input type="hidden" name="target" value="comment:@c.Id" /><input type="hidden" name="reason" value="Reported from post page" /><button class="linkbtn tiny">Report</button></form> }
+                </div>
+                @{ await RenderComments(byParent, c.Id, canInteract); }
+            </div>
+        }
+    }
+}
+<section class="section" style="padding-top:24px"><div class="container" style="max-width:1020px">
+    <a href="/" class="small">← Back to feed</a>
+    <article class="card post-detail mt16">
+        <div class="ig-media" data-dbl="@p.Id" style="aspect-ratio:auto;min-height:420px">
+            @if (p.VideoUrl is not null) { <video src="@p.VideoUrl" poster="@p.PosterUrl" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000"></video> } else { <div class="ig-art" style="background:linear-gradient(150deg,@Ui.Color(p.ColorIndex) 0%,@Ui.Color(p.ColorIndex) 35%,#101828 135%)"><span class="ig-cat">@p.Category</span><div class="ig-art-t">@p.Title</div><div class="ig-art-s">@p.StartupName · @p.StartupLocation</div></div> }
+            <div class="ig-burst" data-burst="@p.Id">♥</div>
+        </div>
+        <div class="pd-side">
+            <header class="ig-h" style="border-bottom:1px solid var(--border)"><partial name="_Logo" model="(p.StartupName, p.ColorIndex, string.Empty)" /><div style="flex:1;min-width:0"><div class="row" style="gap:6px"><a href="/startups/@p.StartupId" class="ig-name">@p.StartupName</a>@if (p.StartupVerified) {<span class="vtick">✓</span>}</div><div class="tiny muted">@if (p.IsPromoted) {<span class="promo-l">Promoted · </span>}@p.Category · @Ui.Dhaka(p.PublishedAtUtc)</div></div><a class="btn btn-outline btn-sm" href="/startups/@p.StartupId">View profile</a></header>
+            <div class="pd-scroll" id="comments">
+                <h1 style="font-size:20px;margin-bottom:8px">@p.Title</h1>
+                <p class="small" style="white-space:pre-wrap;color:#1F2937">@p.Body</p>
+                <div class="tiny muted">@Model.Views.ToString("N0") views · @p.Shares shares</div>
+                <h4 class="mt24">Comments (@p.Comments)</h4>
+                @if (Model.Comments.Count == 0) { <p class="small muted">No comments yet.</p> }
+                @{ await RenderComments(byParent, null, Model.CanInteract); }
+            </div>
+            <div class="ig-actions" style="border-top:1px solid var(--border)">
+                <button class="ig-ic @(p.LikedByMe ? "on" : "")" type="button" data-like="@p.Id" data-can="@(Model.CanInteract ? "1" : "0")" aria-pressed="@(p.LikedByMe ? "true" : "false")" aria-label="Like"><svg width="25" height="25" viewBox="0 0 24 24" fill="@(p.LikedByMe ? "#E0245E" : "none")" stroke="@(p.LikedByMe ? "#E0245E" : "currentColor")" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.4-4.5-9.4-9C1.1 8.1 3.2 4.5 6.8 4.5c2.1 0 3.5 1.1 4.2 2.3.7-1.2 2.1-2.3 4.2-2.3 3.6 0 5.7 3.6 4.2 7-2 4.5-7.4 9-7.4 9z"/></svg></button>
+                <button class="ig-ic" type="button" data-share="@p.Id" data-can="@(Model.CanInteract ? "1" : "0")" aria-label="Share link"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M21.5 3 10.5 13.5"/><path d="M21.5 3 15 21l-4.5-7.5L3 9l18.5-6z"/></svg></button>
+            </div>
+            <div class="ig-body"><div class="ig-likes"><span data-likes="@p.Id">@p.Likes</span> likes</div></div>
+            @if (Model.CanInteract)
+            {
+                <form class="ig-cform" method="post" action="/posts/@p.Id/comments" asp-antiforgery="true"><label class="sr" for="c-@p.Id">Add a comment</label><input id="c-@p.Id" name="body" maxlength="1000" placeholder="Add a comment…" autocomplete="off" required /><button>Post</button></form>
+            }
+            else
+            {
+                <div class="ig-cform tiny muted" style="padding:10px 14px"><span><a href="/login">Sign in</a> as a verified founder or investor to like or comment.</span></div>
+            }
+        </div>
+    </article>
+</div></section>

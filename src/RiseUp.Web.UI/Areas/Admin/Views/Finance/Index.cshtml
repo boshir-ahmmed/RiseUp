@@ -1,0 +1,18 @@
+@model IReadOnlyList<OrderDto>
+@{ ViewData["Title"] = "Payments & ledger"; }
+<div class="page-h"><div><h1>Payments &amp; ledger</h1><p>Normal purchases are automatic. You handle exceptions, chargebacks and audited adjustments.</p></div></div>
+<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Startup</th><th>Amount</th><th>Status</th><th>Credited</th><th></th></tr></thead><tbody>
+@foreach (var o in Model)
+{
+    <tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>#@o.StartupId</td><td>@Ui.Bdt(o.PriceBdt) · @o.Tokens tokens</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td>@(o.Credited ? "Yes" : "No")</td>
+        <td>@if (o.Status == PaymentStatus.Pending) {<details class="small"><summary class="linkbtn">Reconcile…</summary><form method="post" action="/admin/finance/reconcile" class="stack mt8" asp-antiforgery="true"><input type="hidden" name="orderNumber" value="@o.OrderNumber" /><input class="input" name="providerTransactionId" required placeholder="Provider transaction id" /><input class="input" name="reason" required minlength="5" placeholder="Settlement evidence" /><button class="btn btn-primary btn-sm">Credit once</button></form></details>}</td></tr>
+}
+</tbody></table></div></div>
+<form class="card card-b mt24 grid g4" method="post" action="/admin/finance/adjust" style="align-items:end" asp-antiforgery="true">
+    <h3 style="grid-column:1/-1">Manual ledger adjustment</h3>
+    <label class="field"><span>Startup id</span><input class="input" type="number" name="startupId" required /></label>
+    <label class="field"><span>Bucket</span><select class="input" name="bucket"><option value="@TokenBucket.Purchased">Purchased</option><option value="@TokenBucket.Welcome">Welcome</option></select></label>
+    <label class="field"><span>Amount (±)</span><input class="input" type="number" name="amount" required /></label>
+    <label class="field"><span>Reason (required)</span><input class="input" name="reason" required minlength="5" /></label>
+    <button class="btn btn-dark" style="grid-column:1/-1;justify-self:start">Post compensating entry</button>
+</form>

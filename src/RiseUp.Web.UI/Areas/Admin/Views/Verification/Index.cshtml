@@ -1,0 +1,38 @@
+@model VerificationQueueViewModel
+@{ ViewData["Title"] = "Verification queue"; }
+<div class="page-h"><div><h1>Verification queue</h1><p>Every decision is manual and recorded with reviewer, time and reason.</p></div></div>
+<div class="card"><div class="card-h"><h3>Applications</h3></div>
+    @if (Model.Applications.Count == 0) { <div class="empty">Queue is empty</div> }
+    @foreach (var a in Model.Applications)
+    {
+        <div style="padding:16px 20px;border-bottom:1px solid #EEF2F6">
+            <div class="row between"><div><strong>@a.SubjectName</strong> <span class="tiny muted">@a.Subject · #@a.Id · submitted @Ui.Ago(a.SubmittedAtUtc)</span></div><span class="badge @Ui.StatusClass(a.Status.ToString())">@a.Status</span></div>
+            <details class="small mt8"><summary class="linkbtn">View details</summary>
+                <dl class="kv mt8"><dt>Evidence</dt><dd>@string.Join(", ", a.DocumentKinds)</dd>
+                @if (a.Subject == VerificationSubject.Startup) {<dt>Licence</dt><dd>@a.LicenceHolderType · holder @a.LicenceHolderName · owner on account @a.OwnerName @if (string.Equals(a.LicenceHolderName, a.OwnerName, StringComparison.OrdinalIgnoreCase)) {<span class="badge b-ver">Names match</span>} else {<span class="badge b-danger">Mismatch</span>}</dd>}
+                @if (a.DecisionReason is not null) {<dt>Decision note</dt><dd>@a.DecisionReason</dd>}</dl>
+                <p class="tiny muted mb0">Opening evidence files is recorded in the access audit.</p>
+            </details>
+            @if (a.Status == VerificationStatus.Pending)
+            {
+                <form method="post" action="/admin/verification/@a.Id/decide" class="row mt16" style="flex-wrap:nowrap" asp-antiforgery="true">
+                    <label class="sr" for="note-@a.Id">Decision note</label><input class="input" id="note-@a.Id" name="note" required minlength="5" placeholder="Decision note / rejection reason (required)" />
+                    <button class="btn btn-primary btn-sm" name="approve" value="true">Approve</button><button class="btn btn-danger btn-sm" name="approve" value="false">Reject</button>
+                </form>
+            }
+        </div>
+    }
+</div>
+<div class="card mt24"><div class="card-h"><h3>Ownership transfer cases</h3><span class="tiny muted">Both owners must consent before approval</span></div>
+    @if (Model.Transfers.Count == 0) { <div class="empty">No transfer cases</div> }
+    @foreach (var t in Model.Transfers)
+    {
+        <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><div><strong>@t.StartupName</strong> → @t.IncomingOwnerName</div><span class="badge @Ui.StatusClass(t.Status.ToString())">@t.Status</span></div>
+            <div class="tiny muted mt8">Current owner consent @(t.OwnerConsent ? "✓" : "✗") · Incoming owner consent @(t.IncomingConsent ? "✓" : "✗")</div>
+            @if (t.Status is TransferStatus.AwaitingIncomingConsent or TransferStatus.AwaitingReview)
+            {
+                <form method="post" action="/admin/transfers/@t.Id/decide" class="row mt8" style="flex-wrap:nowrap" asp-antiforgery="true"><input class="input" name="note" required minlength="5" placeholder="Decision note" /><button class="btn btn-primary btn-sm" name="approve" value="true" disabled="@(!t.IncomingConsent)">Approve</button><button class="btn btn-danger btn-sm" name="approve" value="false">Reject</button></form>
+            }
+        </div>
+    }
+</div>

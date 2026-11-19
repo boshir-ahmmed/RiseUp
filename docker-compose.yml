@@ -1,0 +1,23 @@
+# Local integration environment: SQL Server 2022 + RiseUp. For development only.
+services:
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQL_SA_PASSWORD:-Local#Dev2026!}"
+    ports: ["1433:1433"]
+    volumes: ["sqldata:/var/opt/mssql"]
+  web:
+    build: .
+    depends_on: [sql]
+    ports: ["8080:8080"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Staging
+      Database__Provider: SqlServer
+      Database__InitializeOnStartup: "true"
+      ConnectionStrings__RiseUp: "Server=sql;Database=RiseUp;User Id=sa;Password=${SQL_SA_PASSWORD:-Local#Dev2026!};TrustServerCertificate=True"
+      Payments__Gateway: Sandbox
+      Payments__WebhookSecret: "staging-only-secret"
+      Mfa__AllowDemoCodes: "true"
+volumes:
+  sqldata:

@@ -1,0 +1,69 @@
+@model MyProfileDto
+@{
+    ViewData["Title"] = "Edit profile";
+    Layout = "_AppLayout";
+}
+<div class="page-h"><div><h1>Edit profile</h1><p>@(Model.IsTeamMember ? "Team members can update their profile photo. Your name and title are managed by your startup's Main Owner." : "Changes to your photo, headline and bio apply immediately.")</p></div><a class="btn btn-outline" href="/me">View profile</a></div>
+<div class="grid g-detail" style="align-items:start">
+    <div class="stack">
+        <div class="card card-b" data-crop-host><h3>Profile photo</h3>
+            <div class="row" style="gap:18px;flex-wrap:nowrap"><partial name="_Avatar" model="(Model.Name, Model.PhotoUrl, Model.ColorIndex, 96)" />
+                <div>
+                    <div class="row">
+                        <label class="btn btn-primary btn-sm upl"><partial name="_Icon" model='"cam"' /> @(Model.PhotoUrl is null ? "Upload photo" : "Change photo")<input type="file" accept="image/jpeg,image/png,image/webp" data-crop="photo" data-action="/me/photo" /></label>
+                        @if (Model.PhotoUrl is not null) { <form method="post" action="/me/photo/remove" class="inline" asp-antiforgery="true"><button class="btn btn-ghost btn-sm">Remove</button></form> }
+                    </div>
+                    <p class="tiny muted mt8 mb0">JPG, PNG or WebP · up to 5 MB · at least 200×200 px. Use a clear photo of your face — logos belong on the startup profile.</p>
+                    <div class="err" data-crop-error role="alert"></div>
+                </div>
+            </div>
+        </div>
+        @if (Model.IsTeamMember)
+        {
+            <div class="card card-b"><h3>Name &amp; title</h3>
+                <div class="grid g2"><label class="field"><span>Name</span><input class="input" value="@Model.Name" disabled /></label><label class="field"><span>Title</span><input class="input" value="@Model.Headline" disabled /></label></div>
+                <div class="lock mt8">🔒 Ask your Main Startup Owner to change your name or title from Team accounts.</div>
+            </div>
+        }
+        else
+        {
+            @if (Model.CanHaveCover)
+            {
+                <div class="card card-b" data-crop-host><h3>Cover photo</h3>
+                    <div class="cover-prev" style="@(Model.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(Model.ColorIndex)} 0%,#0F766E 55%,#134E4A 100%)" : $"background:url('{Model.CoverUrl}') center/cover")"></div>
+                    <div class="row mt8">
+                        <label class="btn btn-outline btn-sm upl"><partial name="_Icon" model='"cam"' /> @(Model.CoverUrl is null ? "Upload cover" : "Change cover")<input type="file" accept="image/jpeg,image/png,image/webp" data-crop="cover" data-action="/me/cover" /></label>
+                        @if (Model.CoverUrl is not null) { <form method="post" action="/me/cover/remove" class="inline" asp-antiforgery="true"><button class="btn btn-ghost btn-sm">Remove</button></form> }
+                        <span class="tiny muted">Up to 8 MB · wide images (4:1) work best</span>
+                    </div>
+                    <div class="err" data-crop-error role="alert"></div>
+                </div>
+            }
+            <form class="card card-b stack" method="post" action="/me/edit" asp-antiforgery="true"><h3>Basic info</h3>
+                <label class="field"><span>Display name @if (Model.IsVerified) {<span class="badge b-ver" style="margin-left:6px">Verified account</span>}</span>
+                    <input class="input" name="Name" value="@(Model.PendingName ?? Model.Name)" maxlength="60" disabled="@(!Model.CanEditName)" />
+                    @if (!Model.CanEditName) { <input type="hidden" name="Name" value="@Model.Name" /> }
+                    <div class="help"><span>
+                        @if (Model.PendingName is not null) {<text>⏳ “@Model.PendingName” is pending review. </text>}
+                        else if (Model.NextNameChangeAtUtc is DateTime next) {<text>You changed your name recently. Next change available @Ui.Dhaka(next).</text>}
+                        else if (Model.IsVerified) {<text>Must match the ID on your verification file. A Verification Administrator reviews the change; your current name stays until approved. One change per 30 days.</text>}
+                        else {<text>One change per 30 days.</text>}
+                    </span></div>
+                </label>
+                <label class="field"><span>Headline</span><input class="input" name="Headline" value="@Model.Headline" maxlength="120" data-count="120" required /></label>
+                <div class="grid g2"><label class="field"><span>Location</span><input class="input" name="Location" value="@Model.Location" maxlength="80" /></label><label class="field"><span>Website or LinkedIn</span><input class="input" name="Link" value="@Model.Link" maxlength="200" placeholder="https://" /></label></div>
+                <label class="field"><span>About</span><textarea class="input" name="Bio" rows="5" maxlength="600" data-count="600">@Model.Bio</textarea></label>
+                <div class="row"><button class="btn btn-primary">Save changes</button><a class="btn btn-ghost" href="/me">Cancel</a></div>
+            </form>
+            @if (Model.PendingName is not null) { <form method="post" action="/me/name/cancel" asp-antiforgery="true"><button class="btn btn-ghost btn-sm">Cancel name-change request</button></form> }
+            @if (Model.StartupId is not null && !Model.IsTeamMember) { <div class="card card-b row between"><div><strong>Startup profile</strong><div class="small muted">Logo, cover, tagline, description and metrics live on the startup profile.</div></div><a class="btn btn-outline" href="/settings">Edit startup profile</a></div> }
+            @if (Model.InvestorId is not null) { <div class="card card-b row between"><div><strong>Investment preferences</strong><div class="small muted">Receive Pitches and verification.</div></div><a class="btn btn-outline" href="/settings">Open preferences</a></div> }
+        }
+    </div>
+    <div class="stack" style="position:sticky;top:80px">
+        <div class="tiny muted" style="font-weight:600;text-transform:uppercase;letter-spacing:.06em">Preview</div>
+        <div class="card spc" style="margin:0"><div class="spc-cover" style="height:72px;@(Model.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(Model.ColorIndex)} 0%,#0F766E 55%,#134E4A 100%)" : $"background:url('{Model.CoverUrl}') center/cover")"></div><div class="spc-av"><partial name="_Avatar" model="(Model.Name, Model.PhotoUrl, Model.ColorIndex, 72)" /></div><div class="spc-b"><strong>@Model.Name</strong>@if (Model.IsVerified) {<text> </text><span class="vtick">✓</span>}<div class="small muted">@Model.Headline</div>@if (Model.Location.Length > 0) {<div class="tiny muted mt8">@Model.Location</div>}</div></div>
+        <div class="card card-b small muted"><strong style="color:var(--ink)">Rules</strong><ul style="padding-left:18px;margin:8px 0 0"><li>Photos apply instantly; reported photos are reviewed by moderators.</li><li>Names: letters only, 2–60 characters, no impersonation words (Admin, Official, RiseUp…).</li><li>Verified accounts: name changes need ID-matching review.</li><li>Team members change their photo only.</li><li>Every change is recorded in the audit log.</li></ul></div>
+    </div>
+</div>
+@section Scripts { <script src="~/js/pages/cropper.js" type="module" asp-append-version="true"></script> }

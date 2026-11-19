@@ -1,0 +1,14 @@
+@model AdminOverviewViewModel
+@{ ViewData["Title"] = "Admin overview"; }
+<div class="page-h"><div><h1>Admin overview</h1><p>Signed in as @Model.Role · two-factor verified</p></div></div>
+<div class="grid g4">
+    @if (Model.Role is AdminRole.VerificationAdmin or AdminRole.SuperAdmin)
+    {
+        <div class="card kpi"><div class="l">Verification queue</div><div class="v">@Model.PendingVerifications</div><a class="tiny" href="/admin/verification">Open queue →</a></div>
+        <div class="card kpi"><div class="l">Ownership transfers</div><div class="v">@Model.OpenTransfers</div><div class="tiny muted">awaiting consent or review</div></div>
+    }
+    @if (Model.Role == AdminRole.Moderator) { <div class="card kpi"><div class="l">Open reports</div><div class="v">@Model.OpenReports</div><a class="tiny" href="/admin/reports">Open reports →</a></div> }
+    @if (Model.Role == AdminRole.FinanceAdmin) { <div class="card kpi"><div class="l">Orders needing review</div><div class="v">@Model.OrdersNeedingReview</div><a class="tiny" href="/admin/finance">Open payments →</a></div> }
+    @if (Model.Role == AdminRole.SuperAdmin) { <div class="card kpi"><div class="l">Recent audit entries</div><div class="v">@Model.AuditEntries</div><a class="tiny" href="/admin/audit">Open audit log →</a></div> }
+</div>
+<div class="notice n-info mt24">Least privilege: each administrator role sees only its own tools. No role has routine access to private chats — message inspection is report-scoped and audited.</div>

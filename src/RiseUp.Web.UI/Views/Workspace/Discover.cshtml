@@ -1,0 +1,16 @@
+@model MatchList
+@{ ViewData["Title"] = "Discover"; var actor = CurrentActor.From(User); }
+<partial name="_PageHeader" model='(actor.IsInvestor ? "Discover startups" : "Discover investors", (string?)(actor.IsInvestor ? "Verified startups ranked for your preferences." : "Verified investors ranked for your startup."))' />
+<div class="notice @(Model.UsedFallback ? "n-warn" : "n-info")" style="margin-bottom:16px">@(Model.UsedFallback ? "AI Model 2 is unavailable — showing deterministic rule-based matches (industry, stage, funding range, geography)." : "Ranked by AI Model 2 using only information you are allowed to see. Reasons are explanations, not recommendations to invest.")</div>
+@if (Model.Items.Count == 0) { <div class="card"><div class="empty">No matches yet. Complete verification to unlock discovery.</div></div> }
+<div class="grid g2">
+    @foreach (var m in Model.Items)
+    {
+        var href = (actor.IsInvestor ? "/startups/" : "/investors/") + m.Id;
+        <article class="card card-b">
+            <div class="row between" style="flex-wrap:nowrap"><div class="row" style="flex-wrap:nowrap"><partial name="_Logo" model="(m.Name, m.ColorIndex, string.Empty)" /><div><h3 class="mb0"><a href="@href" style="color:inherit">@m.Name</a></h3><div class="small muted">@m.Subtitle</div></div></div><span class="badge b-gray">@m.Score% fit</span></div>
+            <div class="mt16"><div class="tiny muted" style="margin-bottom:4px">Why this match · @Model.Engine</div>@foreach (var r in m.Reasons) {<span class="reason">@r</span>}</div>
+            <div class="row mt16"><a class="btn btn-outline btn-sm" href="@href">View details</a>@if (actor.IsFounder) {<a class="btn btn-primary btn-sm" href="/pitches?to=@m.Id">Write pitch (1 token)</a>}</div>
+        </article>
+    }
+</div>

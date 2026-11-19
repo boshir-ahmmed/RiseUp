@@ -1,0 +1,18 @@
+@model IReadOnlyList<InvestorCardDto>
+@{ ViewData["Title"] = "Investors"; }
+<section class="section" style="padding-top:40px"><div class="container">
+    <h1 style="font-size:34px">Investors</h1><p class="muted">Investment ranges are visible to verified startups only; contact details appear only after connection.</p>
+    <div class="grid g3 mt16">
+        @foreach (var i in Model)
+        {
+            <article class="card mk-card card-b">
+                <div class="row" style="flex-wrap:nowrap"><div class="avatar" style="background:@Ui.Color(i.ColorIndex)" aria-hidden="true">@Ui.Initials(i.Name)</div><div><h3 class="mb0">@i.Name</h3><div class="small muted">@i.Affiliation</div></div></div>
+                <div class="row mt16" style="gap:6px"><span class="badge b-ver">✓ Verified Investor</span>@foreach (var x in i.Industries) {<span class="chip">@x</span>}</div>
+                <p class="small mt16 mb0"><partial name="_ReadMore" model="(i.Bio, 80)" /></p>
+                <div class="small mt8"><strong>Stages:</strong> @string.Join(", ", i.Stages.Select(Ui.Stage))</div>
+                <div class="small mt8">@if (i.TicketMinUsd is not null) {<span><strong>Ticket range:</strong> @Ui.Usd(i.TicketMinUsd) – @Ui.Usd(i.TicketMaxUsd)</span>} else {<span class="muted">🔒 Ticket range visible to verified startups</span>}</div>
+                <a class="btn btn-outline btn-sm mt16" href="/investors/@i.Id">View profile</a>
+            </article>
+        }
+    </div>
+</div></section>

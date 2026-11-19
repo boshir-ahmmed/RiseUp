@@ -1,0 +1,24 @@
+@model IReadOnlyList<ReportDto>
+@{ ViewData["Title"] = "Reports"; }
+<div class="page-h"><div><h1>Reports</h1><p>Review only what was reported. Inspecting a private message requires a recorded reason.</p></div></div>
+<div class="card">
+    @if (Model.Count == 0) { <div class="empty">No reports</div> }
+    @foreach (var r in Model)
+    {
+        <div style="padding:16px 20px;border-bottom:1px solid #EEF2F6">
+            <div class="row between"><div><strong>@r.Kind</strong> <span class="tiny muted">#@r.Id · @r.Target · @Ui.Ago(r.AtUtc)</span></div><span class="badge @Ui.StatusClass(r.Status.ToString())">@r.Status</span></div>
+            <p class="small mt8 mb0"><partial name="_ReadMore" model="(r.Reason, 120)" /></p>
+            @if (TempData[$"inspected:{r.Id}"] is string inspected) { <div class="notice n-info small mt8">“@inspected”</div> }
+            @if (r.Status == ReportStatus.Open)
+            {
+                <div class="row mt8">
+                    @if (r.Kind == ReportKind.GroupMessage)
+                    {
+                        <form method="post" action="/admin/reports/@r.Id/inspect" class="row" style="flex-wrap:nowrap" asp-antiforgery="true"><input class="input" name="reason" required minlength="5" placeholder="Investigation reason (audited)" /><button class="btn btn-outline btn-sm">Inspect reported message</button></form>
+                    }
+                    <form method="post" action="/admin/reports/@r.Id/resolve" class="row" style="flex-wrap:nowrap" asp-antiforgery="true"><input class="input" name="note" required placeholder="Resolution note" /><button class="btn btn-outline btn-sm" name="actioned" value="false">Dismiss</button><button class="btn btn-primary btn-sm" name="actioned" value="true">Mark actioned</button></form>
+                </div>
+            }
+        </div>
+    }
+</div>

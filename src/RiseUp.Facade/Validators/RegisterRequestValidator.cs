@@ -1,0 +1,20 @@
+using FluentValidation;
+using RiseUp.Entities.Common;
+using RiseUp.Framework.Constants;
+
+namespace RiseUp.Facade.Identity;
+
+public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest>
+{
+    public RegisterRequestValidator()
+    {
+        RuleFor(x => x.Role).Must(r => r is PrimaryRole.Founder or PrimaryRole.Investor).WithMessage("Choose Founder or Investor.");
+        RuleFor(x => x.FullName).NotEmpty().MaximumLength(150);
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Phone).NotEmpty().MaximumLength(30);
+        RuleFor(x => x.Password).NotEmpty().MinimumLength(10).Matches("[A-Za-z]").Matches("[0-9]")
+            .WithMessage("Password must be at least 10 characters and include letters and numbers.");
+        RuleFor(x => x.AcceptedTerms).Equal(true).WithMessage($"You must accept the Terms v{BusinessRules.TermsVersion} and Privacy Policy v{BusinessRules.PrivacyVersion}.");
+        RuleFor(x => x.StartupName).NotEmpty().MaximumLength(100).When(x => x.Role == PrimaryRole.Founder);
+    }
+}

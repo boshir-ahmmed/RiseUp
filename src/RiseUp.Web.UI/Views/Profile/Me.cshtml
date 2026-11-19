@@ -1,0 +1,44 @@
+@model MyProfileDto
+@{
+    ViewData["Title"] = "My profile";
+    Layout = "_AppLayout";
+}
+<div class="card prof">
+    <div class="prof-cover" style="@(Model.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(Model.ColorIndex)} 0%,#0F766E 55%,#134E4A 100%)" : $"background:url('{Model.CoverUrl}') center/cover")"></div>
+    <div class="prof-b">
+        <div class="prof-av"><partial name="_Avatar" model="(Model.Name, Model.PhotoUrl, Model.ColorIndex, 132)" /></div>
+        <div class="row between" style="align-items:flex-start">
+            <div>
+                <h1 class="prof-n">@Model.Name @if (Model.IsVerified) {<span class="vtick" style="font-size:14px;width:22px;height:22px" title="Verified account">✓</span>}</h1>
+                <div class="prof-hl">@Model.Headline</div>
+                <div class="small muted mt8">@if (Model.Location.Length > 0) {<span>📍 @Model.Location · </span>}@Model.RoleLine@if (Model.Link is not null) {<span> · <a href="@Model.Link" target="_blank" rel="noopener noreferrer nofollow">🔗 @Model.Link.Replace("https://", "").Replace("http://", "")</a></span>}</div>
+                @if (Model.PendingName is not null) { <div class="notice n-info small mt16" style="display:block">Name change to <strong>@Model.PendingName</strong> is waiting for a Verification Administrator. Your current name stays visible until it's approved.</div> }
+            </div>
+            <div class="row">
+                <a class="btn btn-primary" href="/me/edit"><partial name="_Icon" model='"edit"' /> Edit profile</a>
+                @if (Model.InvestorId is int iid) { <a class="btn btn-outline" href="/investors/@iid">Public investor page</a> }
+                else if (Model.StartupId is int sid) { <a class="btn btn-outline" href="/startups/@sid">Startup page</a> }
+            </div>
+        </div>
+    </div>
+</div>
+<div class="grid mt16 g-detail" style="align-items:start">
+    <div class="stack">
+        <div class="card card-b"><h3>About</h3>
+            @if (Model.Bio.Length > 0) { <p class="mb0" style="white-space:pre-wrap">@Model.Bio</p> }
+            else { <p class="muted small mb0">@(Model.IsTeamMember ? "Team-member profiles show name, title and photo only." : "Add a short bio so founders and investors know who you are.")</p> }
+        </div>
+        @if (Model.StartupName is not null && Model.StartupId is int s2)
+        {
+            <div class="card card-b"><h3>Startup</h3><div class="row between"><strong>@Model.StartupName</strong><a class="btn btn-outline btn-sm" href="@(Model.IsTeamMember ? $"/startups/{s2}" : "/settings")">@(Model.IsTeamMember ? "View startup" : "Edit startup")</a></div></div>
+        }
+    </div>
+    <div class="stack">
+        <div class="card card-b"><h3>Profile strength</h3>
+            <div class="row between"><strong>@Model.Strength%</strong><span class="tiny muted">@(Model.Strength == 100 ? "All-star profile" : "Complete your profile")</span></div>
+            <div class="bar mt8"><i style="width:@(Model.Strength)%"></i></div>
+            <ul class="checklist">@foreach (var c in Model.Checklist) {<li class="@(c.Done ? "ok" : "")">@(c.Done ? "✓" : "○") @c.Item</li>}</ul>
+        </div>
+        <div class="card card-b small muted">Who sees this: @(Model.IsAdmin ? "administrators only." : "signed-in founders and investors see your name, photo and headline next to your comments and messages. Contact details stay private until a connection.")</div>
+    </div>
+</div>
