@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using RiseUp.AI;
+using RiseUp.AI.Sandbox;
 using RiseUp.DataAccess;
 using RiseUp.DataAccess.Seed;
 using RiseUp.Entities.Abstractions;
@@ -48,10 +50,11 @@ public sealed class TestHost : IAsyncDisposable
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
         services.AddDataAccess(config, isProduction: false, o => o.UseSqlite(_connection));
+        services.AddAi(config);
         services.AddFacade();
         services.AddSingleton<IClock>(Clock);
-        services.AddSingleton(sp => Model1 = new SpyContentSafety(new RiseUp.DataAccess.Services.SandboxContentSafetyModel(
-            Microsoft.Extensions.Options.Options.Create(new RiseUp.DataAccess.Services.AiOptions { SimulateModel1Outage = settings.GetValueOrDefault("Ai:SimulateModel1Outage") == "true" }))));
+        services.AddSingleton(sp => Model1 = new SpyContentSafety(
+            ActivatorUtilities.CreateInstance<SandboxContentSafetyModel>(sp)));
         services.AddSingleton<IContentSafetyModel>(sp => sp.GetRequiredService<SpyContentSafety>());
         Services = services.BuildServiceProvider();
     }

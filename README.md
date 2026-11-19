@@ -9,8 +9,8 @@ ASP.NET Core 10 MVC + Razor + C# + EF Core 10 + SQL Server, organised in the sam
 `CRM` solution (`Framework / Entities / DataAccess / Facade / Web.UI`) but with the architecture corrections required
 by the RiseUp master prompt (see `ARCHITECTURE.md`).
 
-> All organisations and people in the demo data are fictional. AI models and the payment gateway run as clearly
-> labelled **sandbox adapters** until real credentials and merchant onboarding exist.
+> All organisations and people in the demo data are fictional. Content screening and matching run locally in the
+> `RiseUp.AI` sandbox. The demo payment gateway also runs in sandbox mode.
 
 ## Quick start (no SQL Server needed)
 
@@ -64,7 +64,7 @@ dotnet ef database update      --project src/RiseUp.DataAccess --startup-project
 
 ```bash
 dotnet build RiseUp.slnx
-dotnet test  RiseUp.slnx        # 103 tests: business rules, architecture rules, HTTP smoke tests
+dotnet test  RiseUp.slnx        # business rules, architecture rules, HTTP smoke tests
 ```
 
 ## Solution layout
@@ -76,7 +76,8 @@ RiseUp/
     RiseUp.Framework/    Result<T>, error codes, IClock, Asia/Dhaka time, business limits, roles/policies, routes
     RiseUp.Entities/     Domain entities + repository ports (IRepository, IUnitOfWork) + external-service ports
     RiseUp.DataAccess/   EF Core DbContext, one configuration per entity, repositories, UnitOfWork, migrations,
-                         sandbox adapters (AI Model 1/2, payment gateway, malware scanner, private file storage), demo seed
+                         payment gateway, malware scanner, private file storage, demo seed
+    RiseUp.AI/           Local content screening and profile matching adapters (API solution folder)
     RiseUp.Facade/       Use cases by feature (Identity, Startups, Investors, Verification, ConnectionRequests,
                          Conversations, TeamAccounts, ConfidentialDocuments, Posts, Wallets, Payments, Promotions,
                          Discovery, Moderation, Notifications, Media, Profiles, Pitching) with FluentValidation and
@@ -85,7 +86,7 @@ RiseUp/
                          security headers, rate limiting, background jobs, vanilla JS modules (no jQuery)
   tests/
     RiseUp.Facade.Tests/        61 executable acceptance tests (§17 + v3/v4 rules) on real EF Core + SQLite
-    RiseUp.Architecture.Tests/  8 dependency/legacy-fix rules (NetArchTest)
+    RiseUp.Architecture.Tests/  9 dependency and legacy-fix rules (NetArchTest)
     RiseUp.Web.SmokeTests/      34 HTTP tests via WebApplicationFactory
   database/              Idempotent SQL Server scripts (full v4 schema + v2→v4 upgrade)
   docs/prototype/        The interactive HTML prototype v4 (non-production) + specs in docs/

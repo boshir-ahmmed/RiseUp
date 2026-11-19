@@ -8,7 +8,7 @@
 | `Payments:Gateway` | `Sandbox` | `Sandbox` | real adapter (Sandbox throws at startup) |
 | `Mfa:AllowDemoCodes` | true | optional | **false** |
 
-Secrets (`ConnectionStrings:RiseUp`, `Payments:WebhookSecret`, `Ai:GeminiApiKey`) come from environment variables or
+Secrets (`ConnectionStrings:RiseUp`, `Payments:WebhookSecret`) come from environment variables or
 a secret vault — see `.env.example`. Never commit them.
 
 ## Release steps

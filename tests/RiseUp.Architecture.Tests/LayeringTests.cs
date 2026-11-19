@@ -4,11 +4,12 @@ using NetArchTest.Rules;
 
 namespace RiseUp.Architecture.Tests;
 
-/// <summary>Enforces Web.UI → Facade → Entities ← DataAccess, and the legacy-CRM corrections.</summary>
+/// <summary>Enforces the layer boundaries and the legacy-CRM corrections.</summary>
 public class LayeringTests
 {
     private static readonly Assembly Framework = typeof(RiseUp.Framework.Results.Result).Assembly;
     private static readonly Assembly Entities = typeof(RiseUp.Entities.Common.BaseEntity).Assembly;
+    private static readonly Assembly Ai = typeof(RiseUp.AI.DependencyInjection).Assembly;
     private static readonly Assembly DataAccess = typeof(RiseUp.DataAccess.RiseUpDbContext).Assembly;
     private static readonly Assembly Facade = typeof(RiseUp.Facade.DependencyInjection).Assembly;
     private static readonly Assembly Web = typeof(RiseUp.Web.UI.Infrastructure.AppController).Assembly;
@@ -17,19 +18,22 @@ public class LayeringTests
         Xunit.Assert.True(result.IsSuccessful, because + " Offenders: " + string.Join(", ", result.FailingTypeNames ?? []));
 
     [Fact] public void Framework_HasNoApplicationDependencies() =>
-        Assert(Types.InAssembly(Framework).ShouldNot().HaveDependencyOnAny("RiseUp.Entities", "RiseUp.DataAccess", "RiseUp.Facade", "RiseUp.Web").GetResult(), "Framework is the base layer.");
+        Assert(Types.InAssembly(Framework).ShouldNot().HaveDependencyOnAny("RiseUp.AI", "RiseUp.Entities", "RiseUp.DataAccess", "RiseUp.Facade", "RiseUp.Web").GetResult(), "Framework is the base layer.");
 
     [Fact] public void Entities_DependOnlyOnFramework() =>
-        Assert(Types.InAssembly(Entities).ShouldNot().HaveDependencyOnAny("RiseUp.DataAccess", "RiseUp.Facade", "RiseUp.Web", "Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore").GetResult(), "Entities must stay pure.");
+        Assert(Types.InAssembly(Entities).ShouldNot().HaveDependencyOnAny("RiseUp.AI", "RiseUp.DataAccess", "RiseUp.Facade", "RiseUp.Web", "Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore").GetResult(), "Entities must stay pure.");
 
-    [Fact] public void Facade_DoesNotReferenceEfCoreDataAccessOrWeb() =>
-        Assert(Types.InAssembly(Facade).ShouldNot().HaveDependencyOnAny("RiseUp.DataAccess", "RiseUp.Web", "Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore").GetResult(), "Facade uses repository ports only (no AddDbContext in Facade).");
+    [Fact] public void Facade_UsesInfrastructureThroughPorts() =>
+        Assert(Types.InAssembly(Facade).ShouldNot().HaveDependencyOnAny("RiseUp.AI", "RiseUp.DataAccess", "RiseUp.Web", "Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore").GetResult(), "Facade uses infrastructure through Entities ports.");
 
-    [Fact] public void DataAccess_DoesNotReferenceFacadeOrWeb() =>
-        Assert(Types.InAssembly(DataAccess).ShouldNot().HaveDependencyOnAny("RiseUp.Facade", "RiseUp.Web").GetResult(), "DataAccess implements Entities ports.");
+    [Fact] public void DataAccess_DoesNotReferenceFacadeWebOrAi() =>
+        Assert(Types.InAssembly(DataAccess).ShouldNot().HaveDependencyOnAny("RiseUp.AI", "RiseUp.Facade", "RiseUp.Web").GetResult(), "DataAccess implements Entities ports.");
 
-    [Fact] public void Controllers_DoNotTouchDbContextOrDataAccess() =>
-        Assert(Types.InAssembly(Web).That().Inherit(typeof(Controller)).ShouldNot().HaveDependencyOnAny("RiseUp.DataAccess", "Microsoft.EntityFrameworkCore").GetResult(), "Controllers must stay thin and go through the Facade.");
+    [Fact] public void Ai_ImplementsPortsIndependentlyOfWebFacadeAndPersistence() =>
+        Assert(Types.InAssembly(Ai).ShouldNot().HaveDependencyOnAny("RiseUp.Facade", "RiseUp.DataAccess", "RiseUp.Web", "Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore").GetResult(), "AI adapters implement Entities ports.");
+
+    [Fact] public void Controllers_DoNotCallInfrastructureDirectly() =>
+        Assert(Types.InAssembly(Web).That().Inherit(typeof(Controller)).ShouldNot().HaveDependencyOnAny("RiseUp.AI", "RiseUp.DataAccess", "Microsoft.EntityFrameworkCore").GetResult(), "Controllers must stay thin and go through the Facade.");
 
     [Fact] public void Controllers_DoNotBindEntities()
     {

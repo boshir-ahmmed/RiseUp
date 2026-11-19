@@ -2,11 +2,10 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using RiseUp.Entities.Abstractions;
 
-namespace RiseUp.DataAccess.Services;
+namespace RiseUp.AI.Sandbox;
 
 /// <summary>
 /// DEMO/SANDBOX AI Model 1. Returns an explicit validated Approve/Reject decision for posts and pitches.
-/// Replace with a server-side Gemini adapter that validates structured output; never trust free-form prose.
 /// </summary>
 public sealed partial class SandboxContentSafetyModel(IOptions<AiOptions> options) : IContentSafetyModel
 {

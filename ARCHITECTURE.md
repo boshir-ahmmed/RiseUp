@@ -6,7 +6,8 @@
 Web.UI  ──►  Facade  ──►  Entities (domain + ports)  ◄──  DataAccess
    │            │                 │                          │
    └────────────┴──────►  Framework (Result, clock, rules) ◄─┘
-Web.UI references DataAccess ONLY in Program.cs to call AddDataAccess().
+RiseUp.AI ──► Entities (AI ports)
+Web.UI registers DataAccess and RiseUp.AI in Program.cs.
 ```
 Enforced by `tests/RiseUp.Architecture.Tests` (Facade has no EF Core/DataAccess/ASP.NET dependency; controllers
 never touch DataAccess or EF; controllers never bind entities; repositories expose no SaveChanges).
@@ -41,6 +42,10 @@ redirect + flash, or JSON with mapped status (400/401/403/404/409/429/503).`
 * One like per account — unique `(PostId, ActorAccountId)`.
 
 ## AI boundaries
+
+The `API` solution folder contains the `RiseUp.AI` class library. The MVC host calls `AddAi` to register local sandbox adapters for the two interfaces in `RiseUp.Entities.Abstractions`. The existing `Ai:SimulateModel1Outage` and `Ai:SimulateModel2Outage` settings exercise the failure paths locally.
+
+When the models are hosted, add the gpt-oss-safeguard-20b screening adapter and the BGE-M3 matching adapter in `RiseUp.AI` and register them in `AddAi`. The Facade owns publication, pitch delivery, candidate permissions, and matching fallback.
 
 * **Model 1** (`IContentSafetyModel`): only posts and founder pitches; returns validated Approve/Reject; timeout or
   outage = fail closed (draft kept, no debit). Never called for comments, replies or chats (test T25).

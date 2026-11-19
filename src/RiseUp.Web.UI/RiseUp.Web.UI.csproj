@@ -4,6 +4,7 @@
     <ProjectReference Include="..\RiseUp.Facade\RiseUp.Facade.csproj" />
     <ProjectReference Include="..\RiseUp.Framework\RiseUp.Framework.csproj" />
     <ProjectReference Include="..\RiseUp.DataAccess\RiseUp.DataAccess.csproj" />
+    <ProjectReference Include="..\RiseUp.AI\RiseUp.AI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

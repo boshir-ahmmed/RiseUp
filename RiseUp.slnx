@@ -7,6 +7,9 @@
   <Folder Name="/Business/">
     <Project Path="src/RiseUp.Facade/RiseUp.Facade.csproj" />
   </Folder>
+  <Folder Name="/API/">
+    <Project Path="src/RiseUp.AI/RiseUp.AI.csproj" />
+  </Folder>
   <Folder Name="/Presentation/">
     <Project Path="src/RiseUp.Web.UI/RiseUp.Web.UI.csproj" />
   </Folder>

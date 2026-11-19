@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RiseUp.AI;
 using RiseUp.DataAccess;
 using RiseUp.DataAccess.Seed;
 using RiseUp.Facade;
@@ -15,8 +16,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 builder.Services.AddAntiforgery(o => { o.HeaderName = "X-CSRF-TOKEN"; o.Cookie.Name = "RiseUp.Csrf"; o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; });
 
-// Layering: Web.UI -> Facade -> Entities abstractions <- DataAccess. DataAccess is referenced ONLY here, to register it.
+// Compose the infrastructure adapters and Facade at the MVC entry point.
 builder.Services.AddDataAccess(builder.Configuration, builder.Environment.IsProduction());
+builder.Services.AddAi(builder.Configuration);
 builder.Services.AddFacade();
 builder.Services.PostConfigure<RiseUp.DataAccess.Seed.SeedOptions>(o => o.DemoMediaPath = Path.Combine(builder.Environment.ContentRootPath, o.DemoMediaPath));
 

@@ -55,12 +55,9 @@ public static class DependencyInjection
         services.AddScoped<IMeetingRepository, MeetingRepository>();
         services.AddScoped<ISavedPostRepository, SavedPostRepository>();
 
-        services.Configure<AiOptions>(configuration.GetSection("Ai"));
         services.Configure<PaymentOptions>(configuration.GetSection("Payments"));
         services.Configure<StorageOptions>(configuration.GetSection("Storage"));
         services.AddSingleton<RiseUp.Entities.Abstractions.IPasswordHasher, PasswordHasherAdapter>();
-        services.AddSingleton<IContentSafetyModel, SandboxContentSafetyModel>();
-        services.AddSingleton<IAiMatchingService, SandboxAiMatchingService>();
         services.AddSingleton<IFileStorage, LocalPrivateFileStorage>();
         services.AddSingleton<IMalwareScanner, SignatureMalwareScanner>();
         services.Configure<MfaOptions>(configuration.GetSection("Mfa"));
