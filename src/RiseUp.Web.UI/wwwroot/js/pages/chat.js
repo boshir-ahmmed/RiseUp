@@ -1,20 +1,26 @@
-// Real-time chat via SignalR. The server re-checks membership on join and on every send.
 const root = document.querySelector('[data-conversation]');
-if (root && window.signalR) {
-  const id = parseInt(root.dataset.conversation, 10);
-  const list = document.getElementById('msgs');
-  const conn = new signalR.HubConnectionBuilder().withUrl('/hubs/chat').withAutomaticReconnect().build();
-  conn.on('message', m => {
-    if (m.conversationId !== id || document.querySelector(`[data-msg="${m.id}"]`)) return;
-    const el = document.createElement('div');
-    el.className = 'msg'; el.dataset.msg = m.id;
-    const meta = document.createElement('div'); meta.className = 'meta';
-    const who = document.createElement('strong'); who.textContent = m.author;
-    meta.append(who);
-    const body = document.createElement('div'); body.textContent = m.body;
-    el.append(meta, body);
-    list.append(el); list.scrollTop = list.scrollHeight;
+const list = document.getElementById('msgs');
+if (root && list && window.signalR) {
+  const id = Number(root.dataset.conversation);
+  const refresh = root.querySelector('[data-show-latest]');
+  const connection = new signalR.HubConnectionBuilder().withUrl('/hubs/chat').withAutomaticReconnect().build();
+  const historical = new URLSearchParams(location.search).has('before');
+  async function join() { await connection.invoke('Join', id); }
+  function newMessages() { refresh.textContent = 'Show latest messages'; }
+  connection.on('changed', changed => { if (changed === id) newMessages(); });
+  connection.onreconnected(async () => { await join(); newMessages(); });
+  connection.start().then(join).catch(() => { /* Normal form posts remain available. */ });
+  refresh.addEventListener('click', async event => {
+    if (historical) return;
+    event.preventDefault();
+    refresh.textContent = 'Refresh messages';
+    try {
+      const response = await fetch('/conversations/' + id + '/messages', { redirect: 'error' });
+      if (!response.ok) throw new Error('Conversation unavailable');
+      const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+      list.replaceChildren(...doc.body.childNodes);
+      list.scrollTop = list.scrollHeight;
+    } catch { refresh.textContent = 'Retry loading messages'; }
   });
-  conn.start().then(() => conn.invoke('Join', id)).catch(() => { /* falls back to normal form posts */ });
+  if (!historical) list.scrollTop = list.scrollHeight;
 }
-document.getElementById('msgs')?.scrollTo({ top: 1e9 });

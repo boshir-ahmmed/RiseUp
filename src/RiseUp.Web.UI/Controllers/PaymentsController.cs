@@ -29,7 +29,9 @@ public sealed class PaymentsController(IPaymentFacade payments, IPaymentGateway 
     }
 
     [AllowAnonymous, IgnoreAntiforgeryToken, HttpGet("/payments/return"), HttpPost("/payments/return")]
-    public IActionResult HostedReturn() => Redirect("/wallet");
+    public IActionResult HostedReturn([ModelBinder(Name = "tran_id")] string? orderNumber) => ReturnToWallet(orderNumber);
+
+    private RedirectToActionResult ReturnToWallet(string? order) => RedirectToAction("Wallet", "Workspace", new { order }, "orders");
 
     /// <summary>SANDBOX ONLY: a fake hosted checkout page. Unavailable when a real gateway is configured.</summary>
     [Authorize(Policy = Policies.Founder), HttpGet("/wallet/sandbox-checkout/{orderNumber}")]
@@ -43,11 +45,11 @@ public sealed class PaymentsController(IPaymentFacade payments, IPaymentGateway 
         if (outcome == "redirect-only")
         {
             Flash(RiseUp.Framework.Results.Result.Failure("payment_unconfirmed", "A success redirect alone credits nothing. The order stays pending for reconciliation."));
-            return Redirect("/wallet");
+            return ReturnToWallet(orderNumber);
         }
         var payload = $"{orderNumber}|SBX-{Random.Shared.Next(10000, 99999)}|{(outcome == "fail" ? "FAILED" : "PAID")}";
         var signature = outcome == "tampered" ? "forged" : gateway.CreateSandboxSignature(payload) ?? "";
         Flash(await payments.HandleWebhookAsync(payload, signature, ct));
-        return Redirect("/wallet");
+        return ReturnToWallet(orderNumber);
     }
 }

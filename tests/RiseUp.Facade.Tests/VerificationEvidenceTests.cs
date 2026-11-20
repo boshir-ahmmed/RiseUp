@@ -13,6 +13,20 @@ namespace RiseUp.Facade.Tests;
 
 public class VerificationEvidenceTests
 {
+    [Fact]
+    public async Task ApplicantSeesOwnSubmittedDocumentKinds()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var owner = await h.PendingFounder();
+        var status = await h.Run<IVerificationFacade, Result<ApplicantStatusDto>>(v => v.GetApplicantStatusAsync(owner));
+        Assert.True(status.Value!.AwaitingReview);
+        Assert.Contains("TradeLicence", status.Value.DocumentKinds);
+        var other = await h.Founder();
+        var wrongAccount = owner with { AccountId = other.AccountId };
+        var denied = await h.Run<IVerificationFacade, Result<ApplicantStatusDto>>(v => v.GetApplicantStatusAsync(wrongAccount));
+        Assert.True(denied.IsFailure);
+    }
+
     [Theory]
     [InlineData("stream: OK", ScanVerdict.Clean)]
     [InlineData("stream: sample FOUND", ScanVerdict.Infected)]

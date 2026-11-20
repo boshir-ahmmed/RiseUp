@@ -6,17 +6,17 @@
     var href = actor.IsInvestor ? $"/startups/{Model.StartupId}" : $"/investors/{Model.InvestorId}";
     var remaining = Model.ExpiresAtUtc - DateTime.UtcNow;
 }
-<tr>
-    <td><a href="@href" style="font-weight:650;color:var(--ink)">@counterpart</a><div class="tiny muted">@(Model.Type == RequestType.Pitch ? "Pitch" : "Invitation") · @(incoming ? "received" : "sent")</div></td>
-    <td class="small" style="max-width:360px"><partial name="_ReadMore" model="(Model.Message, 90)" /></td>
-    <td class="small">@Ui.Dhaka(Model.SentAtUtc)</td>
-    <td>
+<article class="inbox-request">
+    <div><a href="@href" style="font-weight:650;color:var(--ink)">@counterpart</a><div class="tiny muted">@(Model.Type == RequestType.Pitch ? "Pitch" : "Invitation") · @(incoming ? "received" : "sent")</div></div>
+    <div class="small"><partial name="_ReadMore" model="(Model.Message, 90)" /></div>
+    <div class="tiny muted">Sent @Ui.Dhaka(Model.SentAtUtc)</div>
+    <div>
         <span class="badge @Ui.StatusClass(Model.Status.ToString())">@Model.Status</span>
         @if (Model.Status == RequestStatus.Pending) { <div class="tiny muted mt8">Expires in @Ui.Left(remaining)</div> }
         @if (Model.ResendAllowedAtUtc is DateTime r && r > DateTime.UtcNow) { <div class="tiny muted mt8">New request after @Ui.Dhaka(r)</div> }
-    </td>
-    <td>
-        <div class="row" style="flex-wrap:nowrap;gap:6px">
+    </div>
+    <div>
+        <div class="row" style="gap:6px">
             @if (Model.Type == RequestType.Pitch) { <a class="btn @(incoming && Model.Status == RequestStatus.Pending ? "btn-primary" : "btn-outline") btn-sm" href="/pitch-room/@Model.Id">Open pitch room</a> }
             @if (incoming && Model.Status == RequestStatus.Pending)
             {
@@ -32,5 +32,5 @@
                 </div>
             </details>
         </div>
-    </td>
-</tr>
+    </div>
+</article>

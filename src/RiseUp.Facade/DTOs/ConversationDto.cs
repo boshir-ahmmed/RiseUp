@@ -9,4 +9,4 @@ using RiseUp.Framework.Time;
 
 namespace RiseUp.Facade.Conversations;
 
-public sealed record ConversationDto(ConversationSummaryDto Summary, IReadOnlyList<string> Members, IReadOnlyList<MessageDto> Messages, string? ContactEmail, string? ContactPhone);
+public sealed record ConversationDto(ConversationSummaryDto Summary, IReadOnlyList<string> Members, IReadOnlyList<MessageDto> Messages, string? ContactEmail, string? ContactPhone, int? OlderBeforeId = null);

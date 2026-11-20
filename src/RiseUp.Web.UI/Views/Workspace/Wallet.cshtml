@@ -1,6 +1,18 @@
 @using RiseUp.Entities.Abstractions
 @model WalletViewModel
-@{ ViewData["Title"] = "Wallet"; }
+@{
+    ViewData["Title"] = "Wallet";
+    var returnedOrder = Model.Orders.FirstOrDefault(o => o.OrderNumber == Context.Request.Query["order"].ToString());
+    string OrderMessage(OrderDto o) => o.Status switch
+    {
+        PaymentStatus.Paid when o.Credited => "Payment confirmed. Credits added to your wallet.",
+        PaymentStatus.Pending => "Waiting for payment confirmation. Check this order again before making another purchase.",
+        PaymentStatus.RequiresReview => "Your payment is under review. Keep your order number for reference.",
+        PaymentStatus.Refunded => "This payment was refunded.",
+        PaymentStatus.Failed => "Payment failed. You can start a new order.",
+        _ => "Payment recorded. Check the credit history below for your balance."
+    };
+}
 <partial name="_PageHeader" model='("Wallet", (string?)"Pitches use welcome credits first. Promotions use purchased credits only.")' />
 <div class="grid g3">
     <div class="card kpi"><div class="l">Welcome credits</div><div class="v">@Model.Wallet.WelcomeBalance</div><div class="tiny muted">One-time grant · pitches only · never expire</div></div>
@@ -11,7 +23,12 @@
 {
     <form class="card card-b stack mt24" method="post" action="/wallet/buy" asp-antiforgery="true">
         <h3>Buy RiseUp Credits</h3>
-        <label class="field"><span>Credit package</span><select class="input" name="packageId">@foreach (var p in Model.Packages) {<option value="@p.Id">@p.Tokens credits · @Ui.Bdt(p.PriceBdt)</option>}</select></label>
+        <fieldset class="package-picker"><legend>Choose a credit package</legend>
+            <div class="package-options">@foreach (var p in Model.Packages)
+            {
+                <label><input type="radio" name="packageId" value="@p.Id" checked="@(p.Id == Model.Packages[0].Id)" required /><span><strong>@p.Tokens credits</strong><span>@Ui.Bdt(p.PriceBdt)</span></span></label>
+            }</div>
+        </fieldset>
         @if (Model.Mode is PaymentMode.HostedTest or PaymentMode.Live)
         {
             <p>Choose bKash, Nagad or another available method on the SSLCOMMERZ checkout page.</p>
@@ -26,10 +43,16 @@
         <button class="btn btn-primary" type="submit">Continue to checkout</button>
     </form>
 }
-<div class="card mt24"><div class="card-h"><h3>Payment orders</h3><span class="tiny muted">Credits are added after payment is confirmed</span></div>
+<div class="card mt24" id="orders"><div class="card-h"><h3>Payment orders</h3><span class="tiny muted">Credits are added after payment is confirmed</span></div>
+    @if (returnedOrder is not null)
+    {
+        <section class="card-b" role="status"><strong>Order @returnedOrder.OrderNumber</strong><p>@OrderMessage(returnedOrder)</p>
+            @if (returnedOrder.Status is PaymentStatus.Pending or PaymentStatus.RequiresReview) { <a class="btn btn-outline btn-sm" href="@Url.Action("Wallet", "Workspace", new { order = returnedOrder.OrderNumber })#orders">Refresh order status</a> }
+        </section>
+    }
     @if (Model.Orders.Count == 0) { <div class="empty">No orders</div> }
-    else { <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Package</th><th>Status</th><th>Provider ref</th></tr></thead><tbody>@foreach (var o in Model.Orders) {<tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>@o.Tokens credits · @Ui.Bdt(o.PriceBdt)</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td class="small">@(o.ProviderTransactionId ?? "—")</td></tr>}</tbody></table></div> }
+    else { <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Package</th><th>Status</th><th>Provider ref</th></tr></thead><tbody>@foreach (var o in Model.Orders) {<tr><td><a href="@Url.Action("Wallet", "Workspace", new { order = o.OrderNumber })#orders">@o.OrderNumber</a><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>@o.Tokens credits · @Ui.Bdt(o.PriceBdt)</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td class="small">@(o.ProviderTransactionId ?? "—")</td></tr>}</tbody></table></div> }
 </div>
-<div class="card mt24"><div class="card-h"><h3>Ledger (append-only)</h3></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Entry</th><th>Bucket</th><th style="text-align:right">Amount</th></tr></thead><tbody>
+<div class="card mt24"><div class="card-h"><h3>Credit history</h3></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>When</th><th>Entry</th><th>Bucket</th><th style="text-align:right">Amount</th></tr></thead><tbody>
     @foreach (var l in Model.Wallet.Ledger) {<tr><td class="small">@Ui.Dhaka(l.AtUtc)</td><td class="small">@l.Description<div class="tiny muted"><code>@l.Reference</code></div></td><td><span class="badge b-gray">@l.Bucket</span></td><td style="text-align:right;font-weight:650;color:@(l.Amount < 0 ? "var(--danger)" : "var(--teal-d)")">@(l.Amount > 0 ? "+" : "")@l.Amount</td></tr>}
 </tbody></table></div></div>

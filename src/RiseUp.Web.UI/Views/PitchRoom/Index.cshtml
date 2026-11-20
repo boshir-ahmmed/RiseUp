@@ -12,7 +12,7 @@
     <a href="@(Model.ViewerIsInvestor ? "/requests" : "/pitches?tab=sent")" class="small">← @(Model.ViewerIsInvestor ? "Pitches & invitations" : "Pitch Studio")</a>
     <div class="rh-row">
         <div class="row" style="flex-wrap:nowrap;gap:16px;align-items:center"><partial name="_Brand" model="(Model.StartupName, Model.ColorIndex, string.Empty, Model.LogoUrl)" />
-            <div style="min-width:0"><div class="rh-k">PITCH ROOM · @(Model.IsPreview ? "PREVIEW" : $"PACKAGE V{Model.SentVersion ?? Model.CurrentVersion}")</div><h1>@Model.StartupName</h1><p>@Model.Tagline</p>
+            <div style="min-width:0"><div class="rh-k">PITCH ROOM · @(Model.IsPreview ? "PREVIEW" : $"PACKAGE V{Model.CurrentVersion}")</div><h1>@Model.StartupName</h1><p>@Model.Tagline</p>
                 <div class="row" style="gap:6px"><span class="chip">@Model.Industry</span><span class="chip">@Ui.Stage(Model.Stage)</span><span class="chip">@Model.Location</span>@if (Model.StartupVerified) {<span class="badge b-ver">✓ Verified Startup</span>}</div></div></div>
         <div class="rh-side">
             <div class="rh-ask"><span>Raising</span><b>@Ui.Usd(p.Ask.AmountUsd)</b><small>@p.Ask.InstrumentLabel</small></div>
@@ -24,7 +24,7 @@
             </div>
         </div>
     </div>
-    <div class="rh-meta">@if (Model.SentAtUtc is DateTime sent) {<text>@(Model.ViewerIsInvestor ? "Sent to you" : $"Sent to {Model.InvestorName}") @Ui.Dhaka(sent)</text>@if (Model.SentVersion is int sv && sv != Model.CurrentVersion) {<text> · package updated since (now v@Model.CurrentVersion)</text>}} else {<text>Your current pitch package</text>}</div>
+    <div class="rh-meta">@if (Model.SentAtUtc is DateTime sent) {<text>@(Model.ViewerIsInvestor ? "Sent to you" : $"Sent to {Model.InvestorName}") @Ui.Dhaka(sent)</text>@if (Model.SentVersion is int sv && sv != Model.CurrentVersion) {<text> · sent with v@sv · now viewing v@Model.CurrentVersion</text>}} else {<text>Your current pitch package</text>}</div>
 </div>
 @if (Model.StartupSuspended) { <div class="notice n-danger" style="margin-bottom:16px">This startup account is suspended. The pitch room is read-only.</div> }
 @if (Model.Status is RequestStatus.Accepted) { <div class="notice n-ok" style="margin-bottom:16px">This pitch was accepted — you are connected. Continue in your <a href="/conversations/@Model.ConversationId">conversation</a>.</div> }
@@ -47,7 +47,7 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
                     {
                         <div class="vp"><video id="v-pitch" src="@p.Pitch.Url" poster="@p.Pitch.PosterUrl" controls playsinline preload="metadata" data-slot="Pitch"></video>
                             <div class="chapters">@foreach (var c in chapters.Where(c => c.At < p.Pitch.Seconds)) {<button type="button" class="chip x" data-seek="@c.At" data-target="v-pitch">@((int)c.At / 60):@(((int)c.At % 60).ToString("00")) @c.Label</button>}</div>
-                            @if (p.Captions) {<div class="tiny muted mt8">CC available (Bangla / English) · streamed, not downloadable</div>}</div>
+                            </div>
                     }
                     else { <div class="lock" style="aspect-ratio:16/9;display:grid;place-items:center">No pitch video uploaded yet</div> }
                 </div>

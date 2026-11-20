@@ -16,22 +16,16 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeAccountMenu(true);
 });
 
-// Feed/Reels videos autoplay muted when at least 60% visible, pause otherwise.
-const vids = [...document.querySelectorAll('video[data-feedvideo]')];
-if (vids.length && 'IntersectionObserver' in window) {
-  const io = new IntersectionObserver(entries => entries.forEach(en => {
-    const v = en.target;
-    if (en.intersectionRatio >= 0.6) v.play().catch(() => {}); else v.pause();
-  }), { threshold: [0, 0.6] });
-  vids.forEach(v => io.observe(v));
+// A user starts playback. Pause offscreen media to save bandwidth.
+const videos = document.querySelectorAll('video[data-feedvideo]');
+if (videos.length && 'IntersectionObserver' in window) {
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) if (!entry.isIntersecting) entry.target.pause();
+  });
+  videos.forEach(video => observer.observe(video));
 }
 
 document.addEventListener('click', async e => {
-  const snd = e.target.closest('[data-sound]');
-  if (snd) {
-    const v = snd.closest('.ig-media, .pk-media')?.querySelector('video');
-    if (v) { v.muted = !v.muted; snd.textContent = v.muted ? '🔇' : '🔊'; if (!v.muted) v.play().catch(() => {}); }
-  }
   const save = e.target.closest('[data-save]');
   if (save) {
     const r = await post(`/posts/${save.dataset.save}/save`);

@@ -14,3 +14,9 @@ public sealed record ApplicationDto(int Id, VerificationSubject Subject, int Sub
     LicenceHolderType? LicenceHolderType, string? LicenceHolderName, DateTime SubmittedAtUtc, string? DecisionReason, IReadOnlyList<EvidenceDto> Documents);
 
 public sealed record EvidenceDto(int Id, string Kind, ScanStatus ScanStatus, EvidenceRetention Retention, bool Erased);
+
+public sealed record ApplicantStatusDto(bool IsStartup, VerificationStatus Status, DateTime? ValidUntil,
+    VerificationStatus? ApplicationStatus, DateTime? SubmittedAt, string? RejectionReason, IReadOnlyList<string> DocumentKinds)
+{
+    public bool AwaitingReview => ApplicationStatus == VerificationStatus.Pending && DocumentKinds.Count > 0;
+}

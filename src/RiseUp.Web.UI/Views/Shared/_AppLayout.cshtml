@@ -17,17 +17,18 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+    <a class="skip-main" href="#main">Skip to main content</a>
     @if (HostEnv.IsDevelopment())
     {
         <div class="devbar">DEVELOPMENT · SQLite demo database · sandbox AI, payments &amp; malware scanner · demo password <code>Demo#2026pass</code></div>
     }
     @await Component.InvokeAsync("Shell", new { part = "TopBar" })
     <div class="app">
+        <button class="btn btn-outline btn-sm mtoggle" type="button" data-toggle="#side" aria-controls="side" aria-expanded="false">Workspace menu</button>
         <aside class="side" id="side" aria-label="Navigation">
             @await Component.InvokeAsync("Shell", new { part = "Side" })
         </aside>
-        <main class="main" id="main">
-            <button class="btn btn-outline btn-sm mtoggle" type="button" data-toggle="#side" style="margin-bottom:12px" aria-controls="side">☰ Menu</button>
+        <main class="main" id="main" tabindex="-1">
             <partial name="_Flash" />
             @RenderBody()
         </main>

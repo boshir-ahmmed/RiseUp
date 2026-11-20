@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -59,8 +60,17 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
 
     // ------------------------------------------------------------ discovery
     [Authorize(Policy = Policies.FounderOrInvestor), HttpGet("/discover")]
-    public async Task<IActionResult> Discover(CancellationToken ct) =>
-        View(Actor.IsInvestor ? await matching.RecommendStartupsForInvestorAsync(Actor, 50, ct) : await matching.RecommendInvestorsForStartupAsync(Actor, 50, ct));
+    public async Task<IActionResult> Discover(string? q, [FromServices] RiseUp.Facade.Pitching.IShortlistFacade shortlist, CancellationToken ct)
+    {
+        var matches = Actor.IsInvestor ? await matching.RecommendStartupsForInvestorAsync(Actor, 50, ct)
+            : await matching.RecommendInvestorsForStartupAsync(Actor, 50, ct);
+        var query = q?.Trim() ?? "";
+        var items = matches.Items.Where(m => m.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || m.Subtitle.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || m.Reasons.Any(r => r.Contains(query, StringComparison.OrdinalIgnoreCase))).ToList();
+        HashSet<int> saved = Actor.IsInvestor ? (await shortlist.ListAsync(Actor, ct)).Select(s => s.StartupId).ToHashSet() : [];
+        return View(new DiscoverViewModel(query, matches.UsedFallback, items, saved));
+    }
 
     // Pitch Studio (package, send, sent, checklist) lives in PitchStudioController.
 
@@ -79,18 +89,32 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
 
     // ------------------------------------------------------------ conversations
     [Authorize(Policy = Policies.ChatParticipant), HttpGet("/" + UrlRewrite.Conversations + "/{id:int?}")]
-    public async Task<IActionResult> Conversations(int? id, CancellationToken ct)
+    public async Task<IActionResult> Conversations(int? id, int? before, CancellationToken ct)
     {
         var list = await conversations.ListAsync(Actor, ct);
         var selected = id ?? list.FirstOrDefault()?.Id;
-        var detail = selected is int sid ? (await conversations.GetAsync(Actor, sid, 1, ct)) : null;
+        var detail = selected is int sid ? (await conversations.RecentAsync(Actor, sid, before, ct)) : null;
         if (detail is { IsFailure: true }) return Forbid();
         return View(new ConversationsViewModel(list, detail?.Value, Actor.IsFounder ? await team.ListAsync(Actor, ct) : [],
             selected is int msid ? await meetings.ListAsync(Actor, msid, ct) : []));
     }
 
+    [Authorize(Policy = Policies.ChatParticipant), HttpGet("/conversations/{id:int}/messages")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> LatestMessages(int id, CancellationToken ct)
+    {
+        var detail = await conversations.RecentAsync(Actor, id, null, ct);
+        return detail.IsSuccess ? PartialView("_Messages", detail.Value) : Forbid();
+    }
+
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/conversations/{id:int}/messages")]
-    public async Task<IActionResult> SendMessage(int id, string body, CancellationToken ct) { Flash(await conversations.SendAsync(Actor, id, body ?? "", ct) is { IsFailure: true } f ? f : Result.Success()); return Redirect($"/conversations/{id}"); }
+    public async Task<IActionResult> SendMessage(int id, string body, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Hubs.ChatHub> hub, CancellationToken ct)
+    {
+        var sent = await conversations.SendAsync(Actor, id, body ?? "", ct);
+        if (sent.IsFailure) Flash(sent);
+        else await hub.Clients.Group(Hubs.ChatHub.Group(id)).SendAsync("changed", id, ct);
+        return Redirect($"/conversations/{id}");
+    }
 
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/messages/{id:int}/edit")]
     public async Task<IActionResult> EditMessage(int id, string body, int conversationId, CancellationToken ct) { Flash(await conversations.EditAsync(Actor, id, body, ct)); return Redirect($"/conversations/{conversationId}"); }
@@ -233,6 +257,13 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     [Authorize(Policy = Policies.Investor), HttpPost("/settings/receive-pitches")]
     public async Task<IActionResult> ReceivePitches(bool receive, CancellationToken ct) => Back(await investors.SetReceivePitchesAsync(Actor, receive, ct), nameof(Settings));
 
+    [Authorize(Policy = Policies.FounderOrInvestor), HttpGet("/verification")]
+    public async Task<IActionResult> Verification(CancellationToken ct)
+    {
+        var status = await verification.GetApplicantStatusAsync(Actor, ct);
+        return status.IsSuccess ? View(status.Value) : Forbid();
+    }
+
     [Authorize(Policy = Policies.FounderOrInvestor), HttpPost("/verification")]
     [RequestSizeLimit(32 * 1024 * 1024)]
     public async Task<IActionResult> SubmitVerification(LicenceHolderType? licenceHolderType, string? licenceHolderName,
@@ -245,10 +276,10 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
         {
             if (file is null || file.Length is <= 0 or > 10 * 1024 * 1024 ||
                 !await FileSignatures.LooksLikeAsync(file, [".pdf", ".jpg", ".jpeg", ".png"]))
-                return Back(Result.Failure(ErrorCodes.Validation, "Each required file must be a PDF, JPEG or PNG up to 10 MB."), nameof(Settings));
+                return Back(Result.Failure(ErrorCodes.Validation, "Each required file must be a PDF, JPEG or PNG up to 10 MB."), nameof(Verification));
             await using var content = file.OpenReadStream();
             if (await scanner.ScanAsync(content, ct) != ScanVerdict.Clean)
-                return Back(Result.Failure(ErrorCodes.UploadPendingScan, "Evidence could not be cleared by the scanner. Please check the file and try again."), nameof(Settings));
+                return Back(Result.Failure(ErrorCodes.UploadPendingScan, "Evidence could not be cleared by the scanner. Please check the file and try again."), nameof(Verification));
         }
         var saved = new List<(string Kind, string StorageKey)>();
         var rejected = false;
@@ -263,7 +294,7 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
             rejected = result.IsFailure;
             if (result.IsSuccess)
                 foreach (var item in saved) intake.Complete(item.StorageKey);
-            return Back(result, nameof(Settings));
+            return Back(result, nameof(Verification));
         }
         finally
         {

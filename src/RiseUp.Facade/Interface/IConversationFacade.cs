@@ -12,6 +12,7 @@ namespace RiseUp.Facade.Conversations;
 public interface IConversationFacade
 {
     Task<IReadOnlyList<ConversationSummaryDto>> ListAsync(Actor actor, CancellationToken ct = default);
+    Task<Result<ConversationDto>> RecentAsync(Actor actor, int conversationId, int? beforeId, CancellationToken ct = default);
     Task<Result<ConversationDto>> GetAsync(Actor actor, int conversationId, int page = 1, CancellationToken ct = default);
     Task<bool> CanAccessAsync(Actor actor, int conversationId, CancellationToken ct = default);
     Task<Result<MessageDto>> SendAsync(Actor actor, int conversationId, string body, CancellationToken ct = default);

@@ -24,6 +24,12 @@ public sealed class VerificationRepository(RiseUpDbContext db) : Repository<Veri
             .Where(a => a.Status == VerificationStatus.Pending || a.Documents.Any(d => d.Retention == EvidenceRetention.Held) ||
                 Set.OrderByDescending(recent => recent.SubmittedAtUtc).ThenByDescending(recent => recent.Id).Take(200).Select(recent => recent.Id).Contains(a.Id))
             .OrderByDescending(a => a.SubmittedAtUtc).ThenByDescending(a => a.Id).ToListAsync(ct);
+    public Task<VerificationApplication?> GetLatestForAsync(VerificationSubject subject, int subjectId, CancellationToken ct) =>
+        Set.AsNoTracking().Include(a => a.Documents)
+            .Where(a => a.Subject == subject && (subject == VerificationSubject.Startup ? a.StartupId == subjectId : a.InvestorId == subjectId))
+            .OrderByDescending(a => a.Status == VerificationStatus.Pending).ThenByDescending(a => a.SubmittedAtUtc).ThenByDescending(a => a.Id)
+            .FirstOrDefaultAsync(ct);
+
     public Task<VerificationApplication?> GetPendingForAsync(VerificationSubject subject, int subjectId, CancellationToken ct = default) =>
         Set.Include(a => a.Documents).FirstOrDefaultAsync(a => a.Subject == subject && a.Status == VerificationStatus.Pending &&
             (subject == VerificationSubject.Startup ? a.StartupId == subjectId : a.InvestorId == subjectId), ct);

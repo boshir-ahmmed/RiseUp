@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+    <a class="skip-main" href="#main">Skip to main content</a>
     @if (HostEnv.IsDevelopment())
     {
         <div class="devbar">DEVELOPMENT · SQLite demo database · sandbox AI, payments &amp; malware scanner · demo password <code>Demo#2026pass</code></div>
@@ -42,14 +43,14 @@
                 <a href="/faq" class="@On("/faq")">FAQ</a>
             </nav>
             <div class="row h-actions" style="gap:8px;margin-left:auto">
-                <a class="btn btn-ghost btn-sm hide-m" href="/login">Sign in</a>
+                <a class="btn btn-ghost btn-sm" href="/login">Sign in</a>
                 <a class="btn btn-primary btn-sm" href="/register">Join RiseUp</a>
-                <button class="btn btn-outline btn-sm hamb" type="button" data-toggle="#pubnav" aria-label="Open menu" aria-controls="pubnav">☰</button>
+                <button class="btn btn-outline btn-sm hamb" type="button" data-toggle="#pubnav" aria-label="Main menu" aria-expanded="false" aria-controls="pubnav">☰</button>
             </div>
         </div>
     </header>
     }
-    <main id="main">
+    <main id="main" tabindex="-1">
         <partial name="_Flash" />
         @RenderBody()
     </main>

@@ -12,6 +12,7 @@ namespace RiseUp.Facade.Verification;
 
 public interface IVerificationFacade
 {
+    Task<Result<ApplicantStatusDto>> GetApplicantStatusAsync(Actor actor, CancellationToken ct = default);
     Task<Result<int>> SubmitAsync(Actor actor, SubmitVerificationRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<ApplicationDto>> ListQueueAsync(Actor admin, CancellationToken ct = default);
     Task<Result<(Stream Content, string FileName)>> OpenEvidenceAsync(Actor admin, int applicationId, int documentId, CancellationToken ct = default);

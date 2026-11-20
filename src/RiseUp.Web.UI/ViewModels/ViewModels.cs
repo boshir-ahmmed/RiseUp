@@ -66,6 +66,8 @@ public sealed class DashboardViewModel
     public int InvitationsUsedToday { get; set; }
 }
 
+public sealed record DiscoverViewModel(string Query, bool UsedFallback, IReadOnlyList<MatchItem> Matches, IReadOnlySet<int> Shortlisted);
+
 public sealed class PitchStudioViewModel
 {
     public string Tab { get; set; } = "package";
@@ -77,6 +79,8 @@ public sealed class PitchStudioViewModel
     public bool StartupVerified { get; set; }
     public int? ToInvestorId { get; set; }
     public int? EditDraftId { get; set; }
+    public string? SubmittedNote { get; set; }
+    public int[]? SelectedDocuments { get; set; }
     public string IdempotencyKey { get; set; } = "";
 }
 
@@ -90,6 +94,8 @@ public sealed class RequestsViewModel
 public sealed record ConversationsViewModel(IReadOnlyList<ConversationSummaryDto> List, ConversationDto? Selected, IReadOnlyList<TeamAccountDto> Team, IReadOnlyList<MeetingDto>? Meetings = null);
 public sealed record LibraryViewModel(IReadOnlyList<DocumentDto> Documents, IReadOnlyList<(int InvestorId, string Name)> ConnectedInvestors);
 public sealed record MyPostsViewModel(IReadOnlyList<OwnPostDto> Posts, IReadOnlyList<PromotionDto> Promotions, WalletDto? Wallet, int? EditId);
+public sealed record FinanceOrdersViewModel(IReadOnlyList<OrderDto> Orders, string Query, PaymentStatus? Status, bool IsSimulator);
+
 public sealed record WalletViewModel(WalletDto Wallet, IReadOnlyList<PackageDto> Packages, IReadOnlyList<OrderDto> Orders, RiseUp.Entities.Abstractions.PaymentMode Mode);
 
 public sealed class SettingsViewModel

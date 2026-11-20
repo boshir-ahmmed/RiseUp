@@ -1,16 +1,33 @@
-@model MatchList
-@{ ViewData["Title"] = "Discover"; var actor = CurrentActor.From(User); }
-<partial name="_PageHeader" model='(actor.IsInvestor ? "Discover startups" : "Discover investors", (string?)(actor.IsInvestor ? "Verified startups ranked for your preferences." : "Verified investors ranked for your startup."))' />
-<div class="notice @(Model.UsedFallback ? "n-warn" : "n-info")" style="margin-bottom:16px">@(Model.UsedFallback ? "AI Model 2 is unavailable — showing deterministic rule-based matches (industry, stage, funding range, geography)." : "Ranked by AI Model 2 using only information you are allowed to see. Reasons are explanations, not recommendations to invest.")</div>
-@if (Model.Items.Count == 0) { <div class="card"><div class="empty">No matches yet. Complete verification to unlock discovery.</div></div> }
+@model DiscoverViewModel
+@{
+    var investor = CurrentActor.From(User).IsInvestor;
+    var directory = investor ? "/startups" : "/investors";
+    ViewData["Title"] = investor ? "Discover startups" : "Discover investors";
+}
+<header class="page-h"><div><h1>@ViewData["Title"]</h1><p>Explore verified profiles matched to your @(investor ? "investment preferences" : "startup").</p></div>
+    <a class="btn btn-outline" href="@directory">Browse directory</a></header>
+<form method="get" action="/discover" class="match-filter card card-b">
+    <label class="field"><span>Find within your matches</span><input class="input" type="search" name="q" value="@Model.Query" placeholder="Name, industry or location" /></label>
+    <button class="btn btn-dark">Search</button>@if (Model.Query.Length > 0) { <a href="/discover">Clear</a> }
+</form>
+<div class="row between mt16"><h2>@Model.Matches.Count @(Model.Matches.Count == 1 ? "match" : "matches")</h2>
+    <details><summary class="linkbtn">How matching works</summary><p class="small muted">@(Model.UsedFallback ? "Rule-based matching compares" : "The matching service compares") profile information such as industry, stage, funding range and geography.</p></details></div>
+@if (Model.Matches.Count == 0)
+{
+    <div class="card empty"><p>@(Model.Query.Length > 0 ? "No matches for this search." : "There are no suggested profiles for your account yet.")</p>
+    <a href="@(Model.Query.Length > 0 ? "/discover" : directory)">@(Model.Query.Length > 0 ? "Show all matches" : "Explore the directory")</a></div>
+}
 <div class="grid g2">
-    @foreach (var m in Model.Items)
-    {
-        var href = (actor.IsInvestor ? "/startups/" : "/investors/") + m.Id;
-        <article class="card card-b">
-            <div class="row between" style="flex-wrap:nowrap"><div class="row" style="flex-wrap:nowrap"><partial name="_Logo" model="(m.Name, m.ColorIndex, string.Empty)" /><div><h3 class="mb0"><a href="@href" style="color:inherit">@m.Name</a></h3><div class="small muted">@m.Subtitle</div></div></div><span class="badge b-gray">@m.Score% fit</span></div>
-            <div class="mt16"><div class="tiny muted" style="margin-bottom:4px">Why this match · @Model.Engine</div>@foreach (var r in m.Reasons) {<span class="reason">@r</span>}</div>
-            <div class="row mt16"><a class="btn btn-outline btn-sm" href="@href">View details</a>@if (actor.IsFounder) {<a class="btn btn-primary btn-sm" href="/pitches?to=@m.Id">Write a pitch · 1 credit on delivery</a>}</div>
-        </article>
-    }
+@foreach (var m in Model.Matches)
+{
+    var href = $"{directory}/{m.Id}";
+    <article class="card card-b match-card">
+        <div class="row"><partial name="_Logo" model="(m.Name, m.ColorIndex, string.Empty)" /><div><h3 class="mb0"><a href="@href">@m.Name</a></h3><div class="small muted">@m.Subtitle</div></div></div>
+        @if (m.Reasons.Count > 0) { <div><strong class="small">Why you matched</strong><div>@foreach (var r in m.Reasons) { <span class="reason">@r</span> }</div></div> }
+        <div class="row"><a class="btn btn-outline btn-sm" href="@href">View profile</a>
+            @if (investor) { <form method="post" action="/shortlist/@m.Id/toggle" asp-antiforgery="true"><button class="btn btn-ghost btn-sm" aria-pressed="@Model.Shortlisted.Contains(m.Id).ToString().ToLowerInvariant()">@(Model.Shortlisted.Contains(m.Id) ? "Remove from shortlist" : "Shortlist")</button></form> }
+            else { <a class="btn btn-primary btn-sm" href="/pitches?to=@m.Id">Prepare pitch</a> }
+        </div>
+    </article>
+}
 </div>

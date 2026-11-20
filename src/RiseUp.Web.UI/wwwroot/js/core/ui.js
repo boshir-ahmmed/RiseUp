@@ -60,6 +60,16 @@ async function like(id, button) {
   return liked;
 }
 
+document.addEventListener('keydown', event => {
+  const menu = document.querySelector('.side.open');
+  if (event.key === 'Escape' && menu && matchMedia('(max-width:900px)').matches) {
+    menu.classList.remove('open');
+    const toggle = document.querySelector('[aria-controls="side"]');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.focus();
+  }
+});
+
 document.addEventListener('click', async e => {
   const toggle = e.target.closest('[data-toggle]');
   if (toggle) {
