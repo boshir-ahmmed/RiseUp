@@ -59,8 +59,17 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
 
     // ------------------------------------------------------------ discovery
     [Authorize(Policy = Policies.FounderOrInvestor), HttpGet("/discover")]
-    public async Task<IActionResult> Discover(CancellationToken ct) =>
-        View(Actor.IsInvestor ? await matching.RecommendStartupsForInvestorAsync(Actor, 50, ct) : await matching.RecommendInvestorsForStartupAsync(Actor, 50, ct));
+    public async Task<IActionResult> Discover(string? q, [FromServices] RiseUp.Facade.Pitching.IShortlistFacade shortlist, CancellationToken ct)
+    {
+        var matches = Actor.IsInvestor ? await matching.RecommendStartupsForInvestorAsync(Actor, 50, ct)
+            : await matching.RecommendInvestorsForStartupAsync(Actor, 50, ct);
+        var query = q?.Trim() ?? "";
+        var items = matches.Items.Where(m => m.Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || m.Subtitle.Contains(query, StringComparison.OrdinalIgnoreCase)
+            || m.Reasons.Any(r => r.Contains(query, StringComparison.OrdinalIgnoreCase))).ToList();
+        HashSet<int> saved = Actor.IsInvestor ? (await shortlist.ListAsync(Actor, ct)).Select(s => s.StartupId).ToHashSet() : [];
+        return View(new DiscoverViewModel(query, matches.UsedFallback, items, saved));
+    }
 
     // Pitch Studio (package, send, sent, checklist) lives in PitchStudioController.
 

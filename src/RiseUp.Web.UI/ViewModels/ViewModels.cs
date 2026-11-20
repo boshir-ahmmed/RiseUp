@@ -66,6 +66,8 @@ public sealed class DashboardViewModel
     public int InvitationsUsedToday { get; set; }
 }
 
+public sealed record DiscoverViewModel(string Query, bool UsedFallback, IReadOnlyList<MatchItem> Matches, IReadOnlySet<int> Shortlisted);
+
 public sealed class PitchStudioViewModel
 {
     public string Tab { get; set; } = "package";
@@ -77,6 +79,8 @@ public sealed class PitchStudioViewModel
     public bool StartupVerified { get; set; }
     public int? ToInvestorId { get; set; }
     public int? EditDraftId { get; set; }
+    public string? SubmittedNote { get; set; }
+    public int[]? SelectedDocuments { get; set; }
     public string IdempotencyKey { get; set; } = "";
 }
 
