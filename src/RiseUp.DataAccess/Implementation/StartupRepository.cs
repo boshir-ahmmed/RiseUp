@@ -34,10 +34,11 @@ public sealed class StartupRepository(RiseUpDbContext db, RiseUp.Framework.Time.
         query = q.VerifiedOnly
             ? query.Where(s => (s.VerificationStatus == VerificationStatus.Verified && s.VerifiedUntilUtc > clock.UtcNow))
             : query.Where(s => (s.VerificationStatus == VerificationStatus.Verified && s.VerifiedUntilUtc > clock.UtcNow) || s.VerificationStatus == VerificationStatus.Pending);
-        if (!string.IsNullOrWhiteSpace(q.Text))
+        var term = DirectorySearchPattern.Literal(q.Text ?? "");
+        if (term.Length > 0)
         {
-            var t = q.Text.Trim();
-            query = query.Where(s => s.Name.Contains(t) || s.Tagline.Contains(t) || s.Description.Contains(t));
+            var contains = $"%{term}%";
+            query = query.Where(s => EF.Functions.Like(s.Name, contains, "~") || EF.Functions.Like(s.Industry, contains, "~") || EF.Functions.Like(s.Tagline, contains, "~") || EF.Functions.Like(s.Description, contains, "~"));
         }
         if (!string.IsNullOrWhiteSpace(q.Industry)) query = query.Where(s => s.Industry == q.Industry);
         if (q.Stage is not null) query = query.Where(s => s.Stage == q.Stage);
@@ -45,6 +46,7 @@ public sealed class StartupRepository(RiseUpDbContext db, RiseUp.Framework.Time.
         var total = await query.CountAsync(ct);
         query = q.Sort switch
         {
+            "relevance" => query.OrderByDescending(s => EF.Functions.Like(s.Name, term, "~")).ThenByDescending(s => EF.Functions.Like(s.Name, term + "%", "~")).ThenBy(s => s.Name).ThenBy(s => s.Id),
             "views" => query.OrderByDescending(s => s.ViewCount).ThenBy(s => s.Id),
             _ => query.OrderByDescending(s => s.CreatedAtUtc).ThenBy(s => s.Id),
         };

@@ -69,7 +69,7 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
             || m.Subtitle.Contains(query, StringComparison.OrdinalIgnoreCase)
             || m.Reasons.Any(r => r.Contains(query, StringComparison.OrdinalIgnoreCase))).ToList();
         HashSet<int> saved = Actor.IsInvestor ? (await shortlist.ListAsync(Actor, ct)).Select(s => s.StartupId).ToHashSet() : [];
-        return View(new DiscoverViewModel(query, matches.UsedFallback, items, saved));
+        return View(new DiscoverViewModel(query, matches.UsedFallback, items, saved, matches.Items));
     }
 
     // Pitch Studio (package, send, sent, checklist) lives in PitchStudioController.

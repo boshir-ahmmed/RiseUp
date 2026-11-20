@@ -1,3 +1,4 @@
+import '../core/profile-search.js';
 // Shell + feed behaviours: Me menu, muted autoplay for feed videos, sound toggle, saving posts, spotlight teasers.
 import { post } from '../core/http.js';
 import { toast } from '../core/ui.js';

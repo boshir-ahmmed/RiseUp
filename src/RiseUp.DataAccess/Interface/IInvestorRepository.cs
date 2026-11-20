@@ -19,4 +19,5 @@ public interface IInvestorRepository : IRepository<InvestorProfile>
     Task<IReadOnlyList<InvestorProfile>> GetManyAsync(IReadOnlyCollection<int> ids, CancellationToken ct = default);
     Task<InvestorProfile?> GetWithClaimsAsync(int id, CancellationToken ct = default);
     Task<IReadOnlyList<InvestorProfile>> ListActiveVerifiedAsync(int take, CancellationToken ct = default);
+    Task<IReadOnlyList<InvestorProfile>> SearchActiveVerifiedAsync(string? query, int take, CancellationToken ct);
 }

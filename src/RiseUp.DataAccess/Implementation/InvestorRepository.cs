@@ -23,7 +23,20 @@ public sealed class InvestorRepository(RiseUpDbContext db, RiseUp.Framework.Time
         Set.FirstOrDefaultAsync(i => i.AccountId == accountId && !i.IsDeleted, ct);
     public Task<InvestorProfile?> GetWithClaimsAsync(int id, CancellationToken ct = default) =>
         Set.Include(i => i.Claims).FirstOrDefaultAsync(i => i.Id == id, ct);
-    public async Task<IReadOnlyList<InvestorProfile>> ListActiveVerifiedAsync(int take, CancellationToken ct = default) =>
-        await Set.AsNoTracking().Where(i => (i.VerificationStatus == VerificationStatus.Verified && i.VerifiedUntilUtc > clock.UtcNow) && !i.IsSuspended && !i.IsDeleted)
-            .OrderBy(i => i.Id).Take(take).ToListAsync(ct);
+    public Task<IReadOnlyList<InvestorProfile>> ListActiveVerifiedAsync(int take, CancellationToken ct = default) =>
+        SearchActiveVerifiedAsync(null, take, ct);
+
+    public async Task<IReadOnlyList<InvestorProfile>> SearchActiveVerifiedAsync(string? query, int take, CancellationToken ct)
+    {
+        var visible = Set.AsNoTracking().Where(i => i.VerificationStatus == VerificationStatus.Verified
+            && i.VerifiedUntilUtc > clock.UtcNow && !i.IsSuspended && !i.IsDeleted);
+        if (string.IsNullOrWhiteSpace(query))
+            return await visible.OrderBy(i => i.Id).Take(take).ToListAsync(ct);
+        var term = DirectorySearchPattern.Literal(query);
+        var contains = $"%{term}%";
+        return await visible.Where(i => EF.Functions.Like(i.DisplayName, contains, "~") || EF.Functions.Like(i.Affiliation, contains, "~"))
+            .OrderByDescending(i => EF.Functions.Like(i.DisplayName, term, "~"))
+            .ThenByDescending(i => EF.Functions.Like(i.DisplayName, term + "%", "~"))
+            .ThenBy(i => i.DisplayName).ThenBy(i => i.Id).Take(take).ToListAsync(ct);
+    }
 }

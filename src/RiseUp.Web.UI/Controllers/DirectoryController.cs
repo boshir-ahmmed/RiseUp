@@ -40,7 +40,38 @@ public sealed class DirectoryController(IStartupFacade startups, IInvestorFacade
     }
 
     [HttpGet("/" + UrlRewrite.Investors)]
-    public async Task<IActionResult> Investors(CancellationToken ct) => View(await investors.ListAsync(Actor, ct));
+    public async Task<IActionResult> Investors(string? q, CancellationToken ct) => View(await investors.SearchAsync(Actor, q, 200, ct));
+
+    [HttpGet("/search")]
+    public async Task<IActionResult> Search(string? q, CancellationToken ct) =>
+        View(new ProfileSearchViewModel(q?.Trim() ?? "", await FindProfiles(q, "all", null, null, 20, ct)));
+
+    [HttpGet("/search/suggestions")]
+    public async Task<IActionResult> Suggestions(string? q, string scope, string? industry, FundingStage? stage, CancellationToken ct)
+    {
+        if (scope is not ("all" or "startups" or "investors")) return BadRequest();
+        var results = await FindProfiles(q, scope, industry, stage, scope == "all" ? 4 : 8, ct);
+        return Ok(results);
+    }
+
+    private async Task<IReadOnlyList<ProfileSuggestion>> FindProfiles(string? q, string scope, string? industry, FundingStage? stage, int limit, CancellationToken ct)
+    {
+        var query = q?.Trim();
+        if (string.IsNullOrEmpty(query) || query.Length > 100) return [];
+        var results = new List<ProfileSuggestion>();
+        if (scope != "investors")
+        {
+            var matches = await startups.SearchAsync(Actor, new(query, industry, stage, null, "relevance", PageSize: limit), ct);
+            results.AddRange(matches.Items.Select(s => new ProfileSuggestion(s.Id, "startups", s.Name, s.Industry, s.LogoUrl, null)));
+        }
+        if (scope != "startups")
+        {
+            var matches = await investors.SearchAsync(Actor, query, limit, ct);
+            results.AddRange(matches.Select(i => new ProfileSuggestion(i.Id, "investors", i.Name, i.Affiliation, i.PhotoUrl, i.ReceivePitches)));
+        }
+        return results.OrderByDescending(r => r.Name.Equals(query, StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(r => r.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ThenBy(r => r.Name).ToList();
+    }
 
     [HttpGet("/" + UrlRewrite.InvestorDetail)]
     public async Task<IActionResult> Investor(int id, CancellationToken ct)

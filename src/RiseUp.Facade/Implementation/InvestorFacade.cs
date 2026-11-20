@@ -17,9 +17,12 @@ public sealed class InvestorFacade(IInvestorRepository investors, IStartupReposi
         return (await startups.GetByIdAsync(actor.StartupId.Value, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true;
     }
 
-    public async Task<IReadOnlyList<InvestorCardDto>> ListAsync(Actor actor, CancellationToken ct = default)
+    public Task<IReadOnlyList<InvestorCardDto>> ListAsync(Actor actor, CancellationToken ct = default) =>
+        SearchAsync(actor, null, 200, ct);
+
+    public async Task<IReadOnlyList<InvestorCardDto>> SearchAsync(Actor actor, string? query, int take, CancellationToken ct)
     {
-        var list = await investors.ListActiveVerifiedAsync(200, ct);
+        var list = await investors.SearchActiveVerifiedAsync(query, Math.Clamp(take, 1, 200), ct);
         var verifiedStartup = actor.IsFounder && actor.StartupId is int sid && (await startups.GetByIdAsync(sid, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true;
         var photos = await profiles.PhotoIdsForAccountsAsync(list.Select(i => i.AccountId).ToList(), ct);
         return list.Select(i => ToCard(i, verifiedStartup || (actor.IsInvestor && actor.InvestorId == i.Id)) with { PhotoUrl = photos.TryGetValue(i.AccountId, out var ph) ? UrlRewrite.Media(ph) : null }).ToList();

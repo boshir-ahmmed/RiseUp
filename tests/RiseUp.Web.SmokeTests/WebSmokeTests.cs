@@ -23,8 +23,25 @@ public class WebSmokeTests(RiseUpFactory factory) : IClassFixture<RiseUpFactory>
 {
     private HttpClient Client(bool follow = false) => factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = follow, BaseAddress = new Uri("https://localhost") });
 
+    [Fact]
+    public async Task SuggestionsMatchFirmAndNameWithoutContactOrFinancialFields()
+    {
+        var client = Client();
+        using var json = System.Text.Json.JsonDocument.Parse(await client.GetStringAsync("/search/suggestions?scope=investors&q=pAdMa"));
+        var investor = Assert.Single(json.RootElement.EnumerateArray());
+        Assert.Equal("Sadia Haque", investor.GetProperty("name").GetString());
+        Assert.True(investor.GetProperty("accepting").GetBoolean());
+        Assert.Equal(new[] { "accepting", "detail", "href", "id", "kind", "name", "photo" },
+            investor.EnumerateObject().Select(p => p.Name).Order().ToArray());
+
+        using var startups = System.Text.Json.JsonDocument.Parse(await client.GetStringAsync("/search/suggestions?scope=startups&q=nOdI"));
+        Assert.Contains(startups.RootElement.EnumerateArray(), s => s.GetProperty("name").GetString() == "Nodi Freight");
+        Assert.Equal("[]", await client.GetStringAsync("/search/suggestions?scope=all&q=%25"));
+        Assert.Equal("[]", await client.GetStringAsync("/search/suggestions?scope=investors&q="));
+    }
+
     [Theory]
-    [InlineData("/"), InlineData("/startups"), InlineData("/startups/1"), InlineData("/investors"), InlineData("/investors/1"), InlineData("/posts/1"),
+    [InlineData("/"), InlineData("/startups"), InlineData("/search?q=Padma"), InlineData("/startups/1"), InlineData("/investors"), InlineData("/investors/1"), InlineData("/posts/1"),
      InlineData("/about"), InlineData("/how-it-works"), InlineData("/faq"), InlineData("/pricing"), InlineData("/legal/terms"), InlineData("/login"),
      InlineData("/register"), InlineData("/register/founder"), InlineData("/health"), InlineData("/reels")]
     public async Task PublicPages_Return200(string url) => Assert.Equal(HttpStatusCode.OK, (await Client().GetAsync(url)).StatusCode);

@@ -2,6 +2,11 @@
 @{ ViewData["Title"] = "Investors"; }
 <section class="section" style="padding-top:40px"><div class="container">
     <h1 style="font-size:34px">Investors</h1><p class="muted">Investment ranges are visible to verified startups only; contact details appear only after connection.</p>
+    <form method="get" action="/investors" class="match-filter card card-b">
+        <div class="field profile-lookup" data-profiles="investors"><label for="investor-query">Find investors</label><input id="investor-query" class="input" type="search" name="q" value="@Context.Request.Query["q"]" maxlength="100" placeholder="Investor name or firm" autocomplete="off" /></div>
+        <button class="btn btn-dark">Search</button>
+    </form>
+    @if (Model.Count == 0) { <p class="empty">No investors found. Try a different name or firm.</p> }
     <div class="grid g3 mt16">
         @foreach (var i in Model)
         {

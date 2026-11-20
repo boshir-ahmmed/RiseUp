@@ -2,12 +2,13 @@
 @{
     var investor = CurrentActor.From(User).IsInvestor;
     var directory = investor ? "/startups" : "/investors";
+    var localProfiles = Model.AllMatches.Select(m => new { m.Id, m.Name, detail = m.Subtitle, photo = m.PhotoUrl, kind = investor ? "startups" : "investors", href = $"{directory}/{m.Id}", m.Reasons });
     ViewData["Title"] = investor ? "Discover startups" : "Discover investors";
 }
 <header class="page-h"><div><h1>@ViewData["Title"]</h1><p>Explore verified profiles matched to your @(investor ? "investment preferences" : "startup").</p></div>
     <a class="btn btn-outline" href="@directory">Browse directory</a></header>
 <form method="get" action="/discover" class="match-filter card card-b">
-    <label class="field"><span>Find within your matches</span><input class="input" type="search" name="q" value="@Model.Query" placeholder="Name, industry or location" /></label>
+    <div class="field profile-lookup" data-profiles="matches" data-matches="@System.Text.Json.JsonSerializer.Serialize(localProfiles, System.Text.Json.JsonSerializerOptions.Web)"><label for="match-query">Find within your matches</label><input id="match-query" class="input" type="search" name="q" value="@Model.Query" placeholder="Name, industry or location" /></div>
     <button class="btn btn-dark">Search</button>@if (Model.Query.Length > 0) { <a href="/discover">Clear</a> }
 </form>
 <div class="row between mt16"><h2>@Model.Matches.Count @(Model.Matches.Count == 1 ? "match" : "matches")</h2>
@@ -22,7 +23,7 @@
 {
     var href = $"{directory}/{m.Id}";
     <article class="card card-b match-card">
-        <div class="row"><partial name="_Logo" model="(m.Name, m.ColorIndex, string.Empty)" /><div><h3 class="mb0"><a href="@href">@m.Name</a></h3><div class="small muted">@m.Subtitle</div></div></div>
+        <div class="row"><partial name="_Avatar" model="(m.Name, m.PhotoUrl, m.ColorIndex, 44)" /><div><h3 class="mb0"><a href="@href">@m.Name</a></h3><div class="small muted">@m.Subtitle</div></div></div>
         @if (m.Reasons.Count > 0) { <div><strong class="small">Why you matched</strong><div>@foreach (var r in m.Reasons) { <span class="reason">@r</span> }</div></div> }
         <div class="row"><a class="btn btn-outline btn-sm" href="@href">View profile</a>
             @if (investor) { <form method="post" action="/shortlist/@m.Id/toggle" asp-antiforgery="true"><button class="btn btn-ghost btn-sm" aria-pressed="@Model.Shortlisted.Contains(m.Id).ToString().ToLowerInvariant()">@(Model.Shortlisted.Contains(m.Id) ? "Remove from shortlist" : "Shortlist")</button></form> }

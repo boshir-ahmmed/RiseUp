@@ -2,7 +2,7 @@
 @{ var s = Model.Shell; }
 <header class="tb" role="banner"><div class="tb-in">
     <a class="brand" href="/" aria-label="RiseUp home feed"><span class="brand-mark"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 12l4-4 2.5 2.5L13 5" stroke="#36D3C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.5 5H13v3.5" stroke="#36D3C4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hide-s">RiseUp</span></a>
-    <form class="tb-search" method="get" action="/startups" role="search"><partial name="_Icon" model='"search"' /><label class="sr" for="tbq">Search startups</label><input id="tbq" name="Text" placeholder="Search startups, industries…" autocomplete="off" /></form>
+    <form class="tb-search profile-lookup" data-profiles="all" method="get" action="/search" role="search"><partial name="_Icon" model='"search"' /><label class="sr" for="tbq">Search startups and investors</label><input id="tbq" name="q" maxlength="100" placeholder="Search startups and investors…" autocomplete="off" /></form>
     <nav class="tb-nav" aria-label="Primary">
         @foreach (var i in Model.Top)
         {

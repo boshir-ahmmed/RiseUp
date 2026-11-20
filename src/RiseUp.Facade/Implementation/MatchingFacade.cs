@@ -13,7 +13,7 @@ namespace RiseUp.Facade.Discovery;
 /// AI output is validated against the permission-filtered candidate set and cannot authorise anything (FR-060).
 /// </summary>
 public sealed class MatchingFacade(IStartupRepository startups, IInvestorRepository investors, IConnectionRepository connections,
-    IAiMatchingService ai, ILogger<MatchingFacade> logger, RiseUp.Framework.Time.IClock clock) : IMatchingFacade
+    IProfileRepository profiles, IAiMatchingService ai, ILogger<MatchingFacade> logger, RiseUp.Framework.Time.IClock clock) : IMatchingFacade
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(8);
 
@@ -42,7 +42,7 @@ public sealed class MatchingFacade(IStartupRepository startups, IInvestorReposit
         var (scores, engine, fallback) = await RankAsync(ToProfile(me, includeRange: true), pool.Select(ToProfile).ToList(), ct);
         var byId = pool.ToDictionary(s => s.Id);
         return new MatchList(engine, fallback, scores.Where(s => byId.ContainsKey(s.CandidateId)).Take(take)
-            .Select(s => { var x = byId[s.CandidateId]; return new MatchItem(x.Id, x.Name, $"{x.Industry} · {StageLabel(x.Stage)}", s.Score, s.Reasons, x.ColorIndex); }).ToList());
+            .Select(s => { var x = byId[s.CandidateId]; return new MatchItem(x.Id, x.Name, $"{x.Industry} · {StageLabel(x.Stage)}", s.Score, s.Reasons, x.ColorIndex, x.LogoMediaId is int logo ? RiseUp.Framework.Constants.UrlRewrite.Media(logo) : null); }).ToList());
     }
 
     public async Task<MatchList> RecommendInvestorsForStartupAsync(Actor actor, int take, CancellationToken ct = default)
@@ -56,8 +56,14 @@ public sealed class MatchingFacade(IStartupRepository startups, IInvestorReposit
             if (await connections.GetBlockAsync(me.Id, i.Id, ct) is null) pool.Add(i);
         var (scores, engine, fallback) = await RankAsync(ToProfile(me), pool.Select(i => ToProfile(i, includeRange)).ToList(), ct);
         var byId = pool.ToDictionary(i => i.Id);
-        return new MatchList(engine, fallback, scores.Where(s => byId.ContainsKey(s.CandidateId)).Take(take)
-            .Select(s => { var x = byId[s.CandidateId]; return new MatchItem(x.Id, x.DisplayName, x.Affiliation, s.Score, s.Reasons, x.ColorIndex); }).ToList());
+        var ranked = scores.Where(s => byId.ContainsKey(s.CandidateId)).Take(take).ToList();
+        var photos = await profiles.PhotoIdsForAccountsAsync(ranked.Select(s => byId[s.CandidateId].AccountId).ToList(), ct);
+        return new MatchList(engine, fallback, ranked.Select(s =>
+        {
+            var i = byId[s.CandidateId];
+            return new MatchItem(i.Id, i.DisplayName, i.Affiliation, s.Score, s.Reasons, i.ColorIndex,
+                photos.TryGetValue(i.AccountId, out var photo) ? RiseUp.Framework.Constants.UrlRewrite.Media(photo) : null);
+        }).ToList());
     }
 
     private async Task<(IReadOnlyList<MatchScore> Scores, string Engine, bool Fallback)> RankAsync(MatchProfile subject, IReadOnlyList<MatchProfile> candidates, CancellationToken ct)
