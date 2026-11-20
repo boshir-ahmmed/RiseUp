@@ -9,6 +9,7 @@ namespace RiseUp.Facade.Investors;
 public interface IInvestorFacade
 {
     Task<IReadOnlyList<InvestorCardDto>> ListAsync(Actor actor, CancellationToken ct = default);
+    Task<IReadOnlyList<InvestorCardDto>> SearchAsync(Actor actor, string? query, int take, CancellationToken ct);
     Task<Result<InvestorDetailDto>> GetDetailAsync(Actor actor, int id, CancellationToken ct = default);
     Task<Result> SetReceivePitchesAsync(Actor actor, bool receive, CancellationToken ct = default);
 }

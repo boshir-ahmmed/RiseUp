@@ -4,7 +4,7 @@
     <div class="sec-head"><h1 style="font-size:34px">Browse startups</h1><p class="muted">Search public profiles. Unverified startups may show a basic profile but cannot pitch or receive invitations.</p></div>
     <form class="card card-b" method="get" action="/startups" role="search">
         <div class="grid g-search4">
-            <label class="field"><span>Search</span><input class="input" name="Text" value="@q.Text" placeholder="Name, tagline or description" maxlength="100" /></label>
+            <div class="field profile-lookup" data-profiles="startups"><label for="directory-query">Search</label><input id="directory-query" class="input" name="Text" value="@q.Text" placeholder="Name, tagline or description" maxlength="100" autocomplete="off" /></div>
             <label class="field"><span>Industry</span><select class="input" name="Industry"><option value="">All</option>@foreach (var i in new[] { "Fintech", "Logistics", "Healthtech", "Edtech", "Agritech", "Climate & Energy", "E-commerce", "Manufacturing", "SaaS" }) {<option selected="@(q.Industry == i)">@i</option>}</select></label>
             <label class="field"><span>Stage</span><select class="input" name="Stage"><option value="">All</option>@foreach (var s in Enum.GetValues<FundingStage>()) {<option value="@s" selected="@(q.Stage == s)">@Ui.Stage(s)</option>}</select></label>
             <label class="field"><span>Sort by</span><select class="input" name="Sort"><option value="newest" selected="@(q.Sort == "newest")">Newest</option><option value="views" selected="@(q.Sort == "views")">Most viewed</option></select></label>

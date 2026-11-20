@@ -1,0 +1,16 @@
+@model ProfileSearchViewModel
+@{ ViewData["Title"] = "Search profiles"; }
+<section class="section"><div class="container">
+    <h1>Search profiles</h1>
+    <form method="get" action="/search" class="card card-b match-filter">
+        <div class="field profile-lookup" data-profiles="all"><label for="profile-query">Startup, investor or firm</label><input id="profile-query" class="input" type="search" name="q" value="@Model.Query" maxlength="100" autocomplete="off" /></div>
+        <button class="btn btn-primary">Search</button>
+    </form>
+    @if (Model.Query.Length > 0 && Model.Results.Count == 0) { <p class="empty">No matching profiles. Try another name.</p> }
+    <div class="grid g2 mt16">
+        @foreach (var r in Model.Results)
+        {
+            <a class="card card-b row" href="@r.Href"><partial name="_Avatar" model="(r.Name, r.Photo, r.Id % 8, 44)" /><span><strong>@r.Name</strong><br /><span class="small muted">@(r.Kind == "investors" ? "Investor" : "Startup") · @r.Detail</span></span></a>
+        }
+    </div>
+</div></section>

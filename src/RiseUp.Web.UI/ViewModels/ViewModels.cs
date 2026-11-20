@@ -50,6 +50,12 @@ public sealed class RegisterViewModel
 
 public sealed record FeedViewModel(IReadOnlyList<FeedItemDto> Posts, IReadOnlyList<StartupCardDto> Stories, IReadOnlyList<InvestorCardDto> Investors,
     MatchList? Recommended, string Tab, PostCategory? Category, int Take, IReadOnlyList<SpotlightDto> Spotlight, int? MyStartupId = null, bool CanPost = false);
+public sealed record ProfileSuggestion(int Id, string Kind, string Name, string Detail, string? Photo, bool? Accepting)
+{
+    public string Href => $"/{Kind}/{Id}";
+}
+public sealed record ProfileSearchViewModel(string Query, IReadOnlyList<ProfileSuggestion> Results);
+
 public sealed record StartupSearchViewModel(SearchStartupsRequest Query, PagedResult<StartupCardDto> Result);
 public sealed record StartupDetailViewModel(StartupDetailDto Startup, IReadOnlyList<FeedItemDto> Posts, SpotlightDto? Spotlight = null);
 
@@ -66,7 +72,7 @@ public sealed class DashboardViewModel
     public int InvitationsUsedToday { get; set; }
 }
 
-public sealed record DiscoverViewModel(string Query, bool UsedFallback, IReadOnlyList<MatchItem> Matches, IReadOnlySet<int> Shortlisted);
+public sealed record DiscoverViewModel(string Query, bool UsedFallback, IReadOnlyList<MatchItem> Matches, IReadOnlySet<int> Shortlisted, IReadOnlyList<MatchItem> AllMatches);
 
 public sealed class PitchStudioViewModel
 {

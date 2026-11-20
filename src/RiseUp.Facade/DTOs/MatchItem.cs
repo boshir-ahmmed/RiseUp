@@ -6,4 +6,4 @@ using RiseUp.Facade.Common;
 
 namespace RiseUp.Facade.Discovery;
 
-public sealed record MatchItem(int Id, string Name, string Subtitle, int Score, IReadOnlyList<string> Reasons, int ColorIndex);
+public sealed record MatchItem(int Id, string Name, string Subtitle, int Score, IReadOnlyList<string> Reasons, int ColorIndex, string? PhotoUrl = null);

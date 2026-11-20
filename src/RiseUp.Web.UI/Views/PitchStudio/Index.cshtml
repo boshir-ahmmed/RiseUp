@@ -112,7 +112,16 @@ else if (Model.Tab == "send")
                 @if (!Model.StartupVerified) { <div class="notice n-warn">You can save a draft now. <a href="/verification">View verification</a> to check your sending eligibility.</div> }
                 else if (p.Completeness < 60) { <div class="notice n-warn">Your package is @p.Completeness% complete. You can send now or <a href="/pitches">continue editing your package</a>.</div> }
                 <input type="hidden" name="idempotencyKey" value="@Model.IdempotencyKey" /><input type="hidden" name="draftId" value="@draft?.Id" /><input type="hidden" name="documentsChosen" value="true" />
-                <label class="field"><span>To (verified investor)</span><select class="input" name="investorId" required><option value="">Choose an investor…</option>@foreach (var i in Model.Investors) {<option value="@i.Id" selected="@((Model.ToInvestorId ?? draft?.InvestorId) == i.Id)">@i.Name — @i.Affiliation@(i.ReceivePitches ? "" : " (not accepting pitches)")</option>}</select></label>
+                <div class="field profile-lookup" data-profiles="investors" data-recipient>
+                    <label for="pitch-investor">To (verified investor)</label>
+                    <select id="pitch-investor" class="input" name="investorId" required>
+                        <option value="">Choose an investor…</option>
+                        @foreach (var i in Model.Investors)
+                        {
+                            <option value="@i.Id" data-name="@i.Name" data-detail="@i.Affiliation" data-photo="@i.PhotoUrl" data-accepting="@(i.ReceivePitches ? "true" : "false")" selected="@((Model.ToInvestorId ?? draft?.InvestorId) == i.Id)">@i.Name — @i.Affiliation@(i.ReceivePitches ? "" : " (not accepting pitches)")</option>
+                        }
+                    </select>
+                </div>
                 <label class="field"><span>Your note to the investor</span><textarea class="input" name="text" rows="6" maxlength="3000" data-count="3000" required placeholder="Why this investor, and what you'd like from the conversation. Your videos, deck and ask are attached automatically.">@(Model.SubmittedNote ?? draft?.Text)</textarea></label>
                 <div><span class="small" style="font-weight:600">Attach pitch documents</span>
                     @foreach (var d in p.Documents) { <label class="check mt8"><input type="checkbox" name="documentIds" value="@d.Id" checked="@(d.Scan == ScanStatus.Clean && (Model.SelectedDocuments?.Contains(d.Id) ?? true))" disabled="@(d.Scan != ScanStatus.Clean)" /> <span>@d.FileName <span class="tiny muted">· @d.Label@(d.Scan != ScanStatus.Clean ? " · still scanning" : "")</span></span></label> }

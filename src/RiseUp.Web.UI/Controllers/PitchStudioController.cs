@@ -32,10 +32,18 @@ public sealed class PitchStudioController(IPitchPackageFacade package, IPitchRoo
         var p = await package.GetOwnAsync(Actor, ct);
         if (p.IsFailure) { Flash(p); return Redirect("/dashboard"); }
         var detail = (await startups.GetDetailAsync(Actor, Actor.StartupId!.Value, Actor.ViewerKey, ct)).Value;
+        var drafts = await requests.ListDraftsAsync(Actor, ct);
+        var recipients = await investors.ListAsync(Actor, ct);
+        var selected = to ?? drafts.FirstOrDefault(d => d.Id == draft)?.InvestorId;
+        if (selected is int id && !recipients.Any(i => i.Id == id))
+        {
+            var recipient = await investors.GetDetailAsync(Actor, id, ct);
+            if (recipient.IsSuccess) recipients = [.. recipients, recipient.Value!.Card];
+        }
         return View("Index", new PitchStudioViewModel
         {
             Tab = tab is "send" or "sent" or "guide" ? tab : to is not null || draft is not null ? "send" : "package",
-            Package = p.Value!, Investors = await investors.ListAsync(Actor, ct), Drafts = await requests.ListDraftsAsync(Actor, ct),
+            Package = p.Value!, Investors = recipients, Drafts = drafts,
             Sent = await rooms.ListSentAsync(Actor, ct), Wallet = (await wallets.GetAsync(Actor, ct)).Value, StartupVerified = detail?.Status == VerificationStatus.Verified,
             ToInvestorId = to, EditDraftId = draft, SubmittedNote = note, SelectedDocuments = selectedDocuments, IdempotencyKey = sendKey ?? Guid.NewGuid().ToString("N"),
         });
