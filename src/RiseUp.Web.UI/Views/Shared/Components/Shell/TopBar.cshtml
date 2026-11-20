@@ -7,20 +7,20 @@
         @foreach (var i in Model.Top)
         {
             var on = Model.IsOn(i.Href);
-            <a href="@i.Href" class="@(on ? "on" : "")" aria-current="@(on ? "page" : null)"><partial name="_Icon" model="i.Icon" /><span class="lbl">@i.Label</span>@if (i.Badge > 0) {<span class="dot">@(i.Badge > 9 ? "9+" : i.Badge.ToString())</span>}</a>
+            <a href="@i.Href" class="@(on ? "on" : "")" aria-label="@(i.Badge > 0 ? $"{i.Label}, {i.Badge} new" : i.Label)" aria-current="@(on ? "page" : null)"><partial name="_Icon" model="i.Icon" /><span class="lbl">@i.Label</span>@if (i.Badge > 0) {<span class="dot">@(i.Badge > 9 ? "9+" : i.Badge.ToString())</span>}</a>
         }
     </nav>
     <div class="tb-me">
-        <button type="button" class="tb-mebtn" data-toggle="#memenu" aria-haspopup="true" aria-controls="memenu"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 26)" /><span class="lbl">Me ▾</span></button>
-        <div class="menu" id="memenu" role="menu">
+        <button type="button" class="tb-mebtn" data-toggle="#memenu" aria-label="Account menu" aria-expanded="false" aria-controls="memenu"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 26)" /><span class="lbl">Me ▾</span></button>
+        <div class="menu" id="memenu">
             <div class="menu-h"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 48)" /><div style="min-width:0"><strong>@s.Name</strong><div class="tiny muted ell">@s.Headline</div></div></div>
             <a class="btn btn-outline btn-sm" style="width:100%;margin:4px 0 8px" href="/me">View profile</a>
-            <a role="menuitem" href="/me/edit">✏️ Edit profile &amp; photo</a>
-            @if (Model.Actor.IsFounder || Model.Actor.IsInvestor) { <a role="menuitem" href="/dashboard">📊 Dashboard</a> }
-            @if (Model.Actor.IsFounder) { <a role="menuitem" href="/settings">🏢 Startup profile</a><a role="menuitem" href="/wallet">🪙 Wallet</a> }
-            @if (Model.Actor.IsInvestor) { <a role="menuitem" href="/shortlist">★ Shortlist</a><a role="menuitem" href="/settings">⚙️ Preferences</a> }
-            @if (Model.Actor.IsAnyAdmin) { <a role="menuitem" href="/admin">🛡 Admin console</a> }
-            <form method="post" action="/logout" asp-antiforgery="true"><button role="menuitem">↩ Sign out</button></form>
+            <a class="account-item" href="/me/edit">✏️ Edit profile &amp; photo</a>
+            @if (Model.Actor.IsFounder || Model.Actor.IsInvestor) { <a class="account-item" href="/dashboard">📊 Dashboard</a> }
+            @if (Model.Actor.IsFounder) { <a class="account-item" href="/settings">🏢 Startup profile</a><a class="account-item" href="/wallet">🪙 Wallet</a> }
+            @if (Model.Actor.IsInvestor) { <a class="account-item" href="/shortlist">★ Shortlist</a><a class="account-item" href="/settings">⚙️ Preferences</a> }
+            @if (Model.Actor.IsAnyAdmin) { <a class="account-item" href="/admin">🛡 Admin console</a> }
+            <form method="post" action="/logout" asp-antiforgery="true"><button class="account-item">↩ Sign out</button></form>
         </div>
     </div>
 </div></header>

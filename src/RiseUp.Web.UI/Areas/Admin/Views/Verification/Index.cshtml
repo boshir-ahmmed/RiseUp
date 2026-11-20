@@ -35,8 +35,8 @@
             </details>
             @if (a.Status == VerificationStatus.Pending)
             {
-                <form method="post" action="/admin/verification/@a.Id/decide" class="row mt16" style="flex-wrap:nowrap" asp-antiforgery="true">
-                    <label class="sr" for="note-@a.Id">Decision note</label><input class="input" id="note-@a.Id" name="note" required minlength="5" placeholder="Decision note / rejection reason (required)" />
+                <form method="post" action="/admin/verification/@a.Id/decide" class="review-actions mt16" asp-antiforgery="true">
+                    <label class="field"><span>Decision note</span><input class="input" id="note-@a.Id" name="note" required minlength="5" placeholder="Explain your decision" /></label>
                     <label class="field"><span>Earliest document expiry (if dated)</span><input class="input" type="date" name="earliestEvidenceExpiry" /></label>
                     <button class="btn btn-primary btn-sm" name="approve" value="true">Approve</button><button class="btn btn-danger btn-sm" name="approve" value="false">Reject</button>
                 </form>
@@ -52,7 +52,7 @@
             <div class="tiny muted mt8">Current owner consent @(t.OwnerConsent ? "✓" : "✗") · Incoming owner consent @(t.IncomingConsent ? "✓" : "✗")</div>
             @if (HostEnv.IsDevelopment() && t.Status is (TransferStatus.AwaitingIncomingConsent or TransferStatus.AwaitingReview))
             {
-                <form method="post" action="/admin/transfers/@t.Id/decide" class="row mt8" style="flex-wrap:nowrap" asp-antiforgery="true"><input class="input" name="note" required minlength="5" placeholder="Decision note" /><button class="btn btn-primary btn-sm" name="approve" value="true" disabled="@(!t.IncomingConsent)">Approve</button><button class="btn btn-danger btn-sm" name="approve" value="false">Reject</button></form>
+                <form method="post" action="/admin/transfers/@t.Id/decide" class="review-actions mt8" asp-antiforgery="true"><input class="input" name="note" aria-label="Decision note" required minlength="5" placeholder="Decision note" /><button class="btn btn-primary btn-sm" name="approve" value="true" disabled="@(!t.IncomingConsent)">Approve</button><button class="btn btn-danger btn-sm" name="approve" value="false">Reject</button></form>
             }
         </div>
     }

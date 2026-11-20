@@ -3,28 +3,36 @@
     ViewData["Title"] = "Dashboard";
     var actor = CurrentActor.From(User);
     var pending = Model.Requests.Where(r => r.Status == RequestStatus.Pending).ToList();
+    var status = Model.Startup?.Status ?? Model.Investor?.Status ?? VerificationStatus.Unverified;
+    var pitchCount = pending.Count(r => r.Type == RequestType.Pitch);
+    var (action, destination, hint) = status switch
+    {
+        VerificationStatus.Pending => ("View verification", "/settings#verification", "Your verification is in review."),
+        VerificationStatus.Verified when actor.IsFounder => ("Open Pitch Studio", "/pitches", "Prepare your pitch and choose the investors you want to reach."),
+        VerificationStatus.Verified when pitchCount > 0 => ("Review pitches", "/requests", $"{pitchCount} pending {(pitchCount == 1 ? "pitch needs" : "pitches need")} your attention."),
+        VerificationStatus.Verified => ("Discover startups", "/discover", "Explore startups that match your investment preferences."),
+        _ => ("Review verification requirements", "/settings#verification", "Complete verification to connect with other members.")
+    };
 }
-<div class="page-h"><div><h1>Good to see you, @actor.Name.Split(' ')[0]</h1><p>@(Model.Startup?.Name ?? Model.Investor?.Card.Affiliation)</p></div>
-    <div class="row">@if (actor.IsFounder) {<a class="btn btn-primary" href="/pitches">Write a pitch</a>} else {<a class="btn btn-primary" href="/discover">Discover startups</a>}</div></div>
-@if (actor.IsFounder && Model.Startup is { } s && s.Status != VerificationStatus.Verified)
-{
-    <div class="notice n-warn" style="margin-bottom:18px"><div><strong>Verification @s.Status.ToString().ToLowerInvariant().</strong> Your basic profile is public, but pitching, posting, promotions and invitations unlock after manual review. <a href="/settings#verification">Submit documents</a></div></div>
-}
+<header class="workspace-intro">
+    <div><p class="workspace-name">@(Model.Startup?.Name ?? Model.Investor?.Card.Affiliation)</p>
+    <h1>Good to see you, @actor.Name.Split(' ')[0]</h1><p>@hint</p></div>
+    <a class="btn workspace-action" href="@destination">@action</a>
+</header>
 <div class="grid g4">
     @if (actor.IsFounder)
     {
-        <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge @Ui.StatusClass(Model.Startup!.Status.ToString())">@Model.Startup.Status</span></div><div class="tiny muted mt8">@(Model.Startup.VerifiedUntilUtc is DateTime u ? "Valid until " + Ui.Dhaka(u) : "Awaiting manual review")</div></div>
+        <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge @Ui.StatusClass(Model.Startup!.Status.ToString())">@Model.Startup.Status</span></div><div class="tiny muted mt8">@(Model.Startup.VerifiedUntilUtc is DateTime u ? "Valid until " + Ui.Dhaka(u) : Model.Startup.Status == VerificationStatus.Pending ? "In review" : "View requirements in settings")</div></div>
         <div class="card kpi"><div class="l">Credits</div><div class="v">@((Model.Wallet?.WelcomeBalance ?? 0) + (Model.Wallet?.PurchasedBalance ?? 0))</div><div class="tiny muted">@(Model.Wallet?.WelcomeBalance ?? 0) Welcome · @(Model.Wallet?.PurchasedBalance ?? 0) Purchased</div></div>
         <div class="card kpi"><div class="l">Profile views</div><div class="v">@Model.Startup.Views.ToString("N0")</div></div>
         <div class="card kpi"><div class="l">Team slots</div><div class="v">@Model.Team.Count / 5</div><div class="tiny muted">active + deactivated</div></div>
     }
     else
     {
-        var status = Model.Investor?.Status ?? VerificationStatus.Unverified;
         <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge @Ui.StatusClass(status.ToString())">@status</span></div>
-            @if (status != VerificationStatus.Verified) { <a class="tiny" href="/settings#verification">Submit evidence</a> }
+            @if (status != VerificationStatus.Verified) { <a class="tiny" href="/settings#verification">View verification</a> }
         </div>
-        <div class="card kpi"><div class="l">Pitches awaiting you</div><div class="v">@pending.Count(r => r.Type == RequestType.Pitch)</div></div>
+        <div class="card kpi"><div class="l">Pitches awaiting you</div><a class="v" href="/requests" aria-label="View @pitchCount pending pitches">@pitchCount</a></div>
         <div class="card kpi"><div class="l">Invitations today</div><div class="v">@Model.InvitationsUsedToday / 10</div><div class="tiny muted">Resets 00:00 Asia/Dhaka</div></div>
         <div class="card kpi"><div class="l">Receive Pitches</div><form method="post" action="/settings/receive-pitches" class="mt8" asp-antiforgery="true"><input type="hidden" name="receive" value="@((!(Model.Investor?.Card.ReceivePitches ?? true)).ToString().ToLowerInvariant())" /><button class="btn btn-outline btn-sm">@(Model.Investor?.Card.ReceivePitches == true ? "ON — turn off" : "OFF — turn on")</button></form></div>
     }
