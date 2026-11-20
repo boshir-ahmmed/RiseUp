@@ -35,7 +35,7 @@ jobs:
           Storage__RootPath: ${{ runner.temp }}/riseup-demo-media
         run: |
           export RISEUP_MIGRATIONS_CONNECTION="${RISEUP_TEST_SQLSERVER}Initial Catalog=RiseUpDemoCheck"
-          demo=(database update --no-build -c RiseUpDbContext --project src/RiseUp.DataAccess --startup-project src/RiseUp.Web.UI -- --seed-demo)
+          demo=(database update --configuration Release --no-build -c RiseUpDbContext --project src/RiseUp.DataAccess --startup-project src/RiseUp.Web.UI -- --seed-demo)
           dotnet ef "${demo[@]}"
           find "$Storage__RootPath" -type f -printf '%f\n' | sort > "$RUNNER_TEMP/seed-first"
           dotnet ef "${demo[@]}"
