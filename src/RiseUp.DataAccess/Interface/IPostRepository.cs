@@ -15,7 +15,7 @@ namespace RiseUp.Entities.Abstractions;
 
 public interface IPostRepository : IRepository<StartupPost>
 {
-    Task<IReadOnlyList<StartupPost>> ListLiveAsync(PostCategory? category, int take, CancellationToken ct = default);
+    Task<IReadOnlyList<StartupPost>> ListLiveAsync(PostCategory? category, int take, bool prioritizePromotions, CancellationToken ct = default);
     Task<IReadOnlyList<StartupPost>> ListByStartupAsync(int startupId, bool liveOnly, CancellationToken ct = default);
     Task<PostReaction?> GetReactionAsync(int postId, int accountId, CancellationToken ct = default);
     Task AddReactionAsync(PostReaction reaction, CancellationToken ct = default);

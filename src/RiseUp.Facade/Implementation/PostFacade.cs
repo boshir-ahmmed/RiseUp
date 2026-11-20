@@ -19,7 +19,7 @@ namespace RiseUp.Facade.Posts;
 /// is rejected or the model is down (fail closed). Comments/replies are NEVER sent to AI — they are report-moderated (FR-107).
 /// </summary>
 public sealed class PostFacade(IPostRepository posts, IStartupRepository startups, IInvestorRepository investors, IPromotionRepository promotions,
-    IAiMatchingService ai, IContentSafetyModel model1, IUnitOfWork uow, IClock clock, IValidator<SubmitPostRequest> validator,
+    MatchRanker ranker, IContentSafetyModel model1, IUnitOfWork uow, IClock clock, IValidator<SubmitPostRequest> validator,
     ILogger<PostFacade> logger, ISavedPostRepository saved, IProfileRepository profiles, MediaIntake intake, NameDirectory names) : IPostFacade
 {
     private async Task<bool> CanInteractAsync(Actor actor, CancellationToken ct)
@@ -97,42 +97,38 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
     public async Task<IReadOnlyList<FeedItemDto>> GetFeedAsync(Actor actor, string tab, PostCategory? category, int take, CancellationToken ct = default)
     {
         take = Math.Clamp(take, 1, 50);
-        var live = await posts.ListLiveAsync(category, 200, ct);
+        var live = await posts.ListLiveAsync(category, 200, tab is not ("latest" or "saved"), ct);
         if (tab == "saved")
         {
             if (actor.AccountId is not int me2) return [];
             var mineSaved = await saved.SavedPostIdsAsync(me2, ct);
             return (await MapAsync(actor, live.Where(p => mineSaved.Contains(p.Id)).ToList(), [], ct)).OrderByDescending(i => i.PublishedAtUtc).Take(take).ToList();
         }
-        var activePromos = (await promotions.ListByStatusAsync(PromotionStatus.Active, ct)).ToDictionary(p => p.PostId);
+        var activePromos = await promotions.ActiveIdsByPostAsync(live.Select(p => p.Id).ToList(), ct);
         var items = await MapAsync(actor, live, activePromos.Keys.ToHashSet(), ct);
+        var usedFallback = false;
         IEnumerable<FeedItemDto> ordered;
         if (tab == "latest") ordered = items.OrderByDescending(i => i.PublishedAtUtc);
         else
         {
             var now = clock.UtcNow;
             Dictionary<int, int> relevance = [];
-            var aiDown = false;
             if (actor.IsInvestor && await investors.GetByIdAsync(actor.InvestorId!.Value, ct) is { } me)
             {
-                var pool = (await startups.GetManyAsync(items.Select(i => i.StartupId).Distinct().ToList(), ct)).Select(MatchingFacade.ToProfile).ToList();
-                IReadOnlyList<MatchScore> scores;
-                try { scores = await ai.RankAsync(MatchingFacade.ToProfile(me, true), pool, ct); }
-                catch (Exception) when (!ct.IsCancellationRequested) { scores = RuleBasedMatcher.Rank(MatchingFacade.ToProfile(me, true), pool); aiDown = true; }
-                relevance = scores.ToDictionary(s => s.CandidateId, s => s.Score);
+                var includeGoal = me.IsActiveVerifiedAt(clock.UtcNow);
+                var owners = await startups.GetManyAsync(items.Select(i => i.StartupId).Distinct().ToList(), ct);
+                var pool = owners.Select(s => MatchingFacade.ToProfile(s, includeGoal)).ToList();
+                var ranked = await ranker.RankAsync(MatchingFacade.ToProfile(me, true), pool, ct);
+                usedFallback = ranked.Fallback;
+                relevance = ranked.Scores.ToDictionary(s => s.CandidateId, s => s.Score);
             }
             ordered = items.OrderByDescending(i => i.IsPromoted)
                 .ThenByDescending(i => (i.Likes * 3 + i.Comments * 4 + i.Shares * 2) / (1 + (now - i.PublishedAtUtc).TotalDays * 0.35) + relevance.GetValueOrDefault(i.StartupId) * 0.8);
-            // FR-139/140: promotions keep running and counting during a Model 2 outage, via rule-based targeting.
-            foreach (var p in ordered.Where(i => i.IsPromoted).Take(take))
-            {
-                var promo = activePromos[p.Id];
-                promo.Impressions++;
-                if (aiDown) promo.FallbackImpressions++;
-            }
-            await uow.SaveChangesAsync(ct);
         }
-        return ordered.Take(take).ToList();
+        var page = ordered.Take(take).ToList();
+        var shown = page.Where(p => p.IsPromoted).Select(p => activePromos[p.Id]).ToList();
+        if (shown.Count > 0) await promotions.RecordImpressionsAsync(shown, usedFallback, ct);
+        return page;
     }
 
     public async Task<Result<PostDetailDto>> GetDetailAsync(Actor actor, int postId, CancellationToken ct = default)

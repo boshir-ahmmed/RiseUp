@@ -15,6 +15,8 @@ namespace RiseUp.Entities.Abstractions;
 
 public interface IPromotionRepository : IRepository<Promotion>
 {
+    Task<Dictionary<int, int>> ActiveIdsByPostAsync(IReadOnlyCollection<int> postIds, CancellationToken ct);
+    Task RecordImpressionsAsync(IReadOnlyCollection<int> promotionIds, bool fallback, CancellationToken ct);
     Task<Promotion?> GetOpenForPostAsync(int postId, CancellationToken ct = default);
     Task<IReadOnlyList<Promotion>> ListByStatusAsync(PromotionStatus status, CancellationToken ct = default);
     Task<IReadOnlyList<Promotion>> ListForStartupAsync(int startupId, CancellationToken ct = default);

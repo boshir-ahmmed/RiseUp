@@ -17,12 +17,15 @@ namespace RiseUp.DataAccess.Repositories;
 
 public sealed class PostRepository(RiseUpDbContext db) : Repository<StartupPost>(db), IPostRepository
 {
-    public async Task<IReadOnlyList<StartupPost>> ListLiveAsync(PostCategory? category, int take, CancellationToken ct = default)
+    public async Task<IReadOnlyList<StartupPost>> ListLiveAsync(PostCategory? category, int take, bool prioritizePromotions, CancellationToken ct = default)
     {
         var activeStartups = Db.Startups.Where(s => !s.IsSuspended && !s.IsDeleted).Select(s => s.Id);
-        return await Set.AsNoTracking()
-            .Where(p => p.LiveTitle != null && !p.IsHidden && activeStartups.Contains(p.StartupId) && (category == null || p.Category == category))
-            .OrderByDescending(p => p.PublishedAtUtc).Take(take).ToListAsync(ct);
+        var live = Set.AsNoTracking()
+            .Where(p => p.LiveTitle != null && !p.IsHidden && activeStartups.Contains(p.StartupId) && (category == null || p.Category == category));
+        var ordered = prioritizePromotions
+            ? live.OrderByDescending(p => Db.Promotions.Any(c => c.PostId == p.Id && c.Status == PromotionStatus.Active)).ThenByDescending(p => p.PublishedAtUtc)
+            : live.OrderByDescending(p => p.PublishedAtUtc);
+        return await ordered.ThenBy(p => p.Id).Take(take).ToListAsync(ct);
     }
     public async Task<IReadOnlyList<StartupPost>> ListByStartupAsync(int startupId, bool liveOnly, CancellationToken ct = default) =>
         await Set.AsNoTracking().Where(p => p.StartupId == startupId && (!liveOnly || (p.LiveTitle != null && !p.IsHidden)))
