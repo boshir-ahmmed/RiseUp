@@ -11,7 +11,7 @@ public enum TeamAccountStatus { Active = 1, Deactivated = 2, Deleted = 3 }
 public enum MemberKind { Owner = 1, Investor = 2, Team = 3 }
 public enum PostCategory { Announcements = 1, Milestones = 2, Products = 3, Achievements = 4, Funding = 5, Hiring = 6 }
 public enum ModerationState { None = 0, PendingCheck = 1, Approved = 2, Rejected = 3, AiUnavailable = 4 }
-public enum PaymentStatus { Pending = 0, Paid = 1, Failed = 2, Refunded = 3 }
+public enum PaymentStatus { Pending = 0, Paid = 1, Failed = 2, Refunded = 3, RequiresReview = 4 }
 public enum PromotionStatus { Active = 1, Paused = 2, Completed = 3 }
 public enum DocumentKind { PitchDeck = 1, Supporting = 2 }
 public enum ScanStatus { Pending = 0, Clean = 1, Infected = 2 }

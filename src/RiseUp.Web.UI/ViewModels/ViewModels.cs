@@ -90,7 +90,7 @@ public sealed class RequestsViewModel
 public sealed record ConversationsViewModel(IReadOnlyList<ConversationSummaryDto> List, ConversationDto? Selected, IReadOnlyList<TeamAccountDto> Team, IReadOnlyList<MeetingDto>? Meetings = null);
 public sealed record LibraryViewModel(IReadOnlyList<DocumentDto> Documents, IReadOnlyList<(int InvestorId, string Name)> ConnectedInvestors);
 public sealed record MyPostsViewModel(IReadOnlyList<OwnPostDto> Posts, IReadOnlyList<PromotionDto> Promotions, WalletDto? Wallet, int? EditId);
-public sealed record WalletViewModel(WalletDto Wallet, IReadOnlyList<PackageDto> Packages, IReadOnlyList<OrderDto> Orders);
+public sealed record WalletViewModel(WalletDto Wallet, IReadOnlyList<PackageDto> Packages, IReadOnlyList<OrderDto> Orders, RiseUp.Entities.Abstractions.PaymentMode Mode);
 
 public sealed class SettingsViewModel
 {

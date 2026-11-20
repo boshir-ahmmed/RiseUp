@@ -45,7 +45,7 @@
         {
             <form class="card card-b" method="post" action="/settings/receive-pitches" asp-antiforgery="true"><h3>Receive Pitches</h3><p class="small muted">Turning this off blocks new pitches (founders aren't charged). Pending pitches and chats are unaffected.</p><input type="hidden" name="receive" value="@((!Model.Investor.Card.ReceivePitches).ToString().ToLowerInvariant())" /><button class="btn btn-outline">Currently @(Model.Investor.Card.ReceivePitches ? "ON — turn off" : "OFF — turn on")</button></form>
         }
-        @if (s is not null)
+        @if (s is not null && HostEnv.IsDevelopment())
         {
             <form class="card card-b stack" method="post" action="/settings/ownership-transfer" asp-antiforgery="true"><h3>Ownership transfer</h3><p class="small muted">Needs your consent, the incoming owner's consent and manual approval. A claimant cannot take over on documents alone.</p>
                 <label class="field"><span>Incoming owner's legal name</span><input class="input" name="incomingName" required /></label><label class="field"><span>Incoming owner's email</span><input class="input" type="email" name="incomingEmail" required /></label><button class="btn btn-outline">Record my consent</button></form>

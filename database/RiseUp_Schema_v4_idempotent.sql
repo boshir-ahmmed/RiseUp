@@ -1433,7 +1433,7 @@ BEGIN
         [CreatedAtUtc] datetime2 NOT NULL,
         [UpdatedAtUtc] datetime2 NULL,
         CONSTRAINT [PK_MemberProfiles] PRIMARY KEY ([Id]),
-        CONSTRAINT [CK_MemberProfile_OneOwner] CHECK (([AccountId] IS NULL) <> ([TeamAccountId] IS NULL)),
+        CONSTRAINT [CK_MemberProfile_OneOwner] CHECK (([AccountId] IS NOT NULL AND [TeamAccountId] IS NULL) OR ([AccountId] IS NULL AND [TeamAccountId] IS NOT NULL)),
         CONSTRAINT [FK_MemberProfiles_MediaAssets_CoverMediaId] FOREIGN KEY ([CoverMediaId]) REFERENCES [MediaAssets] ([Id]) ON DELETE NO ACTION,
         CONSTRAINT [FK_MemberProfiles_MediaAssets_PhotoMediaId] FOREIGN KEY ([PhotoMediaId]) REFERENCES [MediaAssets] ([Id]) ON DELETE NO ACTION,
         CONSTRAINT [FK_MemberProfiles_TeamAccounts_TeamAccountId] FOREIGN KEY ([TeamAccountId]) REFERENCES [TeamAccounts] ([Id]) ON DELETE CASCADE,

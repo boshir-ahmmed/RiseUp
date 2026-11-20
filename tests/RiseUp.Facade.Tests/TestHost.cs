@@ -40,7 +40,7 @@ public sealed class TestHost : IAsyncDisposable
     public TestClock Clock { get; } = new(new DateTime(2026, 11, 7, 12, 0, 0, DateTimeKind.Utc)); // 18:00 Asia/Dhaka
     public SpyContentSafety Model1 { get; private set; } = null!;
 
-    private TestHost(Dictionary<string, string?> settings)
+    private TestHost(Dictionary<string, string?> settings, Action<IServiceCollection>? configure)
     {
         _connection.Open();
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
@@ -57,6 +57,7 @@ public sealed class TestHost : IAsyncDisposable
         services.AddSingleton(sp => Model1 = new SpyContentSafety(
             ActivatorUtilities.CreateInstance<SandboxContentSafetyModel>(sp)));
         services.AddSingleton<IContentSafetyModel>(sp => sp.GetRequiredService<SpyContentSafety>());
+        configure?.Invoke(services);
         Services = services.BuildServiceProvider();
     }
 
@@ -78,9 +79,9 @@ public sealed class TestHost : IAsyncDisposable
 
     public Task<Actor> Team() => SignIn("rafi.ops");
 
-    public static async Task<TestHost> CreateAsync(Dictionary<string, string?>? settings = null)
+    public static async Task<TestHost> CreateAsync(Dictionary<string, string?>? settings = null, Action<IServiceCollection>? configure = null)
     {
-        var host = new TestHost(settings ?? []);
+        var host = new TestHost(settings ?? [], configure);
         using var scope = host.Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<RiseUpDbContext>().Database.EnsureCreatedAsync();
         await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();

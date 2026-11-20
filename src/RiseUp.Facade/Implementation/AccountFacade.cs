@@ -36,32 +36,59 @@ public sealed class AccountFacade(
             PasswordHash = hasher.Hash(request.Password), PrimaryRole = request.Role,
             AcceptedTermsVersion = BusinessRules.TermsVersion, AcceptedPrivacyVersion = BusinessRules.PrivacyVersion, PolicyAcceptedAtUtc = now,
         };
-        await accounts.AddAsync(account, ct);
-        await uow.SaveChangesAsync(ct);
-
-        if (request.Role == PrimaryRole.Founder)
+        await using var transaction = await uow.BeginTransactionAsync(ct);
+        try
         {
-            await startups.AddAsync(new Startup
-            {
-                OwnerAccountId = account.Id, Name = request.StartupName!.Trim(), NormalizedLegalName = request.StartupName.Trim().ToUpperInvariant(),
-                Tagline = "", Description = "", Industry = "", Location = "", FoundingYear = now.Year, Stage = FundingStage.PreSeed,
-                VerificationStatus = VerificationStatus.Unverified, ColorIndex = account.Id % 10,
-            }, ct);
-        }
-        else
-        {
-            await investors.AddAsync(new InvestorProfile
-            {
-                AccountId = account.Id, DisplayName = account.FullName, Affiliation = request.Affiliation?.Trim() ?? "Independent",
-                VerificationStatus = VerificationStatus.Unverified, ReceivePitches = true, ColorIndex = account.Id % 10,
-            }, ct);
-        }
+            await accounts.AddAsync(account, ct);
+            await uow.SaveChangesAsync(ct);
 
+            if (request.Role == PrimaryRole.Founder)
+            {
+                await startups.AddAsync(new Startup
+                {
+                    OwnerAccountId = account.Id, Name = request.StartupName!.Trim(), NormalizedLegalName = request.StartupName.Trim().ToUpperInvariant(),
+                    Tagline = "", Description = "", Industry = "", Location = "", FoundingYear = now.Year, Stage = FundingStage.PreSeed,
+                    VerificationStatus = VerificationStatus.Unverified, ColorIndex = account.Id % 10,
+                }, ct);
+            }
+            else
+            {
+                await investors.AddAsync(new InvestorProfile
+                {
+                    AccountId = account.Id, DisplayName = account.FullName, Affiliation = request.Affiliation?.Trim() ?? "Independent",
+                    VerificationStatus = VerificationStatus.Unverified, ReceivePitches = true, ColorIndex = account.Id % 10,
+                }, ct);
+            }
+
+            var token = await QueueVerificationAsync(account, ct);
+            await uow.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return Result.Success(new RegisteredAccount(account.Id, token), "Check your email to verify your account.");
+        }
+        catch (PersistenceConflictException)
+        {
+            await transaction.RollbackAsync(ct);
+            return new Error(ErrorCodes.Conflict, "The email or startup name is already in use. Check the details and try again.");
+        }
+    }
+
+    private async Task<string> QueueVerificationAsync(UserAccount account, CancellationToken ct)
+    {
         var token = SecureTokens.NewUrlToken();
-        await accounts.AddTokenAsync(new AccountToken { UserAccountId = account.Id, Purpose = VerifyPurpose, TokenHash = SecureTokens.Hash(token), ExpiresAtUtc = now.AddDays(2) }, ct);
+        await accounts.AddTokenAsync(new AccountToken { UserAccountId = account.Id, Purpose = VerifyPurpose, TokenHash = SecureTokens.Hash(token), ExpiresAtUtc = clock.UtcNow.AddDays(2) }, ct);
         await activity.OutboxAsync("email.verify", new { account.Email, token }, ct);
-        await uow.SaveChangesAsync(ct);
-        return Result.Success(new RegisteredAccount(account.Id, token), "Check your email to verify your account.");
+        return token;
+    }
+
+    public async Task<Result> ResendVerificationAsync(string email, CancellationToken ct = default)
+    {
+        var account = await accounts.FindByNormalizedEmailAsync((email ?? "").Trim().ToUpperInvariant(), ct);
+        if (account is { DeletedAtUtc: null, EmailVerified: false })
+        {
+            await QueueVerificationAsync(account, ct);
+            await uow.SaveChangesAsync(ct);
+        }
+        return Result.Success("If this address needs verification, a new link will be sent.");
     }
 
     public async Task<Result> VerifyEmailAsync(string token, CancellationToken ct = default)

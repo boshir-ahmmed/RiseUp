@@ -33,6 +33,7 @@ public static class ResultHttp
 {
     public static int StatusFor(string code) => code switch
     {
+        ErrorCodes.PaymentUnavailable => StatusCodes.Status503ServiceUnavailable,
         ErrorCodes.Validation or ErrorCodes.ContentRejected => StatusCodes.Status400BadRequest,
         ErrorCodes.Unauthenticated or ErrorCodes.InvalidCredentials => StatusCodes.Status401Unauthorized,
         ErrorCodes.Forbidden or ErrorCodes.ForbiddenDocument or ErrorCodes.NotVerified or ErrorCodes.AccountSuspended => StatusCodes.Status403Forbidden,

@@ -13,8 +13,9 @@ using RiseUp.Web.UI.ViewModels;
 namespace RiseUp.Web.UI.Controllers;
 
 [EnableRateLimiting("auth")]
-public sealed class AccountController(IAccountFacade accounts, IWebHostEnvironment env) : AppController
+public sealed class AccountController(IAccountFacade accounts, IWebHostEnvironment env, IConfiguration configuration) : AppController
 {
+    private bool RegistrationOpen => configuration.GetValue("Registration:Enabled", env.IsDevelopment());
     private const string PendingMfaKey = "riseup.pending-mfa";
 
     [HttpGet("/" + UrlRewrite.Account.Login)]
@@ -59,20 +60,28 @@ public sealed class AccountController(IAccountFacade accounts, IWebHostEnvironme
     }
 
     [HttpGet("/" + UrlRewrite.Account.Register)]
-    public IActionResult Register() => View("RegisterRole");
+    public IActionResult Register() => View(RegistrationOpen ? "RegisterRole" : "RegistrationClosed");
 
     [HttpGet("/" + UrlRewrite.Account.RegisterRole)]
     public IActionResult RegisterForm(string role) =>
-        role is "founder" or "investor" ? View("Register", new RegisterViewModel { Role = role == "founder" ? PrimaryRole.Founder : PrimaryRole.Investor }) : NotFound();
+        !RegistrationOpen && role is ("founder" or "investor") ? View("RegistrationClosed") : role is "founder" or "investor" ? View("Register", new RegisterViewModel { Role = role == "founder" ? PrimaryRole.Founder : PrimaryRole.Investor }) : NotFound();
 
     [HttpPost("/" + UrlRewrite.Account.Register)]
     public async Task<IActionResult> Register(RegisterViewModel model, CancellationToken ct)
     {
+        if (!RegistrationOpen) return View("RegistrationClosed");
         if (!ModelState.IsValid) return View("Register", model);
         var result = await accounts.RegisterAsync(new RegisterRequest(model.Role, model.FullName, model.Email, model.Phone, model.Password, model.AcceptTerms, model.StartupName, model.Affiliation), ct);
         if (result.IsFailure) { ModelState.AddModelError("", result.Error.Message); return View("Register", model); }
         // In production the token is sent only by email (outbox). Development shows the link to make the flow testable.
         return View("CheckEmail", env.IsDevelopment() ? Url.Action(nameof(VerifyEmail), new { token = result.Value!.EmailVerificationToken }) : null);
+    }
+
+    [HttpPost("/account/resend-verification")]
+    public async Task<IActionResult> ResendVerification(string email, CancellationToken ct)
+    {
+        Flash(await accounts.ResendVerificationAsync(email, ct));
+        return RedirectToAction(nameof(Login));
     }
 
     [HttpGet("/" + UrlRewrite.Account.VerifyEmail)]

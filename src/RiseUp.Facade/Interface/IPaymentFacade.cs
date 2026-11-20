@@ -13,7 +13,10 @@ namespace RiseUp.Facade.Payments;
 public interface IPaymentFacade
 {
     Task<IReadOnlyList<PackageDto>> ListPackagesAsync(CancellationToken ct = default);
-    Task<Result<CheckoutDto>> CreateOrderAsync(Actor actor, int packageId, CancellationToken ct = default);
+    PaymentMode Mode { get; }
+    Task<Result<CheckoutDto>> CreateOrderAsync(Actor actor, int packageId, BillingAddress? billing = null, CancellationToken ct = default);
+    Task<Result> ConfirmHostedAsync(string orderNumber, string? validationId, CancellationToken ct = default);
+    Task<IReadOnlyList<string>> DueForReconciliationAsync(CancellationToken ct = default);
     /// <summary>Server-to-server confirmation. Payload: "orderNumber|providerTransactionId|status". Idempotent.</summary>
     Task<Result> HandleWebhookAsync(string payload, string signature, CancellationToken ct = default);
     Task<Result> ReconcileAsync(Actor admin, string orderNumber, string providerTransactionId, string reason, CancellationToken ct = default);

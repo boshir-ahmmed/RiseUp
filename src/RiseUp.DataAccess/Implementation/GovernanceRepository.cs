@@ -28,5 +28,23 @@ public sealed class GovernanceRepository(RiseUpDbContext db) : IGovernanceReposi
     public async Task<IReadOnlyList<Notification>> ListNotificationsAsync(int? accountId, int? teamAccountId, int take, CancellationToken ct = default) =>
         await db.Notifications.Where(n => (accountId != null && n.RecipientAccountId == accountId) || (teamAccountId != null && n.RecipientTeamAccountId == teamAccountId))
             .OrderByDescending(n => n.CreatedAtUtc).Take(take).ToListAsync(ct);
+    private IQueryable<OutboxEvent> DueEmails(DateTime now)
+    {
+        var retryBefore = now.AddMinutes(-5);
+        return db.Outbox.Where(e => e.ProcessedAtUtc == null &&
+            (e.UpdatedAtUtc == null || e.UpdatedAtUtc < retryBefore) &&
+            (e.Type == "email.verify" || e.Type == "email.password-reset" || e.Type == "notification.email"));
+    }
+
+    public async Task<IReadOnlyList<int>> DueEmailsAsync(DateTime now, CancellationToken ct) =>
+        await DueEmails(now).OrderBy(e => e.UpdatedAtUtc ?? e.CreatedAtUtc).ThenBy(e => e.Id).Take(40).Select(e => e.Id).ToListAsync(ct);
+
+    public async Task<OutboxEvent?> ClaimEmailAsync(int id, DateTime now, CancellationToken ct)
+    {
+        var claimed = await DueEmails(now).Where(e => e.Id == id).ExecuteUpdateAsync(
+            updates => updates.SetProperty(e => e.UpdatedAtUtc, now).SetProperty(e => e.Attempts, e => e.Attempts + 1), ct);
+        return claimed == 1 ? await db.Outbox.SingleAsync(e => e.Id == id, ct) : null;
+    }
+
     public async Task AddOutboxAsync(OutboxEvent evt, CancellationToken ct = default) => await db.Outbox.AddAsync(evt, ct);
 }

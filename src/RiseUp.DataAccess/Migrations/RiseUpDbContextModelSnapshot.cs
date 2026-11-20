@@ -1586,7 +1586,7 @@ namespace RiseUp.DataAccess.Migrations
 
                     b.ToTable("MemberProfiles", t =>
                         {
-                            t.HasCheckConstraint("CK_MemberProfile_OneOwner", "([AccountId] IS NULL) <> ([TeamAccountId] IS NULL)");
+                            t.HasCheckConstraint("CK_MemberProfile_OneOwner", "([AccountId] IS NOT NULL AND [TeamAccountId] IS NULL) OR ([AccountId] IS NULL AND [TeamAccountId] IS NOT NULL)");
                         });
                 });
 

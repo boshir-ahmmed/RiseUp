@@ -16,6 +16,7 @@ namespace RiseUp.Facade.Identity;
 public interface IAccountFacade
 {
     Task<Result<RegisteredAccount>> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
+    Task<Result> ResendVerificationAsync(string email, CancellationToken ct = default);
     Task<Result> VerifyEmailAsync(string token, CancellationToken ct = default);
     Task<Result<SignedInUser>> SignInAsync(string email, string password, CancellationToken ct = default);
     Task<Result<SignedInUser>> SignInTeamMemberAsync(string username, string password, CancellationToken ct = default);

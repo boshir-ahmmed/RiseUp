@@ -50,7 +50,7 @@
     {
         <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><div><strong>@t.StartupName</strong> → @t.IncomingOwnerName</div><span class="badge @Ui.StatusClass(t.Status.ToString())">@t.Status</span></div>
             <div class="tiny muted mt8">Current owner consent @(t.OwnerConsent ? "✓" : "✗") · Incoming owner consent @(t.IncomingConsent ? "✓" : "✗")</div>
-            @if (t.Status is TransferStatus.AwaitingIncomingConsent or TransferStatus.AwaitingReview)
+            @if (HostEnv.IsDevelopment() && t.Status is (TransferStatus.AwaitingIncomingConsent or TransferStatus.AwaitingReview))
             {
                 <form method="post" action="/admin/transfers/@t.Id/decide" class="row mt8" style="flex-wrap:nowrap" asp-antiforgery="true"><input class="input" name="note" required minlength="5" placeholder="Decision note" /><button class="btn btn-primary btn-sm" name="approve" value="true" disabled="@(!t.IncomingConsent)">Approve</button><button class="btn btn-danger btn-sm" name="approve" value="false">Reject</button></form>
             }

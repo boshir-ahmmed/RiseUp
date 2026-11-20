@@ -39,7 +39,7 @@ public sealed class MemberProfileConfiguration : IEntityTypeConfiguration<Member
         b.HasOne<TeamAccount>().WithMany().HasForeignKey(x => x.TeamAccountId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<MediaAsset>().WithMany().HasForeignKey(x => x.PhotoMediaId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<MediaAsset>().WithMany().HasForeignKey(x => x.CoverMediaId).OnDelete(DeleteBehavior.Restrict);
-        b.ToTable(t => t.HasCheckConstraint("CK_MemberProfile_OneOwner", "([AccountId] IS NULL) <> ([TeamAccountId] IS NULL)"));
+        b.ToTable(t => t.HasCheckConstraint("CK_MemberProfile_OneOwner", "([AccountId] IS NOT NULL AND [TeamAccountId] IS NULL) OR ([AccountId] IS NULL AND [TeamAccountId] IS NOT NULL)"));
     }
 }
 

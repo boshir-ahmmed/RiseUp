@@ -5,6 +5,18 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: "LocalCi#RiseUp2026"
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P LocalCi#RiseUp2026 -Q 'SELECT 1'"
+          --health-interval=10s --health-timeout=5s --health-retries=20
+    env:
+      RISEUP_TEST_SQLSERVER: "Server=127.0.0.1,1433;User ID=sa;Password=LocalCi#RiseUp2026;TrustServerCertificate=True;"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
