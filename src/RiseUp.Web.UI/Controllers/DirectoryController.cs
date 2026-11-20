@@ -23,7 +23,7 @@ public sealed class DirectoryController(IStartupFacade startups, IInvestorFacade
         View(new StartupSearchViewModel(query, await startups.SearchAsync(Actor, query, ct)));
 
     [HttpGet("/" + UrlRewrite.StartupDetail)]
-    public async Task<IActionResult> Startup(int id, CancellationToken ct)
+    public async Task<IActionResult> Startup(int id, string? tab, CancellationToken ct)
     {
         // FR-120: anonymous views are deduplicated by a random, HttpOnly, 24-hour cookie (no personal data).
         var anon = Request.Cookies["RiseUp.Anon"];
@@ -36,7 +36,8 @@ public sealed class DirectoryController(IStartupFacade startups, IInvestorFacade
         var result = await startups.GetDetailAsync(Actor, id, viewer, ct);
         if (result.IsFailure) return NotFound();
         var spotlight = (await packages.ListSpotlightAsync(Actor, 30, ct)).FirstOrDefault(s => s.StartupId == id);
-        return View(new StartupDetailViewModel(result.Value!, await posts.ListForStartupAsync(Actor, id, ct), spotlight));
+        return View(new StartupDetailViewModel(result.Value!, new ProfilePublications(await posts.ListForStartupAsync(Actor, id, ct),
+            await packages.GetPublicTeaserAsync(id, ct), tab == "reels", $"/startups/{id}"), spotlight));
     }
 
     [HttpGet("/" + UrlRewrite.Investors)]

@@ -34,18 +34,10 @@
     </div>
     <div class="grid mt24 g-detail" style="align-items:start">
         <div class="stack">
-            @if (spot is not null)
-            {
-                <div class="card card-b"><div class="row between"><h3 class="mb0">Teaser</h3><span class="tiny muted">@(spot.Teaser.Seconds / 60):@((spot.Teaser.Seconds % 60).ToString("00")) · public</span></div>
-                    <div class="vp mt8"><video src="@spot.Teaser.Url" poster="@spot.Teaser.PosterUrl" controls playsinline preload="metadata"></video></div>
-                    <div class="row mt8">@if (spot.Demo is not null) {<a class="btn btn-outline btn-sm" href="@spot.Demo.Url" target="_blank" rel="noopener">▶ Watch product demo</a>}<span class="tiny muted">The full investor pitch (video, deck, documents, ask) is shared privately in a pitch room.</span></div></div>
-            }
+            <partial name="_ProfilePublications" model="Model.Publications" />
             <div class="card card-b"><h3>About</h3><p><partial name="_ReadMore" model="(s.Description, 260)" /></p>
                 <dl class="kv"><dt>Business model</dt><dd>@(s.BusinessModel ?? "—")</dd><dt>Website</dt><dd>@(s.Website ?? "—")</dd><dt>Tags</dt><dd><div class="chips">@foreach (var t in s.Tags) {<span class="chip">@t</span>}</div></dd></dl></div>
-            <div class="card"><div class="card-h"><h3>Posts · @Model.Posts.Count</h3><span class="tiny muted">Tap a post to view details</span></div><div class="card-b">
-                @if (Model.Posts.Count == 0) { <div class="empty">No published posts yet</div> }
-                <div class="tiles">@foreach (var p in Model.Posts) {<a class="tile" href="/posts/@p.Id" aria-label="@p.Title — view details">@if (p.PosterUrl is not null) {<img src="@p.PosterUrl" alt="" class="ig-img" loading="lazy" /><span class="vd">▶</span>} else {<div class="ig-art" style="background:linear-gradient(150deg,@Ui.Color(p.ColorIndex) 0%,#101828 135%)"><div class="ig-art-t">@p.Title</div></div>}<span class="tile-o">♥ @p.Likes &nbsp; 💬 @p.Comments</span></a>}</div>
-            </div></div>
+            @if (spot?.Demo is not null) { <a href="@spot.Demo.Url" class="btn btn-outline">Watch product demo</a> }
         </div>
         <div class="stack">
             <div class="card card-b"><h3>Funding &amp; metrics</h3>

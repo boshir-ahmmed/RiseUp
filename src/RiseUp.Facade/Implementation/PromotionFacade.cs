@@ -11,9 +11,13 @@ namespace RiseUp.Facade.Promotions;
 public sealed class PromotionFacade(IPromotionRepository promotions, IPostRepository posts, IStartupRepository startups,
     IWalletRepository wallets, IPaymentRepository payments, IUnitOfWork uow, IClock clock) : IPromotionFacade
 {
+    public async Task<IReadOnlyList<(int Days, int Cost)>> ListPackagesAsync(CancellationToken ct = default) =>
+        (await payments.ListPromotionPackagesAsync(ct)).Select(p => (p.Days, p.CostPurchasedTokens)).ToList();
+
     public async Task<Result<int>> PurchaseAsync(Actor actor, int postId, int days, CancellationToken ct = default)
     {
         if (!actor.IsFounder || actor.StartupId is null) return Guard.Forbidden("Only the Main Startup Owner can buy promotions.");
+        await using var tx = await uow.BeginTransactionAsync(ct);
         var startup = await startups.GetByIdAsync(actor.StartupId.Value, ct);
         if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return new Error(ErrorCodes.NotVerified, "Only verified startups can promote posts.");
         var post = await posts.GetByIdAsync(postId, ct);
@@ -22,7 +26,6 @@ public sealed class PromotionFacade(IPromotionRepository promotions, IPostReposi
         if (package is null) return new Error(ErrorCodes.Validation, "Choose a 1, 3 or 7-day package.");
         if (await promotions.GetOpenForPostAsync(postId, ct) is not null) return new Error(ErrorCodes.AlreadyPromoted, "This post already has a promotion.");
 
-        await using var tx = await uow.BeginTransactionAsync(ct);
         var wallet = await wallets.GetByStartupAsync(startup.Id, ct);
         // FR-126: promotions are payable from Purchased credits only — Welcome credits are never touched.
         if (wallet is null || wallet.PurchasedBalance < package.CostPurchasedTokens)

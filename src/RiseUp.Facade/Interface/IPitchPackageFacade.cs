@@ -15,10 +15,13 @@ namespace RiseUp.Facade.Pitching;
 
 public interface IPitchPackageFacade
 {
+    Task<(string Name, VideoDto? Teaser, bool Public)> GetTeaserSettingsAsync(Actor actor, CancellationToken ct = default);
+    Task<VideoDto?> GetPublicTeaserAsync(int startupId, CancellationToken ct = default);
+    Task<Result<int>> MoveTeaserToDraftAsync(Actor actor, CancellationToken ct = default);
     Task<Result<PitchPackageDto>> GetOwnAsync(Actor actor, CancellationToken ct = default);
     Task<Result> SetVideoAsync(Actor actor, PitchVideoSlot slot, UploadedFile video, UploadedFile? poster, CancellationToken ct = default);
     Task<Result> RemoveVideoAsync(Actor actor, PitchVideoSlot slot, CancellationToken ct = default);
-    Task<Result> SetVisibilityAsync(Actor actor, bool publicTeaser, bool publicDemo, bool captions, CancellationToken ct = default);
+    Task<Result> SetVisibilityAsync(Actor actor, bool? publicTeaser, bool? publicDemo, bool? captions, CancellationToken ct = default);
     Task<Result> SetDeckAsync(Actor actor, UploadedFile deck, CancellationToken ct = default);
     Task<Result> RemoveDeckAsync(Actor actor, CancellationToken ct = default);
     Task<Result> SaveSlidesAsync(Actor actor, IReadOnlyList<SlideDto> slides, CancellationToken ct = default);

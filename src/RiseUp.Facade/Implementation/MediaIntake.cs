@@ -23,6 +23,7 @@ public sealed class MediaIntake(IMediaRepository media, IFileStorage storage, IM
         [MediaKind.PitchVideo] = new(MediaTypes.Videos, BusinessRules.VideoMaxBytes, BusinessRules.PitchVideoMaxSeconds, "Pitch videos"),
         [MediaKind.DemoVideo] = new(MediaTypes.Videos, BusinessRules.VideoMaxBytes, BusinessRules.DemoVideoMaxSeconds, "Product demos"),
         [MediaKind.TeaserVideo] = new(MediaTypes.Videos, BusinessRules.VideoMaxBytes, BusinessRules.TeaserMaxSeconds, "Teasers"),
+        [MediaKind.PostImage] = new(MediaTypes.Images, 10 * 1024 * 1024, null, "Post images"),
         [MediaKind.PostVideo] = new(MediaTypes.Videos, BusinessRules.PostVideoMaxBytes, BusinessRules.PostVideoMaxSeconds, "Post videos"),
         [MediaKind.PitchDeck] = new([MediaTypes.Pdf, MediaTypes.Pptx], BusinessRules.PitchDeckMaxBytes, null, "Pitch decks"),
         [MediaKind.PitchDocument] = new([MediaTypes.Pdf, MediaTypes.Pptx, MediaTypes.Xlsx], BusinessRules.PitchDocumentMaxBytes, null, "Pitch documents"),

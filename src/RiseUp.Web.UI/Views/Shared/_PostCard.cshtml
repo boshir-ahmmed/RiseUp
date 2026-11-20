@@ -23,11 +23,15 @@
         <h3 class="pc-title" id="pt-@Model.Id">@Model.Title</h3>
         <div class="small pc-body"><partial name="_ReadMore" model="(Model.Body, 190)" /></div>
     </div>
-    <div class="ig-media" data-dbl="@Model.Id" title="Double-tap to like">
+    <div class="ig-media @(Model.Category == PostCategory.Reel ? "portrait-frame" : "")" data-dbl="@Model.Id" title="Double-tap to like">
         @if (Model.VideoUrl is not null)
         {
             <video src="@Model.VideoUrl" poster="@Model.PosterUrl" class="ig-img" controls muted playsinline preload="none" data-feedvideo aria-label="@Model.Title"></video>
             @if (Model.VideoSeconds is int secs) {<span class="vd">▶ @(secs / 60):@((secs % 60).ToString("00"))</span>}
+        }
+        else if (Model.PosterUrl is not null)
+        {
+            <img class="ig-img" src="@Model.PosterUrl" alt="@Model.Title" loading="lazy" />
         }
         else
         {

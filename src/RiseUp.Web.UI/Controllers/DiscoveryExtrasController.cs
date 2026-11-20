@@ -15,7 +15,7 @@ namespace RiseUp.Web.UI.Controllers;
 public sealed class DiscoveryExtrasController(IPitchPackageFacade packages, IShortlistFacade shortlist, IMeetingFacade meetings, IPostFacade posts, IMediaFacade media) : AppController
 {
     [HttpGet("/" + UrlRewrite.Reels)]
-    public async Task<IActionResult> Reels(CancellationToken ct) => View(await packages.ListSpotlightAsync(Actor, 30, ct));
+    public async Task<IActionResult> Reels(CancellationToken ct) => View(new ViewModels.ReelsViewModel(await posts.GetFeedAsync(Actor, "foryou", PostCategory.Reel, 50, ct), await packages.ListSpotlightAsync(Actor, 30, ct)));
 
     // ------------------------------------------------------------ media (re-authorised on every request; supports HTTP Range for seeking)
     [HttpGet("/media/{id:int}")]
@@ -24,7 +24,7 @@ public sealed class DiscoveryExtrasController(IPitchPackageFacade packages, ISho
         var r = await media.OpenAsync(Actor, id, download, ct);
         if (r.IsFailure) return r.Error.Code == ErrorCodes.ForbiddenDocument ? Forbid() : NotFound();
         var m = r.Value!;
-        Response.Headers.CacheControl = "private, max-age=300";
+        Response.Headers.CacheControl = "private, no-cache";
         return m.AsAttachment ? File(m.Content, m.ContentType, m.FileName, enableRangeProcessing: true) : File(m.Content, m.ContentType, enableRangeProcessing: true);
     }
 

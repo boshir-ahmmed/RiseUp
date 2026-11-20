@@ -50,7 +50,7 @@ public sealed class ShellViewComponent(IProfileFacade profiles) : ViewComponent
         if (a.IsFounder)
             n.AddRange([new("Workspace", "/", "Home feed"), new("Workspace", "/dashboard", "Dashboard"), new("Workspace", "/discover", "Discover investors"), new("Workspace", "/pitches", "Pitch Studio"),
                 new("Workspace", "/requests", "Requests", s.PendingBadge), new("Workspace", "/conversations", "Conversations"),
-                new("Startup", "/my-posts", "Posts & promotions"), new("Startup", "/team", "Team accounts"), new("Startup", "/library", "Confidential library"), new("Startup", "/settings", "Startup profile"), new("Startup", "/verification", "Verification"),
+                new("Startup", "/my-posts", "Post & Reels"), new("Startup", "/team", "Team accounts"), new("Startup", "/library", "Confidential library"), new("Startup", "/settings", "Startup profile"), new("Startup", "/verification", "Verification"),
                 new("Account", "/me", "My profile"), new("Account", "/me/edit", "Edit profile"), new("Account", "/wallet", "Wallet"), new("Account", "/notifications", "Notifications", s.UnreadNotifications)]);
         else if (a.IsInvestor)
             n.AddRange([new("Workspace", "/", "Home feed"), new("Workspace", "/dashboard", "Dashboard"), new("Workspace", "/discover", "Discover startups"), new("Workspace", "/requests", "Pitches & invitations", s.PendingBadge),

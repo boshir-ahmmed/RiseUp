@@ -29,8 +29,8 @@
 <section class="section" style="padding-top:24px"><div class="container" style="max-width:1020px">
     <a href="/" class="small">← Back to feed</a>
     <article class="card post-detail mt16">
-        <div class="ig-media" data-dbl="@p.Id" style="aspect-ratio:auto;min-height:420px">
-            @if (p.VideoUrl is not null) { <video src="@p.VideoUrl" poster="@p.PosterUrl" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000"></video> } else { <div class="ig-art" style="background:linear-gradient(150deg,@Ui.Color(p.ColorIndex) 0%,@Ui.Color(p.ColorIndex) 35%,#101828 135%)"><span class="ig-cat">@p.Category</span><div class="ig-art-t">@p.Title</div><div class="ig-art-s">@p.StartupName · @p.StartupLocation</div></div> }
+        <div class="ig-media @(p.Category == PostCategory.Reel ? "portrait-frame" : "post-detail-media")" data-dbl="@p.Id">
+            @if (p.VideoUrl is not null) { <video src="@p.VideoUrl" poster="@p.PosterUrl" controls playsinline preload="metadata" style="width:100%;height:100%;object-fit:contain;background:#000"></video> } else if (p.PosterUrl is not null) { <img class="ig-img" src="@p.PosterUrl" alt="@p.Title" /> } else { <div class="ig-art" style="background:linear-gradient(150deg,@Ui.Color(p.ColorIndex) 0%,@Ui.Color(p.ColorIndex) 35%,#101828 135%)"><span class="ig-cat">@p.Category</span><div class="ig-art-t">@p.Title</div><div class="ig-art-s">@p.StartupName · @p.StartupLocation</div></div> }
             <div class="ig-burst" data-burst="@p.Id">♥</div>
         </div>
         <div class="pd-side">
