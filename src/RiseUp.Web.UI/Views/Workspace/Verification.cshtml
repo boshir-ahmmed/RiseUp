@@ -1,0 +1,36 @@
+@model ApplicantStatusDto
+@{ ViewData["Title"] = "Verification"; }
+<header class="page-h"><div><h1>Verification</h1><p>@(Model.IsStartup ? "Startup" : "Investor") identity and credentials</p></div></header>
+<section class="card card-b">
+    <div class="row between"><h2>Your verification</h2><span class="badge @Ui.StatusClass(Model.Status.ToString())">@Model.Status</span></div>
+    @if (Model.Status == VerificationStatus.Verified && Model.ValidUntil is DateTime until) { <p>Valid until @Ui.Dhaka(until).</p> }
+    @if (Model.AwaitingReview)
+    {
+        <h3>Documents received</h3><p>A reviewer will check the documents you submitted @Ui.Dhaka(Model.SubmittedAt!.Value). You can follow the decision here.</p>
+        <ul>@foreach (var kind in Model.DocumentKinds) { <li>@(kind switch { "TradeLicence" => "Trade licence", "OwnershipProof" => "Proof of ownership", "Credential" => "Professional credential", _ => kind })</li> }</ul>
+    }
+    else if (Model.RejectionReason is not null) { <h3>Reviewer feedback</h3><p>@Model.RejectionReason</p> }
+    else if (Model.Status != VerificationStatus.Verified) { <p>Submit the documents below to start manual review.</p> }
+</section>
+@if (!Model.AwaitingReview)
+{
+    <details class="mt16" open="@(Model.Status != VerificationStatus.Verified)"><summary class="linkbtn">@(Model.Status == VerificationStatus.Verified ? "Renew verification" : "Application documents")</summary>
+        <form class="card card-b stack" id="evidence" method="post" action="/verification" enctype="multipart/form-data" asp-antiforgery="true">
+            <h2>Submit documents</h2>
+            <p class="small muted">Reviewed manually by a Verification Administrator. AI is never used for this decision. No reminder email is sent before expiry.</p>
+            @if (Model.IsStartup)
+            {
+                <div class="grid g2"><label class="field"><span>Trade licence names</span><select class="input" name="licenceHolderType"><option value="@LicenceHolderType.Individual">An individual (must be you)</option><option value="@LicenceHolderType.Company">A company (attach registration)</option></select></label><label class="field"><span>Licence holder name</span><input class="input" name="licenceHolderName" required /></label></div>
+            }
+            <label class="field"><span>Identity document type</span><select class="input" name="identityKind"><option>NID</option><option>Passport</option></select></label>
+            <label class="field"><span>Identity document</span><input class="input" type="file" name="identity" accept=".pdf,.jpg,.jpeg,.png" required /></label>
+            <label class="field"><span>@(!Model.IsStartup ? "Professional or company credential" : "Trade licence")</span><input class="input" type="file" name="business" accept=".pdf,.jpg,.jpeg,.png" required /></label>
+            @if (Model.IsStartup)
+            {
+                <label class="field"><span>Company registration showing your authority (required for a company licence only)</span><input class="input" type="file" name="ownership" accept=".pdf,.jpg,.jpeg,.png" /></label>
+            }
+            <p class="tiny muted">PDF, JPEG or PNG, up to 10 MB per file. <a href="/legal/privacy">How RiseUp handles identity documents</a></p>
+            <button class="btn btn-primary">Submit for manual review</button>
+        </form>
+    </details>
+}

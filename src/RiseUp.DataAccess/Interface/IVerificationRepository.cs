@@ -16,6 +16,7 @@ namespace RiseUp.Entities.Abstractions;
 public interface IVerificationRepository : IRepository<VerificationApplication>
 {
     Task<IReadOnlyList<VerificationApplication>> ListAsync(VerificationStatus? status, CancellationToken ct = default);
+    Task<VerificationApplication?> GetLatestForAsync(VerificationSubject subject, int subjectId, CancellationToken ct);
     Task<VerificationApplication?> GetPendingForAsync(VerificationSubject subject, int subjectId, CancellationToken ct = default);
     Task<IReadOnlyList<VerificationDocument>> ListForErasureAsync(int afterId, CancellationToken ct);
     Task<bool> HasDocumentKeyAsync(string key, CancellationToken ct);

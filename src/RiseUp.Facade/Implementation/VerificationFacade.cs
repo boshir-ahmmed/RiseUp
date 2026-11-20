@@ -17,6 +17,25 @@ public sealed partial class VerificationFacade(IVerificationRepository applicati
 {
     private static bool CanReview(Actor a) => a.AccountId.HasValue && (a.IsAdmin(AdminRole.VerificationAdmin) || a.IsAdmin(AdminRole.SuperAdmin));
 
+    public async Task<Result<ApplicantStatusDto>> GetApplicantStatusAsync(Actor actor, CancellationToken ct = default)
+    {
+        if (actor.AccountId is null) return Guard.Forbidden();
+        VerificationSubject subject;
+        int subjectId;
+        VerificationStatus status;
+        DateTime? validUntil;
+        if (actor.IsFounder && actor.StartupId is int sid && await startups.GetByIdAsync(sid, ct) is { IsDeleted: false } startup && startup.OwnerAccountId == actor.AccountId)
+            (subject, subjectId, status, validUntil) = (VerificationSubject.Startup, sid, startup.VerificationStatus, startup.VerifiedUntilUtc);
+        else if (actor.IsInvestor && actor.InvestorId is int iid && await investors.GetByIdAsync(iid, ct) is { IsDeleted: false } investor && investor.AccountId == actor.AccountId)
+            (subject, subjectId, status, validUntil) = (VerificationSubject.Investor, iid, investor.VerificationStatus, investor.VerifiedUntilUtc);
+        else return Guard.Forbidden();
+
+        var latest = await applications.GetLatestForAsync(subject, subjectId, ct);
+        return Result.Success(new ApplicantStatusDto(actor.IsFounder, status, validUntil, latest?.Status, latest?.SubmittedAtUtc,
+            latest?.Status == VerificationStatus.Rejected ? latest.DecisionReason : null,
+            latest?.Documents.Select(d => d.Kind).Order().ToList() ?? []));
+    }
+
     public async Task<Result<int>> SubmitAsync(Actor actor, SubmitVerificationRequest request, CancellationToken ct = default)
     {
         VerificationSubject subject;

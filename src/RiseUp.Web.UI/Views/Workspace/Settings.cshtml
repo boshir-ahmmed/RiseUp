@@ -24,23 +24,7 @@
         </div>
     }
     <div class="stack">
-        <form class="card card-b stack" id="verification" method="post" action="/verification" enctype="multipart/form-data" asp-antiforgery="true">
-            <h3>Verification</h3>
-            <p class="small muted">Reviewed manually by a Verification Administrator. AI is never used for this decision. No reminder email is sent before expiry.</p>
-            @if (s is not null)
-            {
-                <div class="grid g2"><label class="field"><span>Trade licence names</span><select class="input" name="licenceHolderType"><option value="@LicenceHolderType.Individual">An individual (must be you)</option><option value="@LicenceHolderType.Company">A company (attach registration)</option></select></label><label class="field"><span>Licence holder name</span><input class="input" name="licenceHolderName" required /></label></div>
-            }
-            <label class="field"><span>Identity document type</span><select class="input" name="identityKind"><option>NID</option><option>Passport</option></select></label>
-            <label class="field"><span>Identity document</span><input class="input" type="file" name="identity" accept=".pdf,.jpg,.jpeg,.png" required /></label>
-            <label class="field"><span>@(s is null ? "Professional or company credential" : "Trade licence")</span><input class="input" type="file" name="business" accept=".pdf,.jpg,.jpeg,.png" required /></label>
-            @if (s is not null)
-            {
-                <label class="field"><span>Company registration showing your authority (required for a company licence only)</span><input class="input" type="file" name="ownership" accept=".pdf,.jpg,.jpeg,.png" /></label>
-            }
-            <p class="tiny muted">PDF, JPEG or PNG, up to 10 MB per file. <a href="/legal/privacy">How RiseUp handles identity documents</a></p>
-            <button class="btn btn-outline">Submit for manual review</button>
-        </form>
+        <section id="verification" class="card card-b"><h2>Verification</h2><p>Check your application, review the requirements or renew your documents.</p><a class="btn btn-outline" href="/verification">View verification</a></section>
         @if (Model.Investor is not null)
         {
             <form class="card card-b" method="post" action="/settings/receive-pitches" asp-antiforgery="true"><h3>Receive Pitches</h3><p class="small muted">Turning this off blocks new pitches (founders aren't charged). Pending pitches and chats are unaffected.</p><input type="hidden" name="receive" value="@((!Model.Investor.Card.ReceivePitches).ToString().ToLowerInvariant())" /><button class="btn btn-outline">Currently @(Model.Investor.Card.ReceivePitches ? "ON — turn off" : "OFF — turn on")</button></form>

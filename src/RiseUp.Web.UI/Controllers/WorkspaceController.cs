@@ -233,6 +233,13 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     [Authorize(Policy = Policies.Investor), HttpPost("/settings/receive-pitches")]
     public async Task<IActionResult> ReceivePitches(bool receive, CancellationToken ct) => Back(await investors.SetReceivePitchesAsync(Actor, receive, ct), nameof(Settings));
 
+    [Authorize(Policy = Policies.FounderOrInvestor), HttpGet("/verification")]
+    public async Task<IActionResult> Verification(CancellationToken ct)
+    {
+        var status = await verification.GetApplicantStatusAsync(Actor, ct);
+        return status.IsSuccess ? View(status.Value) : Forbid();
+    }
+
     [Authorize(Policy = Policies.FounderOrInvestor), HttpPost("/verification")]
     [RequestSizeLimit(32 * 1024 * 1024)]
     public async Task<IActionResult> SubmitVerification(LicenceHolderType? licenceHolderType, string? licenceHolderName,
@@ -245,10 +252,10 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
         {
             if (file is null || file.Length is <= 0 or > 10 * 1024 * 1024 ||
                 !await FileSignatures.LooksLikeAsync(file, [".pdf", ".jpg", ".jpeg", ".png"]))
-                return Back(Result.Failure(ErrorCodes.Validation, "Each required file must be a PDF, JPEG or PNG up to 10 MB."), nameof(Settings));
+                return Back(Result.Failure(ErrorCodes.Validation, "Each required file must be a PDF, JPEG or PNG up to 10 MB."), nameof(Verification));
             await using var content = file.OpenReadStream();
             if (await scanner.ScanAsync(content, ct) != ScanVerdict.Clean)
-                return Back(Result.Failure(ErrorCodes.UploadPendingScan, "Evidence could not be cleared by the scanner. Please check the file and try again."), nameof(Settings));
+                return Back(Result.Failure(ErrorCodes.UploadPendingScan, "Evidence could not be cleared by the scanner. Please check the file and try again."), nameof(Verification));
         }
         var saved = new List<(string Kind, string StorageKey)>();
         var rejected = false;
@@ -263,7 +270,7 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
             rejected = result.IsFailure;
             if (result.IsSuccess)
                 foreach (var item in saved) intake.Complete(item.StorageKey);
-            return Back(result, nameof(Settings));
+            return Back(result, nameof(Verification));
         }
         finally
         {
