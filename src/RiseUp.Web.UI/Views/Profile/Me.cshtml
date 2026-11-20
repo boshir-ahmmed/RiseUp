@@ -34,10 +34,11 @@
         }
     </div>
     <div class="stack">
-        <div class="card card-b"><h3>Profile strength</h3>
-            <div class="row between"><strong>@Model.Strength%</strong><span class="tiny muted">@(Model.Strength == 100 ? "All-star profile" : "Complete your profile")</span></div>
-            <div class="bar mt8"><i style="width:@(Model.Strength)%"></i></div>
+        <div class="card card-b package-progress"><h3>Profile completeness</h3>
+            <div class="row between"><strong>@Model.Strength%</strong><span class="tiny muted">@(Model.Strength == 100 ? "Profile complete" : "Details filled in")</span></div>
+            <progress value="@Model.Strength" max="100" aria-label="Profile completeness"></progress>
             <ul class="checklist">@foreach (var c in Model.Checklist) {<li class="@(c.Done ? "ok" : "")">@(c.Done ? "✓" : "○") @c.Item</li>}</ul>
+            @if (Model.Strength < 100) { <a href="/me/edit">Complete profile details</a> }
         </div>
         <div class="card card-b small muted">Who sees this: @(Model.IsAdmin ? "administrators only." : "signed-in founders and investors see your name, photo and headline next to your comments and messages. Contact details stay private until a connection.")</div>
     </div>

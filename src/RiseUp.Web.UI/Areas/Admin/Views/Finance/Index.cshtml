@@ -1,13 +1,34 @@
-@model IReadOnlyList<OrderDto>
+@model FinanceOrdersViewModel
 @{ ViewData["Title"] = "Payments & ledger"; }
-<div class="page-h"><div><h1>Payments &amp; ledger</h1><p>Normal purchases are automatic. You handle exceptions, chargebacks and audited adjustments.</p></div></div>
-<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Order</th><th>Startup</th><th>Amount</th><th>Status</th><th>Credited</th><th></th></tr></thead><tbody>
-@foreach (var o in Model)
+<header class="page-h"><div><h1>Payments &amp; ledger</h1><p>Find a recent credit purchase, check settlement or record an adjustment.</p></div></header>
+<form method="get" action="/admin/finance" class="card card-b match-filter">
+    <label class="field"><span>Search recent orders</span><input class="input" type="search" name="q" value="@Model.Query" placeholder="Order number or provider reference" /></label>
+    <label class="field"><span>Payment status</span><select class="input" name="status"><option value="">All statuses</option>
+        @foreach (var status in Enum.GetValues<PaymentStatus>()) { <option value="@status" selected="@(Model.Status == status)">@(status == PaymentStatus.RequiresReview ? "Requires review" : status.ToString())</option> }
+    </select></label><button class="btn btn-dark">Filter</button>
+    @if (Model.Query.Length > 0 || Model.Status.HasValue) { <a href="/admin/finance">Clear</a> }
+</form>
+<section class="card mt16"><div class="card-h"><h2>Recent orders</h2><span class="small muted">@Model.Orders.Count shown</span></div>
+@if (Model.Orders.Count == 0) { <p class="empty">No orders match this view.</p> }
+@foreach (var o in Model.Orders)
 {
-    <tr><td><code>@o.OrderNumber</code><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc)</div></td><td>#@o.StartupId</td><td>@Ui.Bdt(o.PriceBdt) · @o.Tokens credits</td><td><span class="badge @Ui.StatusClass(o.Status.ToString())">@o.Status</span></td><td>@(o.Credited ? "Yes" : "No")</td>
-        <td>@if (o.Status is PaymentStatus.Pending or PaymentStatus.RequiresReview or PaymentStatus.Failed) {<details class="small"><summary class="linkbtn">Reconcile…</summary><form method="post" action="/admin/finance/reconcile" class="stack mt8" asp-antiforgery="true"><input type="hidden" name="orderNumber" value="@o.OrderNumber" /><input class="input" name="providerTransactionId" placeholder="Reference (simulator only)" /><input class="input" name="reason" required minlength="5" placeholder="Settlement evidence" /><button class="btn btn-primary btn-sm">Check payment</button></form></details>}</td></tr>
+    <article class="finance-order"><div><strong>@o.OrderNumber</strong><div class="tiny muted">@Ui.Dhaka(o.CreatedAtUtc) · Startup #@o.StartupId</div></div>
+        <div>@Ui.Bdt(o.PriceBdt)<div class="tiny muted">@o.Tokens credits · @(o.Credited ? "Added to wallet" : "Not credited")</div></div>
+        <div><span class="badge @Ui.StatusClass(o.Status.ToString())">@(o.Status == PaymentStatus.RequiresReview ? "Requires review" : o.Status.ToString())</span></div>
+        @if (o.Status is PaymentStatus.Pending or PaymentStatus.RequiresReview or PaymentStatus.Failed)
+        {
+            <details><summary class="linkbtn">Review payment</summary>
+                <form method="post" action="/admin/finance/reconcile" class="stack mt8" asp-antiforgery="true">
+                    <input type="hidden" name="orderNumber" value="@o.OrderNumber" />
+                    @if (Model.IsSimulator) { <label class="field"><span>Simulator reference</span><input class="input" name="providerTransactionId" /></label> }
+                    <label class="field"><span>Settlement evidence</span><input class="input" name="reason" required minlength="5" /></label>
+                    <button class="btn btn-primary btn-sm">Check payment</button>
+                </form>
+            </details>
+        }
+    </article>
 }
-</tbody></table></div></div>
+</section>
 <form class="card card-b mt24 grid g4" method="post" action="/admin/finance/adjust" style="align-items:end" asp-antiforgery="true">
     <h3 style="grid-column:1/-1">Manual ledger adjustment</h3>
     <label class="field"><span>Startup id</span><input class="input" type="number" name="startupId" required /></label>

@@ -11,7 +11,7 @@
     @foreach (var s in Model)
     {
         <article class="ig card reel" id="s-@s.StartupId">
-            <div class="ig-media" style="aspect-ratio:16/9"><video src="@s.Teaser.Url" poster="@s.Teaser.PosterUrl" muted playsinline loop preload="metadata" data-feedvideo class="ig-img" aria-label="@s.Name teaser"></video><button type="button" class="snd" data-sound aria-label="Toggle sound">🔇</button><span class="ig-cat" style="background:rgba(0,0,0,.55);color:#fff;display:block">Teaser · @(s.Teaser.Seconds / 60):@((s.Teaser.Seconds % 60).ToString("00"))</span></div>
+            <div class="ig-media" style="aspect-ratio:16/9"><video src="@s.Teaser.Url" poster="@s.Teaser.PosterUrl" controls muted playsinline preload="none" data-feedvideo class="ig-img" aria-label="@s.Name teaser"></video><span class="ig-cat" style="background:rgba(0,0,0,.55);color:#fff;display:block">Teaser · @(s.Teaser.Seconds / 60):@((s.Teaser.Seconds % 60).ToString("00"))</span></div>
             <div class="ig-body" style="padding:12px 16px 16px">
                 <div class="row" style="flex-wrap:nowrap"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" /><div style="flex:1;min-width:0"><a href="/startups/@s.StartupId" class="ig-name">@s.Name</a> <span class="vtick">✓</span><div class="tiny muted">@s.Industry · @Ui.Stage(s.Stage) · @s.Location</div></div></div>
                 <p class="small mt8">@s.Tagline</p>

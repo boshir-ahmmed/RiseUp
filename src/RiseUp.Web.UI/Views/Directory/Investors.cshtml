@@ -6,7 +6,7 @@
         @foreach (var i in Model)
         {
             <article class="card mk-card card-b">
-                <div class="row" style="flex-wrap:nowrap"><div class="avatar" style="background:@Ui.Color(i.ColorIndex)" aria-hidden="true">@Ui.Initials(i.Name)</div><div><h3 class="mb0">@i.Name</h3><div class="small muted">@i.Affiliation</div></div></div>
+                <div class="row" style="flex-wrap:nowrap"><partial name="_Avatar" model="(i.Name, i.PhotoUrl, i.ColorIndex, 48)" /><div><h3 class="mb0"><a href="/investors/@i.Id">@i.Name</a></h3><div class="small muted">@i.Affiliation</div></div></div>
                 <div class="row mt16" style="gap:6px"><span class="badge b-ver">✓ Verified Investor</span>@foreach (var x in i.Industries) {<span class="chip">@x</span>}</div>
                 <p class="small mt16 mb0"><partial name="_ReadMore" model="(i.Bio, 80)" /></p>
                 <div class="small mt8"><strong>Stages:</strong> @string.Join(", ", i.Stages.Select(Ui.Stage))</div>

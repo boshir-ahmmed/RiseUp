@@ -26,8 +26,7 @@
     <div class="ig-media" data-dbl="@Model.Id" title="Double-tap to like">
         @if (Model.VideoUrl is not null)
         {
-            <video src="@Model.VideoUrl" poster="@Model.PosterUrl" class="ig-img" muted playsinline loop preload="metadata" data-feedvideo aria-label="@Model.Title"></video>
-            <button type="button" class="snd" data-sound aria-label="Toggle sound">🔇</button>
+            <video src="@Model.VideoUrl" poster="@Model.PosterUrl" class="ig-img" controls muted playsinline preload="none" data-feedvideo aria-label="@Model.Title"></video>
             @if (Model.VideoSeconds is int secs) {<span class="vd">▶ @(secs / 60):@((secs % 60).ToString("00"))</span>}
         }
         else
@@ -42,10 +41,10 @@
     <div class="pc-stats"><span><span class="hb">♥</span> <span data-likes="@Model.Id">@Model.Likes</span></span><span><a href="/posts/@Model.Id#comments">@Model.Comments comment@(Model.Comments == 1 ? "" : "s")</a> · @Model.Shares shares · @Model.Views.ToString("N0") views</span></div>
     <div class="pc-acts">
         <button type="button" class="@(Model.LikedByMe ? "on" : "")" data-like="@Model.Id" data-can="@(canInteract ? "1" : "0")" aria-pressed="@(Model.LikedByMe ? "true" : "false")" aria-label="Like"><svg width="20" height="20" viewBox="0 0 24 24" fill="@(Model.LikedByMe ? "#E11D48" : "none")" stroke="@(Model.LikedByMe ? "#E11D48" : "currentColor")" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5S3.5 15.4 3.5 9.3A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 8.5 2.7c0 6.1-8.5 11.2-8.5 11.2z"/></svg><span>Like</span></button>
-        <a href="/posts/@Model.Id#comments" class="pc-act"><partial name="_Icon" model='"cmt"' /><span>Comment</span></a>
+        <a href="/posts/@Model.Id#comments" class="pc-act" aria-label="Comment"><partial name="_Icon" model='"cmt"' /><span>Comment</span></a>
         <button type="button" data-share="@Model.Id" data-can="@(canInteract ? "1" : "0")" aria-label="Share link"><partial name="_Icon" model='"share"' /><span>Share</span></button>
         @if (signedIn) { <button type="button" class="@(Model.SavedByMe ? "on" : "")" data-save="@Model.Id" aria-pressed="@(Model.SavedByMe ? "true" : "false")" aria-label="Save"><partial name="_Icon" model='"save"' /><span>@(Model.SavedByMe ? "Saved" : "Save")</span></button> }
-        else { <a href="/login" class="pc-act"><partial name="_Icon" model='"save"' /><span>Save</span></a> }
+        else { <a href="/login" class="pc-act" aria-label="Sign in to save"><partial name="_Icon" model='"save"' /><span>Save</span></a> }
     </div>
     @if (Model.LatestComments is { Count: > 0 } latest)
     {

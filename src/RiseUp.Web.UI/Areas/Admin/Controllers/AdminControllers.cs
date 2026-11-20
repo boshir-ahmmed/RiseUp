@@ -101,7 +101,15 @@ public sealed class ReportsController(IModerationFacade moderation, IStartupFaca
 public sealed class FinanceController(IPaymentFacade payments, IWalletFacade wallets) : AppController
 {
     [HttpGet("/admin/finance")]
-    public async Task<IActionResult> Index(CancellationToken ct) => View(await payments.ListOrdersAsync(Actor, ct));
+    public async Task<IActionResult> Index(string? q, PaymentStatus? status, CancellationToken ct)
+    {
+        var query = q?.Trim() ?? "";
+        var recent = await payments.ListOrdersAsync(Actor, ct);
+        var orders = recent.Where(o => (status is null || o.Status == status)
+            && (o.OrderNumber.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                o.ProviderTransactionId?.Contains(query, StringComparison.OrdinalIgnoreCase) == true)).ToList();
+        return View(new FinanceOrdersViewModel(orders, query, status, payments.Mode == RiseUp.Entities.Abstractions.PaymentMode.Simulator));
+    }
 
     [HttpPost("/admin/finance/reconcile")]
     public async Task<IActionResult> Reconcile(string orderNumber, string providerTransactionId, string reason, CancellationToken ct) =>
