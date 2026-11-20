@@ -325,7 +325,7 @@ namespace RiseUp.DataAccess.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MemberProfiles", x => x.Id);
-                    table.CheckConstraint("CK_MemberProfile_OneOwner", "([AccountId] IS NULL) <> ([TeamAccountId] IS NULL)");
+                    table.CheckConstraint("CK_MemberProfile_OneOwner", "([AccountId] IS NOT NULL AND [TeamAccountId] IS NULL) OR ([AccountId] IS NULL AND [TeamAccountId] IS NOT NULL)");
                     table.ForeignKey(
                         name: "FK_MemberProfiles_MediaAssets_CoverMediaId",
                         column: x => x.CoverMediaId,

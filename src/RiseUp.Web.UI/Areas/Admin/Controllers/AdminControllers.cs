@@ -58,8 +58,8 @@ public sealed class VerificationController(IVerificationFacade verification) : A
         Back(await verification.ExpireAsync(Actor, subject, subjectId, reason ?? "evidence expired", ct), nameof(Index));
 
     [HttpPost("/admin/transfers/{id:int}/decide")]
-    public async Task<IActionResult> DecideTransfer(int id, bool approve, string note, CancellationToken ct) =>
-        Back(await verification.DecideTransferAsync(Actor, id, approve, note ?? "", ct), nameof(Index));
+    public async Task<IActionResult> DecideTransfer(int id, bool approve, string note, [FromServices] IWebHostEnvironment environment, CancellationToken ct) =>
+        !environment.IsDevelopment() ? NotFound() : Back(await verification.DecideTransferAsync(Actor, id, approve, note ?? "", ct), nameof(Index));
 }
 
 /// <summary>Display-name changes on verified accounts are checked against the ID on file before they go live.</summary>

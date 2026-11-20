@@ -46,7 +46,7 @@ Summary: **Tested** 146, **Implemented** 67, **Partial** 30, **Supported** 3, **
 | SR-08 | Authorization — Server-side role- and resource-based authorization shall restrict every endpoint, dashboard operation and file download. | Tested | T32, smoke |
 | SR-09 | Administrator security — Separate Super Admin, Verification Administrator, Moderator and Finance Administrator permissions; require strong two-fact… | Tested | T29 |
 | SR-10 | Verification service — A document workflow shall route identity, trade license, company registration, ownership and investor credential evidence to… | Tested | T03_T04 |
-| SR-11 | Email and notifications — A configured provider shall send email verification, password resets, payment receipts and other relevant notices; in-app… | Partial | in-app notifications + outbox events; email sender worker not implemented |
+| SR-11 | Email and notifications — A configured provider shall send email verification, password resets, payment receipts and other relevant notices; in-app… | Partial | in-app notifications, email outbox and SMTP delivery worker |
 | SR-12 | Document storage — Private object/file storage shall protect identity documents, confidential library files and chat attachments; application endpo… | Partial | private local storage with opaque keys; production object storage pending |
 | SR-13 | File security — Uploads shall be validated by size, extension and file signature, scanned for malware, and blocked or quarantined if unsafe. | Partial | signature/size checks + quarantine + DEMO scanner; real AV engine pending |
 | SR-14 | Payment integration — A suitable Bangladesh payment gateway with secure hosted checkout and verified server-to-server confirmations shall process R… | Blocked | sandbox gateway only; needs merchant onboarding & credentials |
@@ -197,7 +197,7 @@ Summary: **Tested** 146, **Implemented** 67, **Partial** 30, **Supported** 3, **
 | FR-125 | Founders shall use Welcome tokens first for pitching and Purchased tokens only after Welcome tokens are exhausted. | Tested | T06_T10 |
 | FR-126 | Promotions shall be payable only from Purchased tokens, never Welcome tokens. | Tested | T06_T28 |
 | FR-127 | Administrators shall configure fixed token packages and corresponding purchase prices in Bangladeshi taka. | Implemented |  |
-| FR-128 | Token purchases shall use the configured Bangladesh gateway with available electronic payment methods, including mobile financial services or cards… | Blocked | gateway methods depend on the chosen provider |
+| FR-128 | Token purchases shall use the configured Bangladesh gateway with available electronic payment methods, including mobile financial services or cards… | Implemented | SSLCOMMERZ hosted checkout exposes merchant-enabled Bangladesh channels |
 | FR-129 | Purchased tokens shall be credited only upon verified and authenticated successful payment, with duplicate callbacks unable to generate duplicate c… | Tested | T27 |
 | FR-130 | Every token purchase and adjustment shall appear in the authorized owner wallet history and corresponding financial audit trail. | Implemented |  |
 | FR-131 | Finance Administrators shall manually investigate payment failures, missing credits, refund/chargeback disputes and exceptions; normal purchases sh… | Tested | T29 |
@@ -260,7 +260,7 @@ Summary: **Tested** 146, **Implemented** 67, **Partial** 30, **Supported** 3, **
 | NFR-11 | Backup and recovery — The service shall perform daily backups with documented retention and tested restoration procedures. | Documented | restore drill not executed |
 | NFR-12 | Privacy — No private funding details, direct contact information, verification evidence, confidential documents or group history shall be exposed t… | Tested | T23 + smoke |
 | NFR-13 | Logging — Operational errors shall include timestamps and correlation IDs without logging passwords, credentials, complete private messages or sens… | Implemented |  |
-| NFR-14 | Financial reconciliation — Gateway settlement and successful payments shall be checked against wallet credits; discrepancies shall be escalated for… | Partial | idempotent credits + manual reconciliation; automated settlement comparison pending |
+| NFR-14 | Financial reconciliation — Gateway settlement and successful payments shall be checked against wallet credits; discrepancies shall be escalated for… | Partial | automatic provider order and ledger comparison, Finance exceptions; bank settlement statements require operator review |
 | NFR-15 | Access control — Every restricted route, action and file request shall validate both the user role and object-level relationship before returning d… | Tested | T32 + smoke |
 | NFR-16 | Authentication security — Passwords shall be one-way hashed, sensitive sessions protected, all administrators required to use strong two-factor aut… | Tested | Identity tests + T29 |
 | NFR-17 | Transport security — Authenticated and payment-related traffic shall be protected by HTTPS/TLS; secrets shall not be committed to the source reposi… | Implemented | HTTPS redirect + HSTS outside Development; secrets via env/vault |

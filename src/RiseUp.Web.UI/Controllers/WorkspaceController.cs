@@ -278,8 +278,8 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/settings/ownership-transfer")]
-    public async Task<IActionResult> Transfer(string incomingName, string incomingEmail, CancellationToken ct) =>
-        Back(await verification.RequestOwnershipTransferAsync(Actor, incomingName, incomingEmail, ct), nameof(Settings));
+    public async Task<IActionResult> Transfer(string incomingName, string incomingEmail, [FromServices] IWebHostEnvironment environment, CancellationToken ct) =>
+        !environment.IsDevelopment() ? NotFound() : Back(await verification.RequestOwnershipTransferAsync(Actor, incomingName, incomingEmail, ct), nameof(Settings));
 
     [HttpGet("/notifications")]
     public async Task<IActionResult> Notifications(CancellationToken ct)
