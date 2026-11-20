@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using RiseUp.DataAccess.Seed;
+using RiseUp.DataAccess.Services;
 using RiseUp.Framework.Time;
 
 namespace RiseUp.DataAccess;
@@ -19,24 +22,40 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Ris
 
     public RiseUpDbContext CreateDbContext(string[] args)
     {
-        var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
+        var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         var basePath = FindStartupProjectDirectory();
 
-        var configuration = new ConfigurationBuilder()
+        var sources = new ConfigurationBuilder()
             .SetBasePath(basePath)
             .AddJsonFile("appsettings.json", optional: true)
-            .AddJsonFile($"appsettings.{environment}.json", optional: true)
-            .AddEnvironmentVariables()
-            .Build();
+            .AddJsonFile($"appsettings.{environment}.json", optional: true);
+        if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
+            sources.AddUserSecrets("RiseUp.Web.UI-local-development");
+        var configuration = sources.AddEnvironmentVariables().Build();
 
         var connection = Environment.GetEnvironmentVariable("RISEUP_MIGRATIONS_CONNECTION")
             ?? configuration.GetConnectionString("RiseUp")
             ?? LocalDb;
 
         var options = new DbContextOptionsBuilder<RiseUpDbContext>()
-            .UseSqlServer(connection, sql => sql.MigrationsAssembly(typeof(RiseUpDbContext).Assembly.FullName))
-            .Options;
-        return new RiseUpDbContext(options, new SystemClock());
+            .UseSqlServer(connection, sql => sql.MigrationsAssembly(typeof(RiseUpDbContext).Assembly.FullName));
+        if (args.Contains("--seed-demo", StringComparer.OrdinalIgnoreCase))
+        {
+            if (!environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Select Development to install the fictional demo.");
+            var media = new SeedOptions { DemoMediaPath = Path.GetFullPath(configuration["Seed:DemoMediaPath"] ?? "DemoMedia", basePath) };
+            var files = new LocalPrivateFileStorage(Options.Create(new StorageOptions
+            {
+                RootPath = Path.GetFullPath(configuration["Storage:RootPath"] ?? "App_Data/private", basePath)
+            }));
+            Task Seed(DbContext context, CancellationToken ct) =>
+                new DemoDataSeeder((RiseUpDbContext)context, new PasswordHasherAdapter(), new SystemClock(), files, Options.Create(media))
+                    .SeedAsync(requireDemo: true, ct);
+            options.UseSeeding((context, _) => Seed(context, CancellationToken.None).GetAwaiter().GetResult())
+                .UseAsyncSeeding((context, _, ct) => Seed(context, ct));
+        }
+        return new RiseUpDbContext(options.Options, new SystemClock());
     }
 
     /// <summary>The EF tools run with the startup project as the working directory; fall back to src/RiseUp.Web.UI.</summary>

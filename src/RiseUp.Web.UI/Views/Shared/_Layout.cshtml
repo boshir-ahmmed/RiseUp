@@ -1,3 +1,4 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     var actor = CurrentActor.From(User);
     var path = Context.Request.Path.Value ?? "/";
@@ -22,7 +23,7 @@
     <a class="skip-main" href="#main">Skip to main content</a>
     @if (HostEnv.IsDevelopment())
     {
-        <div class="devbar">DEVELOPMENT · SQLite demo database · sandbox AI, payments &amp; malware scanner · demo password <code>Demo#2026pass</code></div>
+        <div class="devbar">DEVELOPMENT · @(Configuration["Database:Provider"] == "SqliteDemo" ? "SQLite" : "SQL Server") · demo password <code>Demo#2026pass</code></div>
     }
     @if (actor.IsAuthenticated)
     {

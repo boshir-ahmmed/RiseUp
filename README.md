@@ -43,9 +43,11 @@ and are imported into private storage by the demo seeder.
 
 ## Run against SQL Server
 
+To install the fictional accounts, portraits, photo posts and portrait reels from Visual Studio, follow the [SQL Server demo setup](DATABASE_SETUP.md).
+
 ```bash
-# LocalDB (Windows / Visual Studio): choose the "RiseUp (SQL Server LocalDB)" launch profile, or:
-dotnet run --project src/RiseUp.Web.UI --launch-profile "RiseUp (SQL Server LocalDB)"
+# LocalDB (Windows / Visual Studio): choose the "RiseUp (SQL Server)" launch profile, or:
+dotnet run --project src/RiseUp.Web.UI --launch-profile "RiseUp (SQL Server)"
 
 # Docker (SQL Server 2022 + app):
 docker compose up --build        # http://localhost:8080

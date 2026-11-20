@@ -24,9 +24,47 @@ public sealed partial class DemoDataSeeder(RiseUpDbContext db, IPasswordHasher h
 {
     public const string DemoPassword = "Demo#2026pass";
 
-    public async Task SeedAsync(CancellationToken ct = default)
+    private readonly List<string> newFiles = [];
+
+    public Task SeedAsync(CancellationToken ct = default) => SeedAsync(false, ct);
+
+    internal async Task SeedAsync(bool requireDemo, CancellationToken ct)
     {
-        if (await db.UserAccounts.AnyAsync(ct)) return;
+        // The EF tools already hold a migration transaction. Startup and tests own their transaction.
+        await using var tx = db.Database.CurrentTransaction is null
+            ? await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct) : null;
+        try
+        {
+            if (!await db.UserAccounts.AnyAsync(ct))
+            {
+                if (requireDemo) ValidateBundledMedia();
+                await SeedBaseAsync(ct);
+            }
+            else if (!await db.ConnectionRequests.AnyAsync(r => r.IdempotencyKey == "seed:r0", ct))
+            {
+                if (requireDemo) throw new InvalidOperationException("This database already contains accounts and is not a RiseUp demo. Select a new demo database.");
+                return;
+            }
+            await SeedGalleryAsync(ct);
+            if (tx is not null) await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            foreach (var key in newFiles) await storage.DeleteAsync(key, CancellationToken.None);
+            throw;
+        }
+        finally { newFiles.Clear(); }
+    }
+
+    private async Task<string> SavePrivateAsync(Stream content, string name, CancellationToken ct)
+    {
+        var key = await storage.SaveAsync(content, name, ct);
+        newFiles.Add(key);
+        return key;
+    }
+
+    private async Task SeedBaseAsync(CancellationToken ct)
+    {
         var now = clock.UtcNow;
         var hash = hasher.Hash(DemoPassword);
 
@@ -164,11 +202,12 @@ public sealed partial class DemoDataSeeder(RiseUpDbContext db, IPasswordHasher h
         db.Posts.AddRange(posts);
         await db.SaveChangesAsync(ct);
         db.PostReactions.AddRange(new PostReaction { PostId = posts[0].Id, ActorAccountId = investorUsers[0].Id, CreatedAtUtc = now }, new PostReaction { PostId = posts[0].Id, ActorAccountId = investorUsers[3].Id, CreatedAtUtc = now });
-        db.PostComments.Add(new PostComment { PostId = posts[0].Id, Depth = 1, AuthorAccountId = investorUsers[0].Id, AuthorName = "Sadia Haque", Body = "Impressive corridor efficiency gains.", CreatedAtUtc = now.AddDays(-1) });
+        var sampleComment = new PostComment { PostId = posts[0].Id, Depth = 1, AuthorAccountId = investorUsers[0].Id, AuthorName = "Sadia Haque", Body = "Impressive corridor efficiency gains.", CreatedAtUtc = now.AddDays(-1) };
+        db.PostComments.Add(sampleComment);
         // Nodi Freight bought 25 credits and promoted post 1 for 3 days.
         var nodiWallet = await db.Wallets.FirstAsync(w => w.StartupId == nodi.Id, ct);
         nodiWallet.WelcomeBalance = 18; nodiWallet.PurchasedBalance = 18;
-        db.PaymentOrders.Add(new PaymentOrder { OrderNumber = "PO-7001", StartupId = nodi.Id, PackageId = 2, TokensSnapshot = 25, PriceBdtSnapshot = 1100, Status = PaymentStatus.Paid, ProviderTransactionId = "SBX-88213", CreditedAtUtc = now.AddDays(-20), Method = "bKash (sandbox)", CreatedAtUtc = now.AddDays(-20) });
+        db.PaymentOrders.Add(new PaymentOrder { OrderNumber = "PO-7001", StartupId = nodi.Id, PackageId = await db.TokenPackages.Where(p => p.Tokens == 25).Select(p => p.Id).SingleAsync(ct), TokensSnapshot = 25, PriceBdtSnapshot = 1100, Status = PaymentStatus.Paid, ProviderTransactionId = "SBX-88213", CreditedAtUtc = now.AddDays(-20), Method = "bKash (sandbox)", CreatedAtUtc = now.AddDays(-20) });
         db.TokenLedger.AddRange(
             new TokenLedgerEntry { StartupId = nodi.Id, Description = "Pitch delivered → Sadia Haque", Bucket = TokenBucket.Welcome, Amount = -1, Reference = "seed:r0", IdempotencyKey = "pitch:seed:r0", CreatedAtUtc = now.AddDays(-40) },
             new TokenLedgerEntry { StartupId = nodi.Id, Description = Mitigation(), Bucket = TokenBucket.Welcome, Amount = -1, Reference = "seed:r1", IdempotencyKey = "pitch:seed:r1", CreatedAtUtc = now.AddDays(-12) },
@@ -188,7 +227,8 @@ public sealed partial class DemoDataSeeder(RiseUpDbContext db, IPasswordHasher h
             Subject = VerificationSubject.Investor, InvestorId = investors[5].Id, Status = VerificationStatus.Pending, SubmittedAtUtc = now.AddDays(-1), CreatedAtUtc = now.AddDays(-1),
             Documents = [await DemoEvidenceAsync("Passport", ct), await DemoEvidenceAsync("Credential", ct)],
         });
-        db.Reports.Add(new UserReport { Kind = ReportKind.Comment, TargetReference = "comment:1", Reason = "Spam / self-promotion", ReporterAccountId = investorUsers[3].Id, Status = ReportStatus.Open, CreatedAtUtc = now.AddDays(-6) });
+        await db.SaveChangesAsync(ct);
+        db.Reports.Add(new UserReport { Kind = ReportKind.Comment, TargetReference = $"comment:{sampleComment.Id}", Reason = "Spam / self-promotion", ReporterAccountId = investorUsers[3].Id, Status = ReportStatus.Open, CreatedAtUtc = now.AddDays(-6) });
         db.AdminAudit.Add(new AdminActionAudit { ActorAccountId = admins[1].Id, ActorRole = "VerificationAdmin", Action = "Approved startup verification", Target = "Nodi Freight", Reason = "NID + trade licence holder match", CreatedAtUtc = now.AddDays(-80) });
         await db.SaveChangesAsync(ct);
         await SeedPitchingAndProfilesAsync(founders, investorUsers, admins, startups, investors, rafi, posts, ct);
@@ -197,7 +237,7 @@ public sealed partial class DemoDataSeeder(RiseUpDbContext db, IPasswordHasher h
     private async Task<VerificationDocument> DemoEvidenceAsync(string kind, CancellationToken ct)
     {
         using var bytes = new MemoryStream(MinimalPdf("Fictional verification sample", [kind, "For demonstration only."]));
-        var key = await storage.SaveAsync(bytes, "sample.pdf", ct);
+        var key = await SavePrivateAsync(bytes, "sample.pdf", ct);
         return new VerificationDocument { Kind = kind, StorageKey = key, ScanStatus = ScanStatus.Pending };
     }
 

@@ -117,15 +117,45 @@ public class V3V4FeatureTests
     }
 
     [Fact]
+    public async Task GalleryUpgradeFillsMissingPortraitAndPreservesOwnerEditsOnRepeat()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var f = await h.Founder();
+        var investor = await h.Investor();
+        var mediaCount = await h.Db(db => db.MediaAssets.CountAsync());
+        var postCount = await h.Db(db => db.Posts.CountAsync());
+        // Simulate an older demo in which the investor portrait has never been installed.
+        await h.Db(async db =>
+        {
+            var profile = await db.MemberProfiles.SingleAsync(p => p.AccountId == investor.AccountId);
+            var photo = await db.MediaAssets.SingleAsync(m => m.Id == profile.PhotoMediaId);
+            profile.PhotoMediaId = null;
+            db.MediaAssets.Remove(photo);
+            var reel = await db.Posts.SingleAsync(p => p.StartupId == f.StartupId && p.Category == PostCategory.Reel);
+            reel.LiveTitle = "Edited by the founder";
+            return await db.SaveChangesAsync();
+        });
+        Assert.True((await h.Run<IProfileFacade, Result>(x => x.RemovePhotoAsync(f))).IsSuccess);
+        for (var i = 0; i < 2; i++)
+            await h.Run<RiseUp.DataAccess.Seed.DemoDataSeeder, bool>(async seed => { await seed.SeedAsync(); return true; });
+        Assert.NotNull(await h.Db(db => db.MemberProfiles.Where(p => p.AccountId == investor.AccountId).Select(p => p.PhotoMediaId).SingleAsync()));
+        Assert.Null(await h.Db(db => db.MemberProfiles.Where(p => p.AccountId == f.AccountId).Select(p => p.PhotoMediaId).SingleAsync()));
+        Assert.Equal(mediaCount, await h.Db(db => db.MediaAssets.CountAsync()));
+        Assert.Equal(postCount, await h.Db(db => db.Posts.CountAsync()));
+        Assert.True(await h.Db(db => db.Posts.AnyAsync(p => p.LiveTitle == "Edited by the founder")));
+    }
+
+    [Fact]
     public async Task P07_PhotoUploads_AreTypeSizeAndMalwareChecked()
     {
         await using var h = await TestHost.CreateAsync();
         var f = await h.Founder();
+        var originalPhotos = await h.Db(db => db.MediaAssets.CountAsync(m => m.Kind == MediaKind.ProfilePhoto));
         Assert.Equal(ErrorCodes.InvalidMedia, (await h.Run<IProfileFacade, Result>(async x => await x.SetPhotoAsync(f, await h.UploadAsync(Jpeg, "x.pdf", "application/pdf")))).Error.Code);
         var big = await h.UploadAsync(Jpeg, "big.jpg", "image/jpeg") with { SizeBytes = 6 * 1024 * 1024 };
         Assert.Equal(ErrorCodes.InvalidMedia, (await h.Run<IProfileFacade, Result>(x => x.SetPhotoAsync(f, big))).Error.Code);
         Assert.Equal(ErrorCodes.MediaInfected, (await h.Run<IProfileFacade, Result>(async x => await x.SetPhotoAsync(f, await h.UploadAsync(Eicar, "eicar.jpg", "image/jpeg")))).Error.Code);
-        Assert.Equal(0, await h.Db(db => db.MediaAssets.CountAsync(m => m.Kind == MediaKind.ProfilePhoto)));
+        Assert.Equal(originalPhotos, await h.Db(db => db.MediaAssets.CountAsync(m => m.Kind == MediaKind.ProfilePhoto)));
     }
 
     [Fact]
