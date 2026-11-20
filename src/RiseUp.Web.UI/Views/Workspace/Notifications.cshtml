@@ -6,9 +6,9 @@
     @foreach (var n in Model)
     {
         <div class="row" style="padding:14px 20px;border-bottom:1px solid #EEF2F6;flex-wrap:nowrap">
-            @if (!n.IsRead) {<span style="width:8px;height:8px;border-radius:50%;background:var(--teal);flex:none" aria-label="Unread"></span>} else {<span style="width:8px"></span>}
-            <div style="flex:1"><div class="small" style="@(n.IsRead ? "" : "font-weight:600")">@n.Text</div><div class="tiny muted">@Ui.Ago(n.AtUtc)</div></div>
-            @if (n.Link is not null) { <a class="btn btn-outline btn-sm" href="@n.Link">View</a> }
+            @if (!n.IsRead) {<span class="unread-dot"></span>} else {<span style="width:8px"></span>}
+            <div style="flex:1"><div class="small" style="@(n.IsRead ? "" : "font-weight:600")">@if (!n.IsRead) { <span class="sr">Unread. </span> }@n.Text</div><div class="tiny muted">@Ui.Ago(n.AtUtc)</div></div>
+            @if (n.Link is not null) { <a class="btn btn-outline btn-sm" href="@n.Link" aria-label="View notification: @n.Text">View</a> }
         </div>
     }
 </div>

@@ -23,6 +23,6 @@ public sealed class ChatHub(IConversationFacade conversations) : Hub
     {
         var result = await conversations.SendAsync(CurrentActor.From(Context.User!), conversationId, body);
         if (result.IsFailure) throw new HubException(result.Error.Message);
-        await Clients.Group(Group(conversationId)).SendAsync("message", new { conversationId, id = result.Value!.Id, author = result.Value.AuthorName, body = result.Value.Body, at = result.Value.SentAtUtc });
+        await Clients.Group(Group(conversationId)).SendAsync("changed", conversationId);
     }
 }

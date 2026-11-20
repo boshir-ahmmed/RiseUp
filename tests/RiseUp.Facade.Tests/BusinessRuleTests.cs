@@ -415,6 +415,30 @@ public class BusinessRuleTests
     }
 
     [Fact]
+    public async Task ConversationOpensAtNewestMessagesAndPagesBackWithoutRepeats()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var founder = await h.Founder();
+        var id = await h.Db(db => db.Conversations.Where(c => c.StartupId == founder.StartupId).Select(c => c.Id).SingleAsync());
+        await h.Db(async db =>
+        {
+            for (var index = 0; index < 55; index++)
+                db.Messages.Add(new() { ConversationId = id, AuthorName = "Founder", AuthorAccountId = founder.AccountId,
+                    AuthorKind = MemberKind.Owner, Body = $"Update {index}", SentAtUtc = h.Clock.UtcNow });
+            return await db.SaveChangesAsync();
+        });
+        Task<Result<ConversationDto>> Read(int? before) =>
+            h.Run<IConversationFacade, Result<ConversationDto>>(f => f.RecentAsync(founder, id, before));
+        var latest = (await Read(null)).Value!;
+        Assert.Equal(50, latest.Messages.Count);
+        Assert.Equal("Update 54", latest.Messages[^1].Body);
+        Assert.NotNull(latest.OlderBeforeId);
+        var earlier = (await Read(latest.OlderBeforeId)).Value!;
+        Assert.Equal("Update 4", earlier.Messages[^1].Body);
+        Assert.True(earlier.Messages[^1].Id < latest.Messages[0].Id);
+    }
+
+    [Fact]
     public async Task T24_MessageEdit_IsLimitedTo15Minutes_AndDeleteLeavesMarker()
     {
         await using var h = await TestHost.CreateAsync();

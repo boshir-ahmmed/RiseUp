@@ -8,10 +8,10 @@
 else
 {
     <div class="card chat" data-conversation="@sel?.Summary.Id">
-        <div class="chat-list" role="list">
+        <div class="chat-list" aria-label="Conversation list">
             @foreach (var c in Model.List)
             {
-                <a class="chat-item @(c.Id == sel?.Summary.Id ? "on" : "")" href="/conversations/@c.Id" role="listitem"><div style="min-width:0;flex:1"><div class="row between"><strong class="small">@c.Title</strong>@if (c.Muted) {<span class="tiny muted">muted</span>}</div><div class="tiny muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@(c.LastMessage ?? "No messages yet")</div></div></a>
+                <a class="chat-item @(c.Id == sel?.Summary.Id ? "on" : "")" href="/conversations/@c.Id" aria-current="@(c.Id == sel?.Summary.Id ? "page" : null)"><div style="min-width:0;flex:1"><div class="row between"><strong class="small">@c.Title</strong>@if (c.Muted) {<span class="tiny muted">muted</span>}</div><div class="tiny muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@(c.LastMessage ?? "No messages yet")</div></div></a>
             }
         </div>
         @if (sel is not null)
@@ -33,20 +33,10 @@ else
                             <button class="btn btn-dark btn-sm">Save</button><span class="tiny muted">New members see full history; the investor is notified.</span>
                         </form></details>
                 }
+                @if (Context.Request.Query.ContainsKey("before")) { <a class="history-link" href="/conversations/@sel.Summary.Id">Back to latest messages</a> }
+                <div class="chat-refresh" aria-live="polite"><a href="/conversations/@sel.Summary.Id" class="linkbtn" data-show-latest>Refresh messages</a></div>
                 <div class="chat-msgs" id="msgs">
-                    @foreach (var m in sel.Messages)
-                    {
-                        if (m.IsSystem) { <div class="msg sys">@m.Body</div> continue; }
-                        <div class="msg @(m.IsMine ? "me" : "") @(m.Deleted ? "del" : "")" data-msg="@m.Id">
-                            <div class="meta"><partial name="_Avatar" model="(m.AuthorName, m.AuthorPhotoUrl, m.AuthorName.Length, 22)" /><strong style="color:var(--ink)">@m.AuthorName</strong><span>@Ui.Dhaka(m.SentAtUtc)</span>@if (m.Edited && !m.Deleted) {<span>· edited</span>}</div>
-                            @if (m.Deleted) {<span>This message was deleted.</span>} else {<span style="white-space:pre-wrap">@m.Body</span>}
-                            <div class="acts">
-                                @if (m.CanEdit) { <details><summary class="linkbtn tiny">Edit (15 min)</summary><form method="post" action="/messages/@m.Id/edit" asp-antiforgery="true"><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><textarea class="input" name="body" maxlength="2000">@m.Body</textarea><button class="btn btn-dark btn-sm mt8">Save</button></form></details> }
-                                @if (m.CanDelete) { <form method="post" action="/messages/@m.Id/delete" class="inline" asp-antiforgery="true"><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><button class="linkbtn tiny" data-confirm="Delete this message for everyone?">Delete for everyone</button></form> }
-                                @if (!m.IsMine && !m.Deleted) { <form method="post" action="/reports" class="inline" asp-antiforgery="true"><input type="hidden" name="kind" value="@ReportKind.GroupMessage" /><input type="hidden" name="target" value="message:@m.Id" /><input type="hidden" name="conversationId" value="@sel.Summary.Id" /><input type="hidden" name="messageId" value="@m.Id" /><input type="hidden" name="reason" value="Reported from conversation" /><button class="linkbtn tiny">Report</button></form> }
-                            </div>
-                        </div>
-                    }
+                    <partial name="_Messages" model="sel" />
                 </div>
                 <div id="meetings" style="padding:10px 16px;border-top:1px solid var(--border)">
                     @foreach (var mt in Model.Meetings ?? [])

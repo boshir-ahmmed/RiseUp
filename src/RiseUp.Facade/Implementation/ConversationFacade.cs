@@ -61,7 +61,7 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
         var result = new List<ConversationSummaryDto>();
         foreach (var c in list)
         {
-            var last = (await conversations.ListMessagesAsync(c.Id, 0, 1000, ct)).LastOrDefault(m => !m.IsSystem);
+            var last = await conversations.LatestUserMessageAsync(c.Id, ct);
             result.Add(new ConversationSummaryDto(c.Id, await TitleAsync(actor, c, ct), c.StartupId, c.InvestorId,
                 last is null ? null : last.DeletedAtUtc is not null ? "Message deleted" : $"{last.AuthorName}: {last.Body}",
                 MemberRow(actor, c)?.Muted ?? false, await DisabledReasonAsync(c, ct)));
@@ -76,13 +76,28 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
     private static ConversationMember? MemberRow(Actor actor, Conversation c) => c.Members.FirstOrDefault(m => m.RemovedAtUtc == null &&
         ((m.AccountId != null && m.AccountId == actor.AccountId) || (m.TeamAccountId != null && m.TeamAccountId == actor.TeamAccountId)));
 
-    public async Task<Result<ConversationDto>> GetAsync(Actor actor, int conversationId, int page = 1, CancellationToken ct = default)
+    public Task<Result<ConversationDto>> GetAsync(Actor actor, int conversationId, int page = 1, CancellationToken ct = default) =>
+        ReadAsync(actor, conversationId, page, null, ct);
+
+    public Task<Result<ConversationDto>> RecentAsync(Actor actor, int conversationId, int? beforeId, CancellationToken ct = default) =>
+        ReadAsync(actor, conversationId, null, beforeId, ct);
+
+    private async Task<Result<ConversationDto>> ReadAsync(Actor actor, int conversationId, int? page, int? beforeId, CancellationToken ct)
     {
         var (c, kind) = await LoadAsync(actor, conversationId, ct);
         if (c is null || kind is null) return Guard.Forbidden("You are not a participant in this conversation.");
         var now = clock.UtcNow;
-        var size = 200; var skip = Math.Max(0, page - 1) * size;
-        var messages = await conversations.ListMessagesAsync(c.Id, skip, size, ct);
+        IReadOnlyList<Message> messages;
+        int? older = null;
+        if (page is int legacyPage)
+            messages = await conversations.ListMessagesAsync(c.Id, (int)Math.Clamp(((long)legacyPage - 1) * 200, 0, int.MaxValue), 200, ct);
+        else
+        {
+            const int pageSize = 50;
+            var recent = await conversations.RecentMessagesAsync(c.Id, beforeId, pageSize + 1, ct);
+            messages = recent.Take(pageSize).Reverse().ToList();
+            if (recent.Count > pageSize) older = messages[0].Id;
+        }
         var startup = await startups.GetByIdAsync(c.StartupId, ct);
         var investor = await investors.GetByIdAsync(c.InvestorId, ct);
         var photoA = await profiles.PhotoIdsForAccountsAsync(messages.Where(m => m.AuthorAccountId != null).Select(m => m.AuthorAccountId!.Value).Distinct().ToList(), ct);
@@ -112,7 +127,7 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
             if (otherId is int oid && await accounts.GetByIdAsync(oid, ct) is { DeletedAtUtc: null } other) { email = other.Email; phone = other.Phone; }
         }
         var summary = new ConversationSummaryDto(c.Id, await TitleAsync(actor, c, ct), c.StartupId, c.InvestorId, null, MemberRow(actor, c)?.Muted ?? false, await DisabledReasonAsync(c, ct));
-        return Result.Success(new ConversationDto(summary, members, dtos, email, phone));
+        return Result.Success(new ConversationDto(summary, members, dtos, email, phone, older));
     }
 
     public async Task<Result<MessageDto>> SendAsync(Actor actor, int conversationId, string body, CancellationToken ct = default)
