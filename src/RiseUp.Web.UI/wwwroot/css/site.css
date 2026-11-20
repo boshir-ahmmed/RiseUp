@@ -561,3 +561,9 @@ dialog.crop-dialog::backdrop{background:rgba(15,23,42,.55)}
 .package-options label:has(:checked){border-color:#10756b;background:#edf9f5}
 .package-options input{accent-color:#10756b}
 .package-options label span span{display:block;color:var(--muted)}
+
+.match-filter{display:flex;align-items:end;flex-wrap:wrap;gap:10px}.match-filter .field{flex:1 1 12rem;min-width:0}
+.match-card{display:flex;flex-direction:column;gap:16px;border-top:3px solid #78bbae}
+.match-card h3 a{color:var(--ink)}.match-card>.row:last-child{margin-top:auto}
+.package-progress progress{display:block;width:100%;height:.65rem;margin-top:16px;accent-color:#13786c}
+@media(max-width:640px){.studio-tabs{display:grid;grid-template-columns:1fr 1fr}.studio-tabs a{white-space:normal;padding:10px;text-align:center}}

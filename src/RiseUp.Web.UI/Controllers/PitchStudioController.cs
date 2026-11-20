@@ -23,17 +23,21 @@ public sealed class PitchStudioController(IPitchPackageFacade package, IPitchRoo
     private const long VideoLimit = 210L * 1024 * 1024;
 
     [HttpGet("/" + UrlRewrite.Pitches)]
-    public async Task<IActionResult> Index(string tab = "package", int? to = null, int? draft = null, CancellationToken ct = default)
+    public async Task<IActionResult> Index(string tab = "package", int? to = null, int? draft = null, CancellationToken ct = default) =>
+        await Studio(tab, to, draft, ct);
+
+    private async Task<IActionResult> Studio(string tab, int? to, int? draft, CancellationToken ct,
+        string? note = null, int[]? selectedDocuments = null, string? sendKey = null)
     {
         var p = await package.GetOwnAsync(Actor, ct);
         if (p.IsFailure) { Flash(p); return Redirect("/dashboard"); }
         var detail = (await startups.GetDetailAsync(Actor, Actor.StartupId!.Value, Actor.ViewerKey, ct)).Value;
-        return View(new PitchStudioViewModel
+        return View("Index", new PitchStudioViewModel
         {
             Tab = tab is "send" or "sent" or "guide" ? tab : to is not null || draft is not null ? "send" : "package",
             Package = p.Value!, Investors = await investors.ListAsync(Actor, ct), Drafts = await requests.ListDraftsAsync(Actor, ct),
             Sent = await rooms.ListSentAsync(Actor, ct), Wallet = (await wallets.GetAsync(Actor, ct)).Value, StartupVerified = detail?.Status == VerificationStatus.Verified,
-            ToInvestorId = to, EditDraftId = draft, IdempotencyKey = Guid.NewGuid().ToString("N"),
+            ToInvestorId = to, EditDraftId = draft, SubmittedNote = note, SelectedDocuments = selectedDocuments, IdempotencyKey = sendKey ?? Guid.NewGuid().ToString("N"),
         });
     }
 
@@ -43,7 +47,8 @@ public sealed class PitchStudioController(IPitchPackageFacade package, IPitchRoo
     {
         var result = await requests.SendPitchAsync(Actor, new SendPitchRequest(investorId, text ?? "", idempotencyKey, draftId, documentsChosen ? documentIds ?? [] : null), ct);
         Flash(result);
-        return Redirect(result.IsSuccess ? "/pitches?tab=sent" : "/pitches?tab=send");
+        if (result.IsSuccess) return Redirect("/pitches?tab=sent");
+        return await Studio("send", investorId, draftId, ct, text ?? "", documentsChosen ? documentIds ?? [] : null, idempotencyKey);
     }
 
     [HttpPost("/pitches/draft")]
