@@ -1,6 +1,6 @@
 @model string?
 @{ ViewData["Title"] = "Check your email"; }
 <section class="section" style="padding-top:48px"><div class="container" style="max-width:520px"><div class="card mk-card card-b">
-    <h1 style="font-size:24px">Check your email</h1><p>Your verification email is queued for delivery. You need to verify your email before signing in.</p>
+    <h1 style="font-size:24px">Check your email</h1><p>Your verification email is queued for delivery. You need to verify your email before signing in.</p><a class="btn btn-outline" href="/login#resend">Resend verification email</a>
     @if (Model is not null) { <div class="notice n-warn small">Development only — verification link: <a href="@Model">verify now</a></div> }
 </div></div></section>

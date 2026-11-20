@@ -22,7 +22,7 @@
         <nav class="row mt24" aria-label="Pagination" style="justify-content:center">
             @for (var p = 1; p <= Model.Result.TotalPages; p++)
             {
-                <a class="btn btn-sm @(p == Model.Result.Page ? "btn-dark" : "btn-outline")" aria-current="@(p == Model.Result.Page ? "page" : null)" href="/startups?Text=@q.Text&Industry=@q.Industry&Stage=@q.Stage&Sort=@q.Sort&Page=@p">@p</a>
+                <a class="btn btn-sm @(p == Model.Result.Page ? "btn-dark" : "btn-outline")" aria-current="@(p == Model.Result.Page ? "page" : null)" asp-controller="Directory" asp-action="Startups" asp-route-Text="@q.Text" asp-route-Industry="@q.Industry" asp-route-Stage="@q.Stage" asp-route-Sort="@q.Sort" asp-route-Page="@p">@p</a>
             }
         </nav>
     }

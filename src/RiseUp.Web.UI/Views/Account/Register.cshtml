@@ -1,16 +1,18 @@
 @model RegisterViewModel
 @{ ViewData["Title"] = $"{Model.Role} registration"; }
-<section class="section" style="padding-top:48px"><div class="container" style="max-width:560px">
+<section class="section onboarding"><div class="container" style="max-width:560px">
     <form class="card mk-card card-b stack" method="post" action="/register" asp-antiforgery="true">
         <div class="row between"><h1 style="font-size:24px;margin:0">@Model.Role registration</h1><a class="btn btn-ghost btn-sm" href="/register">Change role</a></div>
-        <div asp-validation-summary="All" class="notice n-danger"></div>
+        <p class="small muted">Create your account, then confirm your email. You can submit verification documents after signing in.</p>
+        <div asp-validation-summary="ModelOnly" class="notice n-danger" role="alert"></div>
         <input type="hidden" asp-for="Role" />
-        <div class="grid g2"><label class="field"><span>Full legal name</span><input class="input" asp-for="FullName" autocomplete="name" /></label><label class="field"><span>Mobile number</span><input class="input" asp-for="Phone" placeholder="+880 1…" autocomplete="tel" /></label></div>
-        <label class="field"><span>Email</span><input class="input" asp-for="Email" autocomplete="email" /></label>
-        @if (Model.Role == PrimaryRole.Founder) { <label class="field"><span>Startup name</span><input class="input" asp-for="StartupName" /></label> }
-        else { <label class="field"><span>Firm / affiliation</span><input class="input" asp-for="Affiliation" placeholder="Fund, angel network or Independent" /></label> }
-        <label class="field"><span>Password</span><input class="input" asp-for="Password" autocomplete="new-password" /><span class="help"><span>At least 10 characters with letters and numbers.</span></span></label>
-        <label class="check"><input type="checkbox" asp-for="AcceptTerms" /> <span>I accept the <a href="/legal/terms">Terms of Use v@(BusinessRules.TermsVersion)</a> and <a href="/legal/privacy">Privacy Policy v@(BusinessRules.PrivacyVersion)</a>.</span></label>
+        <div class="grid g2"><label class="field"><span>Full legal name</span><input class="input" asp-for="FullName" autocomplete="name"  aria-describedby="FullName-error" /><span id="FullName-error" asp-validation-for="FullName" class="err"></span></label><label class="field"><span>Mobile number</span><input class="input" asp-for="Phone" placeholder="+880 1…" autocomplete="tel" type="tel" aria-describedby="Phone-error" /><span id="Phone-error" asp-validation-for="Phone" class="err"></span></label></div>
+        <label class="field"><span>Email</span><input class="input" asp-for="Email" autocomplete="email" type="email" aria-describedby="Email-error" /><span id="Email-error" asp-validation-for="Email" class="err"></span></label>
+        @if (Model.Role == PrimaryRole.Founder) { <label class="field"><span>Startup name</span><input class="input" asp-for="StartupName" required aria-describedby="StartupName-error" /><span id="StartupName-error" asp-validation-for="StartupName" class="err"></span></label> }
+        else { <label class="field"><span>Firm / affiliation</span><input class="input" asp-for="Affiliation" placeholder="Fund, angel network or Independent"  aria-describedby="Affiliation-error" /><span id="Affiliation-error" asp-validation-for="Affiliation" class="err"></span></label> }
+        <label class="field"><span>Password</span><input class="input" asp-for="Password" autocomplete="new-password"  aria-describedby="Password-error" /><span id="Password-error" asp-validation-for="Password" class="err"></span><span class="help"><span>At least 10 characters with letters and numbers.</span></span></label>
+        <label class="check"><input type="checkbox" asp-for="AcceptTerms" aria-describedby="terms-error" /> <span>I accept the <a href="/legal/terms">Terms of Use v@(BusinessRules.TermsVersion)</a> and <a href="/legal/privacy">Privacy Policy v@(BusinessRules.PrivacyVersion)</a>.</span></label>
+        <span id="terms-error" asp-validation-for="AcceptTerms" class="err"></span>
         <button class="btn btn-primary">Create @Model.Role account</button>
     </form>
 </div></section>
