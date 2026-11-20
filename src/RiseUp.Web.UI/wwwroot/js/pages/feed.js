@@ -2,12 +2,19 @@
 import { post } from '../core/http.js';
 import { toast } from '../core/ui.js';
 
-// Close the Me menu on outside click / Escape.
+const accountButton = document.querySelector('[aria-controls="memenu"]');
+function closeAccountMenu(restoreFocus) {
+  if (accountButton?.getAttribute('aria-expanded') !== 'true') return;
+  document.getElementById('memenu').classList.remove('open');
+  accountButton.setAttribute('aria-expanded', 'false');
+  if (restoreFocus) accountButton.focus();
+}
 document.addEventListener('click', e => {
-  const menu = document.getElementById('memenu');
-  if (menu && menu.classList.contains('open') && !e.target.closest('.tb-me')) menu.classList.remove('open');
+  if (!e.target.closest('.tb-me')) closeAccountMenu(false);
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('memenu')?.classList.remove('open'); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeAccountMenu(true);
+});
 
 // Feed/Reels videos autoplay muted when at least 60% visible, pause otherwise.
 const vids = [...document.querySelectorAll('video[data-feedvideo]')];

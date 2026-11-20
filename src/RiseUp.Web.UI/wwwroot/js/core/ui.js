@@ -62,7 +62,10 @@ async function like(id, button) {
 
 document.addEventListener('click', async e => {
   const toggle = e.target.closest('[data-toggle]');
-  if (toggle) document.querySelector(toggle.dataset.toggle)?.classList.toggle('open');
+  if (toggle) {
+    const opened = document.querySelector(toggle.dataset.toggle)?.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', String(Boolean(opened)));
+  }
 
   const likeBtn = e.target.closest('[data-like]');
   if (likeBtn) {
