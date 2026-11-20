@@ -22,6 +22,9 @@ builder.Services.AddAi(builder.Configuration);
 builder.Services.AddFacade();
 builder.Services.PostConfigure<RiseUp.DataAccess.Seed.SeedOptions>(o => o.DemoMediaPath = Path.Combine(builder.Environment.ContentRootPath, o.DemoMediaPath));
 
+builder.Services.PostConfigure<RiseUp.DataAccess.Services.StorageOptions>(o =>
+    o.RootPath = Path.GetFullPath(o.RootPath, builder.Environment.ContentRootPath));
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
     {
@@ -78,7 +81,7 @@ if (app.Configuration.GetValue("Database:InitializeOnStartup", app.Environment.I
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<RiseUpDbContext>();
     if (db.Database.IsSqlServer()) await db.Database.MigrateAsync(); else await db.InitializeDemoDatabaseAsync();
-    if (!app.Environment.IsProduction()) await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();
+    if (app.Environment.IsDevelopment()) await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();
 }
 
 if (!app.Environment.IsDevelopment())

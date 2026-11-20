@@ -1,68 +1,72 @@
-# Database setup in Visual Studio (Package Manager Console)
+# Run the RiseUp demo on Microsoft SQL Server
 
-Projects: migrations live in **RiseUp.DataAccess**, the startup project is **RiseUp.Web.UI**, the DbContext is **RiseUpDbContext**.
-Default database: `Server=(localdb)\MSSQLLocalDB;Database=RiseUp` (from `src/RiseUp.Web.UI/appsettings.json` → `ConnectionStrings:RiseUp`).
+The solution includes versioned migrations and a development demo. One Package Manager Console command applies the schema, creates the fictional data, and imports the bundled media. You can run it again after pulling updates.
 
-## 1. One-time
-1. Open `RiseUp.slnx` in Visual Studio 2022 (17.14+) / 2026.
-2. Right-click **RiseUp.Web.UI** → *Set as Startup Project*.
-3. Tools → NuGet Package Manager → **Package Manager Console**. Set *Default project* to **RiseUp.DataAccess**.
-4. Build the solution (Ctrl+Shift+B).
+## Connect Visual Studio Community to your instance
 
-## 2. Create the database (first time)
-The `InitialCreate` migration is already included, so you only need:
+1. In SSMS, connect to the instance you intend to use. Copy the **Server name** and note the authentication method. The steps below use Windows Authentication and a dedicated database named **RiseUpDemo**. Your Windows account needs permission to create the database, or an administrator can create an empty database and grant you permission to apply its schema and write data.
+2. Pull the updated main branch and open **RiseUp.slnx** in Visual Studio Community 2026 with the **ASP.NET and web development** workload and .NET 10 SDK. In Solution Explorer, right-click **RiseUp.Web.UI** and choose **Set as Startup Project**.
+3. Right-click **RiseUp.Web.UI → Manage User Secrets**. Add the following to the JSON object, keeping any settings already there. Replace the server value with the one from SSMS. The double backslash in JSON represents a single backslash in the instance name.
+
+   ```json
+   {
+     "ConnectionStrings:RiseUp": "Server=.\\SQLEXPRESS;Database=RiseUpDemo;Integrated Security=True;Encrypt=True;TrustServerCertificate=True"
+   }
+   ```
+
+   For a default local instance, use `Server=localhost`. For LocalDB, use `Server=(localdb)\\MSSQLLocalDB` in JSON. For SQL Server Authentication, replace `Integrated Security=True` with `User ID=your_login;Password=your_password` in User Secrets. The certificate setting shown is for local development. The site and the EF tools both read these user secrets. If you previously set `RISEUP_MIGRATIONS_CONNECTION` or `ConnectionStrings__RiseUp`, remove the override or point it to the same database.
+4. Build the solution. To browse tables inside Visual Studio, open **View → SQL Server Object Explorer → Add SQL Server** and connect with the same instance name and authentication. You can also use SSMS.
+
+## Install the demo
+
+Open **Tools → NuGet Package Manager → Package Manager Console** and run these lines. Allow the command to finish before starting the web app.
+
 ```powershell
-Update-Database -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
+$env:ASPNETCORE_ENVIRONMENT = "Development"
+Update-Database -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI -Context RiseUpDbContext -Args '--seed-demo'
 ```
 
-## 3. Everyday commands
+The existing migrations already describe the schema. Skip `Remove-Migration` and `Add-Migration` for demo setup. The import supports an empty database or an existing RiseUp demo. If you point it at an unrelated populated RiseUp installation, select a separate demo database. The demo uses shared test credentials.
+
+The database holds the records and media references. Media bytes live in **src/RiseUp.Web.UI/App_Data/private** by default. Keep this folder with the database when moving or backing up the demo. You can set `Storage:RootPath` to an absolute directory in the same User Secrets to keep media outside the checkout. Keep that location consistent between the import and the site.
+
+## Run and verify
+
+Choose the **RiseUp (SQL Server)** launch profile beside the green Run button and press **F5**. The development banner displays the provider. Sign in as founder **farhan@nodifreight.example** or investor **sadia@padmavc.example** using **Demo#2026pass**.
+
+- Open **Post & Reels** as the founder to see Nodi Freight's photo post and vertical reel. Visit **Reels** to see clips from the other demo startups.
+- Open the startup and investor directories for fictional accounts, and Pitch Studio for existing pitch and demo videos. Portraits and field photographs are synthetic. The four nine-second portrait reels are animated photo stories.
+- In SSMS or SQL Server Object Explorer, refresh **Databases → RiseUpDemo → Tables**. Run this query against the demo database to check the new media.
+
+```sql
+SELECT DB_NAME() AS CurrentDatabase;
+SELECT COUNT(*) AS ProfilePhotos FROM dbo.MemberProfiles WHERE PhotoMediaId IS NOT NULL;
+SELECT p.LiveTitle, m.FileName, m.DurationSeconds
+FROM dbo.Posts AS p
+JOIN dbo.MediaAssets AS m ON m.Id = p.VideoMediaId
+WHERE m.FileName LIKE 'reel-%.mp4';
+```
+
+A fresh demo has 14 member portraits and four gallery reels. Repeating the import preserves existing demo edits and balances.
+
+## Other migration commands
+
+For schema-only setup, omit `-Args '--seed-demo'`. The default Development launch profiles also initialize the demo on startup. To run a schema-only Development site, set `Database:InitializeOnStartup` to `false` in User Secrets.
+
+Use `Get-Migration -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI` to see the migration list. Use `Add-Migration YourSchemaChange -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI` after making a new entity or configuration change. `Remove-Migration` is for undoing a newly scaffolded, unapplied migration during development.
+
+The equivalent demo command from the solution directory, with .NET EF tools 10.x installed and the environment set to Development, is:
+
 ```powershell
-# After changing an entity / configuration
-Add-Migration AddPitchPackages -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-Update-Database -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-
-# Undo the last migration (only if it has NOT been applied yet)
-Remove-Migration -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-
-# Already applied? Roll the database back first, then remove
-Update-Database InitialCreate -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-Remove-Migration -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-
-# Start over completely (deletes the RiseUp database!)
-Drop-Database -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-Update-Database -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-
-# Useful
-Get-Migration    -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI
-Script-Migration -Idempotent -Project RiseUp.DataAccess -StartupProject RiseUp.Web.UI -Output database\RiseUp.sql
+dotnet ef database update --project src/RiseUp.DataAccess --startup-project src/RiseUp.Web.UI --context RiseUpDbContext -- --seed-demo
 ```
-Tip: `-Context RiseUpDbContext` can be added to any command; it is optional because there is only one DbContext.
-
-## 4. Seed (demo) data
-Demo users, startups, investors, posts and pitches are inserted by `DemoDataSeeder` on first run (not by a migration),
-so after `Update-Database` just run the site with the **"RiseUp (SQL Server LocalDB)"** launch profile (dropdown next to the ▶ button).
-The seeder only inserts when tables are empty and never runs in Production.
-
-## 5. Same thing from a terminal (dotnet CLI)
-```bash
-dotnet tool install --global dotnet-ef --version 10.0.14
-dotnet ef database update     --project src/RiseUp.DataAccess --startup-project src/RiseUp.Web.UI
-dotnet ef migrations add Name --project src/RiseUp.DataAccess --startup-project src/RiseUp.Web.UI
-dotnet ef migrations remove   --project src/RiseUp.DataAccess --startup-project src/RiseUp.Web.UI
-```
-
-## 6. Using a different SQL Server
-Edit `ConnectionStrings:RiseUp` in `src/RiseUp.Web.UI/appsettings.json`, e.g.
-`Server=.\SQLEXPRESS;Database=RiseUp;Trusted_Connection=True;TrustServerCertificate=True`
-or `Server=localhost;Database=RiseUp;User Id=sa;Password=...;TrustServerCertificate=True`.
-The migration tools read the same setting (or the env var `RISEUP_MIGRATIONS_CONNECTION`, which wins).
 
 ## Troubleshooting
-| Error | Fix |
+
+| Symptom | What to check |
 |---|---|
-| *The term 'Add-Migration' is not recognized* | Build once, then restart VS so the Microsoft.EntityFrameworkCore.Tools package loads in PMC. |
-| *Your startup project doesn't reference Microsoft.EntityFrameworkCore.Design* | Make sure **RiseUp.Web.UI** is the startup project (it now references EF Tools). |
-| *Build failed* | PMC builds first; fix compile errors in the Error List, then retry. |
-| *A network-related or instance-specific error… (localdb)* | Install "SQL Server Express LocalDB" via the VS Installer, or run `sqllocaldb start MSSQLLocalDB`. |
-| *There is already an object named … in the database* | The DB was created another way. `Drop-Database`, then `Update-Database`. |
-| Site still shows the SQLite demo | Pick the **RiseUp (SQL Server LocalDB)** launch profile; the default profile uses SQLite. |
+| PMC does not recognize Update-Database | Restore NuGet packages, build the solution and reopen Package Manager Console. |
+| Cannot connect or login fails | Try the same server name and authentication in SSMS. Check database creation and schema permissions. |
+| Site shows SQLite or a different data set | Select the SQL Server launch profile. Check the startup project’s User Secrets and environment overrides. |
+| Database already contains objects and EF reports a conflict | Check the selected database and its `__EFMigrationsHistory`. A new, empty demo database avoids conflicts with another schema. |
+| Videos or photos return 404 after moving the database | Restore the matching private media directory and configure its path. Bundled source files are in `DemoMedia`. |
