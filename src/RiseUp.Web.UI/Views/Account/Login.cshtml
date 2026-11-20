@@ -1,6 +1,6 @@
 @model LoginViewModel
 @{ ViewData["Title"] = "Sign in"; }
-<section class="section" style="padding-top:48px"><div class="container" style="max-width:460px">
+<section class="section onboarding"><div class="container" style="max-width:460px">
     <form class="card mk-card card-b stack" method="post" action="/login" asp-antiforgery="true">
         <h1 style="font-size:26px">Sign in</h1><p class="small muted">Founders, investors, team members and administrators.</p>
         <div asp-validation-summary="ModelOnly" class="notice n-danger"></div>
@@ -14,7 +14,7 @@
     </form>
 </div></section>
 
-<div class="container" style="max-width:560px"><details><summary>Resend verification email</summary>
+<div class="container" style="max-width:560px"><details id="resend"><summary>Resend verification email</summary>
     <form method="post" action="/account/resend-verification" asp-antiforgery="true" class="stack">
         <label class="field"><span>Account email</span><input class="input" type="email" name="email" autocomplete="email" required /></label>
         <button class="btn btn-outline">Send verification link</button>

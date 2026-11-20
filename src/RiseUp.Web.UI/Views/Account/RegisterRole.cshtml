@@ -1,8 +1,8 @@
 @{ ViewData["Title"] = "Join RiseUp"; }
-<section class="section" style="padding-top:48px"><div class="container" style="max-width:820px">
-    <h1 style="font-size:32px;text-align:center">Join RiseUp</h1><p class="muted" style="text-align:center">Choose one primary role. An account can be a Founder or an Investor, not both.</p>
+<section class="section onboarding"><div class="container role-selection">
+    <header><h1>How will you use RiseUp?</h1><p class="muted">Choose the role for this account.</p></header>
     <div class="grid g2 mt24">
-        <a class="card mk-card card-b" style="color:var(--ink)" href="/register/founder"><span class="badge b-dark">Founder</span><h3 class="mt16">I run a startup</h3><p class="small muted mb0">Create one startup profile, verify ownership, pitch verified investors and publish updates.</p></a>
-        <a class="card mk-card card-b" style="color:var(--ink)" href="/register/investor"><span class="badge b-ver">Investor</span><h3 class="mt16">I invest in startups</h3><p class="small muted mb0">Verify your credentials, discover startups, receive pitches and send free invitations.</p></a>
-    </div>
+        <a class="card role-choice" href="/register/founder"><partial name="_Icon" model='"pitch"' /><h2>I run a startup</h2><p>Create a startup profile, verify ownership and pitch investors.</p><span>Continue as a founder →</span></a>
+        <a class="card role-choice" href="/register/investor"><partial name="_Icon" model='"compass"' /><h2>I invest in startups</h2><p>Discover companies, shortlist opportunities and receive pitches.</p><span>Continue as an investor →</span></a>
+    </div><p class="mt24">Already have an account? <a href="/login">Sign in</a></p>
 </div></section>

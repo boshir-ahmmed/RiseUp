@@ -12,12 +12,22 @@
 @functions {
     static readonly int[] SpotlightAfter = [0, 3, 6];
 }
+@if (!actor.IsAuthenticated)
+{
+    <header class="public-intro"><div class="container public-intro-inner">
+        <div><h1>Meet the startups building in Bangladesh.</h1><p>Explore startup profiles and investor interests. A verified badge means RiseUp has reviewed the member’s credentials.</p>
+            <div class="row"><a class="btn workspace-action" href="/startups">Explore startups</a><a class="intro-link" href="/investors">Find investors →</a></div></div>
+        @if (Model.Stories.FirstOrDefault() is { } featured)
+        {
+            <a class="intro-profile" href="/startups/@featured.Id"><partial name="_Brand" model="(featured.Name, featured.ColorIndex, string.Empty, featured.LogoUrl)" /><span><strong>@featured.Name</strong><span>@featured.Industry · @Ui.Stage(featured.Stage)</span></span><span aria-hidden="true">→</span></a>
+        }
+    </div></header>
+}
 <div class="@(actor.IsAuthenticated ? "feed-wrap in-app" : "container feed-wrap pub3")">
     @if (!actor.IsAuthenticated)
     {
         <aside class="feed-left" aria-label="Explore">
             <nav class="card side-nav"><div class="grp">Explore</div><a href="/" class="on"><span>🏠 Home feed</span></a><a href="/reels"><span>▶ Reels</span></a><a href="/startups"><span>🚀 Startups</span></a><a href="/investors"><span>💼 Investors</span></a><a href="/how-it-works"><span>🧭 How it works</span></a><a href="/pricing"><span>🪙 Pricing</span></a><a href="/faq"><span>❓ FAQ</span></a></nav>
-            <div class="card side-card mt16 join-card"><strong>Join the verified network</strong><p class="small muted mt8">Founders pitch with video. Investors discover with confidence.</p><a class="btn btn-primary btn-sm" style="width:100%" href="/register">Create account</a><a class="btn btn-ghost btn-sm mt8" style="width:100%" href="/login">Sign in</a></div>
         </aside>
     }
     <div style="min-width:0">
@@ -32,7 +42,7 @@
                 <a class="story" href="/startups/@s.Id"><span class="ring"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" /></span><span class="tiny">@s.Name</span></a>
             }
         </nav>
-        <form class="feed-tabs" method="get" action="/" role="tablist" aria-label="Feed">
+        <form class="feed-tabs" method="get" action="/" aria-label="Filter feed">
             <a class="pill @(Model.Tab is not ("latest" or "saved") ? "on" : "")" href="/?tab=foryou@catQ">For you</a>
             <a class="pill @(Model.Tab == "latest" ? "on" : "")" href="/?tab=latest@catQ">Latest</a>
             <a class="pill" href="/reels">▶ Reels</a>
@@ -66,10 +76,7 @@
         }
     </div>
     <aside class="feed-side" aria-label="Suggestions">
-        @if (!actor.IsAuthenticated)
-        {
-            <div class="card side-card hero-mini"><strong>Bangladesh's verified startup network</strong><p class="small mt8">Every founder and investor is manually verified. Browse freely — join to like, comment and connect.</p><div class="row"><a class="btn btn-primary btn-sm" href="/register">Join RiseUp</a><a class="btn btn-ghost btn-sm" style="color:#fff" href="/about">Learn more</a></div></div>
-        }
+
         @if (Model.Spotlight.Count > 0)
         {
             <div class="card side-card @(actor.IsAuthenticated ? "" : "mt16")"><div class="row between"><h4 class="mb0">🔥 Trending pitches</h4><a class="tiny" href="/reels">See all</a></div>
