@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IStartupFacade, StartupFacade>();
         services.AddScoped<IInvestorFacade, InvestorFacade>();
         services.AddScoped<IVerificationFacade, VerificationFacade>();
+        services.AddScoped<MatchRanker>();
         services.AddScoped<IMatchingFacade, MatchingFacade>();
         services.AddScoped<IConnectionRequestFacade, ConnectionRequestFacade>();
         services.AddScoped<IConversationFacade, ConversationFacade>();

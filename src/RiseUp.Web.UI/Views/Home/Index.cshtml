@@ -62,7 +62,7 @@
             </select>
             <noscript><button class="btn btn-dark btn-sm">Filter</button></noscript>
         </form>
-        @if (actor.IsInvestor && Model.Tab == "foryou") { <p class="tiny muted" style="margin:-6px 0 12px">Ordered by relevance to your preferences (@(Model.Recommended?.Engine ?? "rule-based")). Promoted posts are always labelled.</p> }
+        @if (actor.IsInvestor && Model.Tab == "foryou") { <p class="tiny muted" style="margin:-6px 0 12px">Promoted posts appear first. Your preferences, post activity and recency help determine the order.</p> }
         @if (Model.Posts.Count == 0)
         {
             <div class="card"><div class="empty"><div class="ic">◌</div><div style="font-weight:650;color:var(--ink)">@(Model.Tab == "saved" ? "No saved posts yet" : "No posts in this category yet")</div><div class="small muted">@(Model.Tab == "saved" ? "Tap Save on any post to keep it here." : "Try another category.")</div></div></div>
