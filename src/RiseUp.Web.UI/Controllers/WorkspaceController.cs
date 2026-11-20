@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -88,18 +89,32 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
 
     // ------------------------------------------------------------ conversations
     [Authorize(Policy = Policies.ChatParticipant), HttpGet("/" + UrlRewrite.Conversations + "/{id:int?}")]
-    public async Task<IActionResult> Conversations(int? id, CancellationToken ct)
+    public async Task<IActionResult> Conversations(int? id, int? before, CancellationToken ct)
     {
         var list = await conversations.ListAsync(Actor, ct);
         var selected = id ?? list.FirstOrDefault()?.Id;
-        var detail = selected is int sid ? (await conversations.GetAsync(Actor, sid, 1, ct)) : null;
+        var detail = selected is int sid ? (await conversations.RecentAsync(Actor, sid, before, ct)) : null;
         if (detail is { IsFailure: true }) return Forbid();
         return View(new ConversationsViewModel(list, detail?.Value, Actor.IsFounder ? await team.ListAsync(Actor, ct) : [],
             selected is int msid ? await meetings.ListAsync(Actor, msid, ct) : []));
     }
 
+    [Authorize(Policy = Policies.ChatParticipant), HttpGet("/conversations/{id:int}/messages")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> LatestMessages(int id, CancellationToken ct)
+    {
+        var detail = await conversations.RecentAsync(Actor, id, null, ct);
+        return detail.IsSuccess ? PartialView("_Messages", detail.Value) : Forbid();
+    }
+
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/conversations/{id:int}/messages")]
-    public async Task<IActionResult> SendMessage(int id, string body, CancellationToken ct) { Flash(await conversations.SendAsync(Actor, id, body ?? "", ct) is { IsFailure: true } f ? f : Result.Success()); return Redirect($"/conversations/{id}"); }
+    public async Task<IActionResult> SendMessage(int id, string body, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Hubs.ChatHub> hub, CancellationToken ct)
+    {
+        var sent = await conversations.SendAsync(Actor, id, body ?? "", ct);
+        if (sent.IsFailure) Flash(sent);
+        else await hub.Clients.Group(Hubs.ChatHub.Group(id)).SendAsync("changed", id, ct);
+        return Redirect($"/conversations/{id}");
+    }
 
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/messages/{id:int}/edit")]
     public async Task<IActionResult> EditMessage(int id, string body, int conversationId, CancellationToken ct) { Flash(await conversations.EditAsync(Actor, id, body, ct)); return Redirect($"/conversations/{conversationId}"); }

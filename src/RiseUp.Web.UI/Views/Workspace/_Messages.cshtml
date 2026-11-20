@@ -1,0 +1,15 @@
+@model ConversationDto
+@if (Model.OlderBeforeId is int cursor) { <a class="history-link" href="/conversations/@Model.Summary.Id?before=@cursor">Earlier messages</a> }
+                    @foreach (var m in Model.Messages)
+                    {
+                        if (m.IsSystem) { <div class="msg sys">@m.Body</div> continue; }
+                        <div class="msg @(m.IsMine ? "me" : "") @(m.Deleted ? "del" : "")" data-msg="@m.Id">
+                            <div class="meta"><partial name="_Avatar" model="(m.AuthorName, m.AuthorPhotoUrl, m.AuthorName.Length, 22)" /><strong style="color:var(--ink)">@m.AuthorName</strong><span>@Ui.Dhaka(m.SentAtUtc)</span>@if (m.Edited && !m.Deleted) {<span>· edited</span>}</div>
+                            @if (m.Deleted) {<span>This message was deleted.</span>} else {<span style="white-space:pre-wrap">@m.Body</span>}
+                            <div class="acts">
+                                @if (m.CanEdit) { <details><summary class="linkbtn tiny">Edit (15 min)</summary><form method="post" action="/messages/@m.Id/edit" asp-antiforgery="true"><input type="hidden" name="conversationId" value="@Model.Summary.Id" /><textarea class="input" name="body" maxlength="2000">@m.Body</textarea><button class="btn btn-dark btn-sm mt8">Save</button></form></details> }
+                                @if (m.CanDelete) { <form method="post" action="/messages/@m.Id/delete" class="inline" asp-antiforgery="true"><input type="hidden" name="conversationId" value="@Model.Summary.Id" /><button class="linkbtn tiny" data-confirm="Delete this message for everyone?">Delete for everyone</button></form> }
+                                @if (!m.IsMine && !m.Deleted) { <form method="post" action="/reports" class="inline" asp-antiforgery="true"><input type="hidden" name="kind" value="@ReportKind.GroupMessage" /><input type="hidden" name="target" value="message:@m.Id" /><input type="hidden" name="conversationId" value="@Model.Summary.Id" /><input type="hidden" name="messageId" value="@m.Id" /><input type="hidden" name="reason" value="Reported from conversation" /><button class="linkbtn tiny">Report</button></form> }
+                            </div>
+                        </div>
+                    }

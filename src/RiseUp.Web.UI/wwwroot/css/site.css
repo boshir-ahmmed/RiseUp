@@ -584,3 +584,9 @@ dialog.crop-dialog::backdrop{background:rgba(15,23,42,.55)}
 .onboarding .err:empty{display:none}
 @media(max-width:760px){.public-intro-inner{display:grid;gap:16px}.intro-profile{padding:12px}.h-actions .btn{padding-inline:8px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+.inbox-request{padding:18px 20px;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:8px 18px;align-items:start;overflow-wrap:anywhere}
+.inbox-request+.inbox-request{border-top:1px solid var(--border)}.inbox-request>div:last-child{grid-column:1/-1}
+.request-filters{margin-bottom:12px}.history-link,.chat-refresh:not(:has([hidden])){display:block;padding:8px 16px}
+.unread-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex:none}
+@media(max-width:600px){.inbox-request{grid-template-columns:1fr}}

@@ -1,9 +1,18 @@
 @model RequestsViewModel
-@{ ViewData["Title"] = "Requests"; var actor = CurrentActor.From(User); }
+@{ ViewData["Title"] = "Requests"; var actor = CurrentActor.From(User);
+    var filter = Context.Request.Query["show"].ToString();
+    var incoming = actor.IsInvestor ? RequestType.Pitch : RequestType.Invitation;
+    var items = Model.Items.Where(r => filter switch { "received" => r.Type == incoming, "sent" => r.Type != incoming, "pending" => r.Status == RequestStatus.Pending && r.Type == incoming, _ => true }).ToList(); }
 <div class="page-h"><div><h1>@(actor.IsInvestor ? "Pitches & invitations" : "Requests")</h1><p>Unanswered requests expire automatically 14 days after sending.</p></div>
     @if (actor.IsInvestor) {<form method="post" action="/settings/receive-pitches" asp-antiforgery="true"><input type="hidden" name="receive" value="@((!Model.ReceivePitches).ToString().ToLowerInvariant())" /><button class="btn btn-outline">Receive Pitches: @(Model.ReceivePitches ? "ON" : "OFF")</button></form>}</div>
 @if (actor.IsInvestor) { <div class="notice n-info" style="margin-bottom:14px">You have @(10 - Model.InvitationsUsedToday) of 10 invitations left today (Asia/Dhaka). Unused allowance does not carry over.</div> }
-<div class="card">
-    @if (Model.Items.Count == 0) { <div class="empty">Nothing here yet</div> }
-    else { <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Counterpart</th><th>Message</th><th>Sent</th><th>Status</th><th></th></tr></thead><tbody>@foreach (var r in Model.Items) { <partial name="_RequestRow" model="r" /> }</tbody></table></div> }
-</div>
+<nav class="row request-filters" aria-label="Filter requests">
+@foreach (var (key, label) in new[] { ("", "All"), ("pending", "Needs a reply"), ("received", "Received"), ("sent", "Sent") })
+{
+    <a class="pill @(key == filter ? "on" : "")" aria-current="@(key == filter ? "page" : null)" href="/requests?show=@key">@label</a>
+}
+</nav>
+<section class="card">
+    @if (items.Count == 0) { <div class="empty">@(filter == "pending" ? "You have no requests awaiting a reply." : "No requests in this view.")</div> }
+    @foreach (var r in items) { <partial name="_RequestRow" model="r" /> }
+</section>

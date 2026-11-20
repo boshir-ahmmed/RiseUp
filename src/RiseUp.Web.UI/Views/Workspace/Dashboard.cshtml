@@ -9,7 +9,7 @@
     {
         VerificationStatus.Pending => ("View verification", "/verification", "Check your application and any documents still needed."),
         VerificationStatus.Verified when actor.IsFounder => ("Open Pitch Studio", "/pitches", "Prepare your pitch and choose the investors you want to reach."),
-        VerificationStatus.Verified when pitchCount > 0 => ("Review pitches", "/requests", $"{pitchCount} pending {(pitchCount == 1 ? "pitch needs" : "pitches need")} your attention."),
+        VerificationStatus.Verified when pitchCount > 0 => ("Review pitches", "/requests?show=pending", $"{pitchCount} pending {(pitchCount == 1 ? "pitch needs" : "pitches need")} your attention."),
         VerificationStatus.Verified => ("Discover startups", "/discover", "Explore startups that match your investment preferences."),
         _ => ("Review verification requirements", "/verification", "Complete verification to connect with other members.")
     };
@@ -32,7 +32,7 @@
         <div class="card kpi"><div class="l">Verification</div><div class="mt8"><span class="badge @Ui.StatusClass(status.ToString())">@status</span></div>
             @if (status != VerificationStatus.Verified) { <a class="tiny" href="/verification">View verification</a> }
         </div>
-        <div class="card kpi"><div class="l">Pitches awaiting you</div><a class="v" href="/requests" aria-label="View @pitchCount pending pitches">@pitchCount</a></div>
+        <div class="card kpi"><div class="l">Pitches awaiting you</div><a class="v" href="/requests?show=pending" aria-label="View @pitchCount pending pitches">@pitchCount</a></div>
         <div class="card kpi"><div class="l">Invitations today</div><div class="v">@Model.InvitationsUsedToday / 10</div><div class="tiny muted">Resets 00:00 Asia/Dhaka</div></div>
         <div class="card kpi"><div class="l">Receive Pitches</div><form method="post" action="/settings/receive-pitches" class="mt8" asp-antiforgery="true"><input type="hidden" name="receive" value="@((!(Model.Investor?.Card.ReceivePitches ?? true)).ToString().ToLowerInvariant())" /><button class="btn btn-outline btn-sm">@(Model.Investor?.Card.ReceivePitches == true ? "ON — turn off" : "OFF — turn on")</button></form></div>
     }
