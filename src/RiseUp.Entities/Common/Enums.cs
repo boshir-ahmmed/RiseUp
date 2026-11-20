@@ -9,7 +9,7 @@ public enum RequestStatus { Pending = 0, Accepted = 1, Rejected = 2, Expired = 3
 public enum TokenBucket { Welcome = 1, Purchased = 2 }
 public enum TeamAccountStatus { Active = 1, Deactivated = 2, Deleted = 3 }
 public enum MemberKind { Owner = 1, Investor = 2, Team = 3 }
-public enum PostCategory { Announcements = 1, Milestones = 2, Products = 3, Achievements = 4, Funding = 5, Hiring = 6 }
+public enum PostCategory { Announcements = 1, Milestones = 2, Products = 3, Achievements = 4, Funding = 5, Hiring = 6, Reel = 7 }
 public enum ModerationState { None = 0, PendingCheck = 1, Approved = 2, Rejected = 3, AiUnavailable = 4 }
 public enum PaymentStatus { Pending = 0, Paid = 1, Failed = 2, Refunded = 3, RequiresReview = 4 }
 public enum PromotionStatus { Active = 1, Paused = 2, Completed = 3 }
@@ -22,7 +22,7 @@ public enum LicenceHolderType { Individual = 1, Company = 2 }
 public enum TransferStatus { AwaitingIncomingConsent = 0, AwaitingReview = 1, Approved = 2, Rejected = 3 }
 
 // ---- v3/v4 ----
-public enum MediaKind { ProfilePhoto = 1, ProfileCover = 2, StartupLogo = 3, StartupCover = 4, PitchVideo = 10, DemoVideo = 11, TeaserVideo = 12, VideoPoster = 13, PitchDeck = 14, PitchDocument = 15, PostVideo = 20 }
+public enum MediaKind { ProfilePhoto = 1, ProfileCover = 2, StartupLogo = 3, StartupCover = 4, PitchVideo = 10, DemoVideo = 11, TeaserVideo = 12, VideoPoster = 13, PitchDeck = 14, PitchDocument = 15, PostVideo = 20, PostImage = 21 }
 public enum PitchVideoSlot { Pitch = 1, Demo = 2, Teaser = 3 }
 public enum FundingInstrument { Equity = 1, Safe = 2, ConvertibleNote = 3, RevenueShare = 4 }
 public enum NameChangeStatus { Pending = 0, Approved = 1, Rejected = 2, Cancelled = 3 }

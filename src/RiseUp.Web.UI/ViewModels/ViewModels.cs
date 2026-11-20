@@ -57,7 +57,9 @@ public sealed record ProfileSuggestion(int Id, string Kind, string Name, string 
 public sealed record ProfileSearchViewModel(string Query, IReadOnlyList<ProfileSuggestion> Results);
 
 public sealed record StartupSearchViewModel(SearchStartupsRequest Query, PagedResult<StartupCardDto> Result);
-public sealed record StartupDetailViewModel(StartupDetailDto Startup, IReadOnlyList<FeedItemDto> Posts, SpotlightDto? Spotlight = null);
+public sealed record StartupDetailViewModel(StartupDetailDto Startup, ProfilePublications Publications, SpotlightDto? Spotlight = null);
+public sealed record ProfilePublications(IReadOnlyList<FeedItemDto> Items, VideoDto? Teaser, bool Reels, string Path);
+public sealed record PersonalProfileViewModel(MyProfileDto Profile, ProfilePublications? Publications);
 
 public sealed class DashboardViewModel
 {
@@ -99,7 +101,10 @@ public sealed class RequestsViewModel
 
 public sealed record ConversationsViewModel(IReadOnlyList<ConversationSummaryDto> List, ConversationDto? Selected, IReadOnlyList<TeamAccountDto> Team, IReadOnlyList<MeetingDto>? Meetings = null);
 public sealed record LibraryViewModel(IReadOnlyList<DocumentDto> Documents, IReadOnlyList<(int InvestorId, string Name)> ConnectedInvestors);
-public sealed record MyPostsViewModel(IReadOnlyList<OwnPostDto> Posts, IReadOnlyList<PromotionDto> Promotions, WalletDto? Wallet, int? EditId);
+public sealed record MyPostsViewModel(IReadOnlyList<OwnPostDto> Posts, IReadOnlyList<PromotionDto> Promotions, WalletDto? Wallet, int? EditId,
+    string Tab, string StartupName, VideoDto? Teaser, bool PublicTeaser, IReadOnlyList<(int Days, int Cost)> Packages);
+
+public sealed record ReelsViewModel(IReadOnlyList<FeedItemDto> Reels, IReadOnlyList<SpotlightDto> Teasers);
 public sealed record FinanceOrdersViewModel(IReadOnlyList<OrderDto> Orders, string Query, PaymentStatus? Status, bool IsSimulator);
 
 public sealed record WalletViewModel(WalletDto Wallet, IReadOnlyList<PackageDto> Packages, IReadOnlyList<OrderDto> Orders, RiseUp.Entities.Abstractions.PaymentMode Mode);

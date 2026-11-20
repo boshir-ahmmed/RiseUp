@@ -15,6 +15,9 @@ namespace RiseUp.Facade.Posts;
 
 public interface IPostFacade
 {
+    Task<bool> IsPublishedByOwnerAsync(Actor actor, int id, CancellationToken ct = default);
+    Task<Result<int>> SaveDraftAsync(Actor actor, SubmitPostRequest request, CancellationToken ct = default);
+    Task<Result> AttachImageAsync(Actor actor, int postId, UploadedFile file, CancellationToken ct = default);
     Task<Result<int>> SubmitAsync(Actor actor, SubmitPostRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<FeedItemDto>> GetFeedAsync(Actor actor, string tab, PostCategory? category, int take, CancellationToken ct = default);
     Task<Result<PostDetailDto>> GetDetailAsync(Actor actor, int postId, CancellationToken ct = default);

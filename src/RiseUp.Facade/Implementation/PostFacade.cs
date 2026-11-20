@@ -20,13 +20,45 @@ namespace RiseUp.Facade.Posts;
 /// </summary>
 public sealed class PostFacade(IPostRepository posts, IStartupRepository startups, IInvestorRepository investors, IPromotionRepository promotions,
     MatchRanker ranker, IContentSafetyModel model1, IUnitOfWork uow, IClock clock, IValidator<SubmitPostRequest> validator,
-    ILogger<PostFacade> logger, ISavedPostRepository saved, IProfileRepository profiles, MediaIntake intake, NameDirectory names) : IPostFacade
+    ILogger<PostFacade> logger, ISavedPostRepository saved, IProfileRepository profiles, MediaIntake intake, NameDirectory names, IMediaRepository media) : IPostFacade
 {
     private async Task<bool> CanInteractAsync(Actor actor, CancellationToken ct)
     {
         if (actor.IsFounder && actor.StartupId is int sid) return (await startups.GetByIdAsync(sid, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true;
         if (actor.IsInvestor) return (await investors.GetByIdAsync(actor.InvestorId!.Value, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true;
         return false;   // visitors, team members and admins cannot react (FR-113–115)
+    }
+
+    public async Task<bool> IsPublishedByOwnerAsync(Actor actor, int id, CancellationToken ct = default) =>
+        actor.IsFounder && actor.StartupId is int sid && await posts.GetByIdAsync(id, ct) is { LiveTitle: not null } post && post.StartupId == sid;
+
+    public async Task<Result<int>> SaveDraftAsync(Actor actor, SubmitPostRequest request, CancellationToken ct = default)
+    {
+        if (!actor.IsFounder || actor.StartupId is not int sid ||
+            (await startups.GetByIdAsync(sid, ct))?.IsActiveVerifiedAt(clock.UtcNow) != true)
+            return Guard.Forbidden("A verified startup owner can save drafts.");
+        if (!Enum.IsDefined(request.Category) || request.Title.Length > BusinessRules.PostTitleMax || request.Body.Length > BusinessRules.PostBodyMax)
+            return new Error(ErrorCodes.Validation, "Check the category and text lengths.");
+        StartupPost post;
+        if (request.PostId is int id)
+        {
+            var existing = await posts.GetByIdAsync(id, ct);
+            if (existing is null || existing.StartupId != sid || existing.LiveTitle is not null ||
+                (existing.Category == PostCategory.Reel) != (request.Category == PostCategory.Reel)) return Guard.Forbidden();
+            post = existing;
+        }
+        else
+        {
+            post = new StartupPost { StartupId = sid };
+            await posts.AddAsync(post, ct);
+        }
+        post.Category = request.Category;
+        post.PendingTitle = request.Title.Trim();
+        post.PendingBody = request.Body.Trim();
+        post.PendingState = ModerationState.None;
+        post.PendingReasonCode = null;
+        await uow.SaveChangesAsync(ct);
+        return Result.Success(post.Id, "Draft saved.");
     }
 
     public async Task<Result<int>> SubmitAsync(Actor actor, SubmitPostRequest request, CancellationToken ct = default)
@@ -40,10 +72,18 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
         {
             var existing = await posts.GetByIdAsync(id, ct);
             if (existing is null || existing.StartupId != startup.Id) return Guard.Forbidden();
+            if ((existing.Category == PostCategory.Reel) != (request.Category == PostCategory.Reel)) return Guard.Forbidden();
             post = existing;
         }
-        else { post = new StartupPost { StartupId = startup.Id }; await posts.AddAsync(post, ct); }
-        post.Category = request.Category; post.PendingTitle = request.Title.Trim(); post.PendingBody = request.Body.Trim(); post.PendingState = ModerationState.PendingCheck;
+        else if (request.Category == PostCategory.Reel) return new Error(ErrorCodes.InvalidMedia, "Add a reel video first.");
+        else { post = new StartupPost { StartupId = startup.Id, Category = request.Category }; await posts.AddAsync(post, ct); }
+        if (request.Category == PostCategory.Reel && (post.VideoMediaId is not int videoId ||
+            (await media.GetByIdAsync(videoId, ct))?.ScanStatus != ScanStatus.Clean))
+            return new Error(ErrorCodes.InvalidMedia, "A reel needs a video that has passed its file scan. Check the upload before publishing.");
+        if (post.LiveTitle is null && request.Category != PostCategory.Reel && (post.VideoMediaId ?? post.PosterMediaId) is int attachment &&
+            (await media.GetByIdAsync(attachment, ct))?.ScanStatus != ScanStatus.Clean)
+            return new Error(ErrorCodes.InvalidMedia, "Your attachment needs a clean file scan before publication.");
+        post.PendingTitle = request.Title.Trim(); post.PendingBody = request.Body.Trim(); post.PendingState = ModerationState.PendingCheck;
         if (request.ImageStorageKey is not null) post.ImageStorageKey = request.ImageStorageKey;
 
         ContentSafetyResult safety;
@@ -65,6 +105,7 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
             await uow.SaveChangesAsync(ct);
             return new Error(ErrorCodes.ContentRejected, $"Rejected by the safety check ({safety.ReasonCode}). Edit and resubmit." + (post.LiveTitle is null ? "" : " The last approved version stays live."));
         }
+        post.Category = request.Category;
         post.LiveTitle = post.PendingTitle; post.LiveBody = post.PendingBody; post.PendingTitle = null; post.PendingBody = null;
         post.PendingState = ModerationState.Approved; post.PendingReasonCode = null; post.PublishedAtUtc ??= clock.UtcNow;
         await uow.SaveChangesAsync(ct);
@@ -160,7 +201,8 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
         if (!actor.IsFounder || actor.StartupId is null) return [];
         var result = new List<OwnPostDto>();
         foreach (var p in await posts.ListByStartupAsync(actor.StartupId.Value, false, ct))
-            result.Add(new OwnPostDto(p.Id, p.Category, p.LiveTitle, p.PendingTitle, p.PendingState, p.PendingReasonCode, p.IsHidden, await promotions.GetOpenForPostAsync(p.Id, ct) is not null, p.PendingBody ?? p.LiveBody));
+            result.Add(new OwnPostDto(p.Id, p.Category, p.LiveTitle, p.PendingTitle, p.PendingState, p.PendingReasonCode, p.IsHidden, await promotions.GetOpenForPostAsync(p.Id, ct) is not null, p.PendingBody ?? p.LiveBody,
+                p.VideoMediaId is int video ? UrlRewrite.Media(video) : null, p.PosterMediaId is int poster ? UrlRewrite.Media(poster) : null, p.PublishedAtUtc));
         return result;
     }
 
@@ -235,22 +277,44 @@ public sealed class PostFacade(IPostRepository posts, IStartupRepository startup
         return Result.Success(existing is null, existing is null ? "Saved. Find it under Saved in your feed." : "Removed from saved.");
     }
 
-    public async Task<Result> AttachVideoAsync(Actor actor, int postId, UploadedFile video, UploadedFile? poster, CancellationToken ct = default)
+    public Task<Result> AttachImageAsync(Actor actor, int postId, UploadedFile file, CancellationToken ct = default) =>
+        AttachAsync(actor, postId, MediaKind.PostImage, file, null, ct);
+
+    public Task<Result> AttachVideoAsync(Actor actor, int postId, UploadedFile video, UploadedFile? poster, CancellationToken ct = default) =>
+        AttachAsync(actor, postId, MediaKind.PostVideo, video, poster, ct);
+
+    private async Task<Result> AttachAsync(Actor actor, int postId, MediaKind kind, UploadedFile file, UploadedFile? poster, CancellationToken ct)
     {
-        if (!actor.IsFounder || actor.StartupId is null) return Result.Failure(Guard.Forbidden("Only the Main Startup Owner can add videos to posts."));
-        var startup = await startups.GetByIdAsync(actor.StartupId.Value, ct);
-        if (startup is null || !startup.IsActiveVerifiedAt(clock.UtcNow)) return Result.Failure(ErrorCodes.NotVerified, "Only verified startups can publish videos.");
-        var p = await posts.GetByIdAsync(postId, ct);
-        if (p is null || p.StartupId != startup.Id) return Result.Failure(Guard.Forbidden());
-        var accepted = await intake.AcceptAsync(MediaKind.PostVideo, video, startup.Id, actor.AccountId, null, ct);
+        if (!actor.IsFounder || actor.StartupId is not int sid) return Result.Failure(Guard.Forbidden());
+        if ((await startups.GetByIdAsync(sid, ct))?.IsActiveVerifiedAt(clock.UtcNow) != true)
+            return Result.Failure(ErrorCodes.NotVerified, "Only verified startups can publish media.");
+        var post = await posts.GetByIdAsync(postId, ct);
+        if (post is null || post.StartupId != sid) return Result.Failure(Guard.Forbidden());
+        var image = kind == MediaKind.PostImage;
+        if ((image && (post.LiveTitle is not null || post.Category == PostCategory.Reel)) ||
+            (post.Category == PostCategory.Reel && post.LiveTitle is not null))
+            return Result.Failure(ErrorCodes.Validation, "Create a new draft to share this media.");
+
+        var accepted = await intake.AcceptAsync(kind, file, sid, actor.AccountId, null, ct);
         if (accepted.IsFailure) return accepted;
-        var posterAccepted = poster is null ? null : await intake.AcceptAsync(MediaKind.VideoPoster, poster, startup.Id, actor.AccountId, null, ct);
-        await uow.SaveChangesAsync(ct);
-        var now = clock.UtcNow;
-        await intake.DiscardAsync(p.VideoMediaId, now, ct); await intake.DiscardAsync(p.PosterMediaId, now, ct);
-        p.VideoMediaId = accepted.Value!.Id; p.VideoSeconds = video.DurationSeconds;
-        p.PosterMediaId = posterAccepted is { IsSuccess: true } ? posterAccepted.Value!.Id : null;
-        await uow.SaveChangesAsync(ct);
-        return Result.Success("Video added to the post. Videos are malware-scanned; the written post is what the safety check reviews.");
+        var cover = poster is null ? null : await intake.AcceptAsync(MediaKind.VideoPoster, poster, sid, actor.AccountId, null, ct);
+        if (cover is { IsFailure: true }) return cover;
+
+        var oldVideo = post.VideoMediaId;
+        var oldPoster = post.PosterMediaId;
+        await using (var tx = await uow.BeginTransactionAsync(ct))
+        {
+            await uow.SaveChangesAsync(ct);
+            post.VideoMediaId = image ? null : accepted.Value!.Id;
+            post.VideoSeconds = image ? null : file.DurationSeconds;
+            post.PosterMediaId = image ? accepted.Value!.Id : cover?.Value?.Id;
+            await uow.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        // Old files are retired only after the replacement is durable.
+        await intake.DiscardAsync(oldVideo, clock.UtcNow, ct);
+        await intake.DiscardAsync(oldPoster, clock.UtcNow, ct);
+        if (oldVideo.HasValue || oldPoster.HasValue) await uow.SaveChangesAsync(ct);
+        return Result.Success(image ? "Image added." : "Video added.");
     }
 }

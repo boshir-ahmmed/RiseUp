@@ -11,13 +11,17 @@ namespace RiseUp.Web.UI.Controllers;
 
 /// <summary>Personal profile (everyone signed in) and startup branding images (Main Startup Owner). Rules live in the Facade.</summary>
 [Authorize]
-public sealed class ProfileController(IProfileFacade profiles, IFileStorage storage) : AppController
+public sealed class ProfileController(IProfileFacade profiles, IFileStorage storage, RiseUp.Facade.Posts.IPostFacade posts, RiseUp.Facade.Pitching.IPitchPackageFacade packages) : AppController
 {
     [HttpGet("/" + UrlRewrite.Me)]
-    public async Task<IActionResult> Me(CancellationToken ct)
+    public async Task<IActionResult> Me(string? tab, CancellationToken ct)
     {
         var r = await profiles.GetMineAsync(Actor, ct);
-        return r.IsFailure ? Forbid() : View(r.Value);
+        if (r.IsFailure) return Forbid();
+        var publications = Actor.IsFounder && Actor.StartupId is int id
+            ? new ViewModels.ProfilePublications(await posts.ListForStartupAsync(Actor, id, ct), await packages.GetPublicTeaserAsync(id, ct), tab == "reels", "/me")
+            : null;
+        return View(new ViewModels.PersonalProfileViewModel(r.Value!, publications));
     }
 
     [HttpGet("/" + UrlRewrite.EditProfile)]

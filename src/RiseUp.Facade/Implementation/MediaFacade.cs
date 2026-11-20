@@ -37,8 +37,8 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
         {
             case MediaKind.ProfilePhoto or MediaKind.ProfileCover or MediaKind.StartupLogo or MediaKind.StartupCover:
                 return true;
-            case MediaKind.PostVideo:
-                return owner || (await postsByMedia.FindPostByMediaAsync(asset.Id, ct)) is { IsLive: true };
+            case MediaKind.PostImage or MediaKind.PostVideo:
+                return owner || await IsPublicPostMediaAsync(asset.Id, ct);
             case MediaKind.PitchDocument:
             {
                 if (owner) { setDownload(true); return true; }
@@ -50,7 +50,7 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
                 return attached;
             }
         }
-        if (asset.Kind == MediaKind.VideoPoster && await postsByMedia.FindPostByMediaAsync(asset.Id, ct) is { } post) return owner || post.IsLive;
+        if (asset.Kind == MediaKind.VideoPoster && await postsByMedia.FindPostByMediaAsync(asset.Id, ct) is { } post) return owner || (post.IsLive && await IsVisibleStartupAsync(post.StartupId, ct));
         // Pitch package media: pitch/demo/teaser videos, their posters and the deck.
         var package = await pitches.FindPackageByMediaAsync(asset.Id, ct);
         if (package is null) return owner;
@@ -62,6 +62,12 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
         if ((isTeaser && package.PublicTeaser) || (isDemo && package.PublicDemo)) return true;
         return await IsRecipientAsync(actor, package.StartupId, ct);
     }
+
+    private async Task<bool> IsPublicPostMediaAsync(int id, CancellationToken ct) =>
+        await postsByMedia.FindPostByMediaAsync(id, ct) is { IsLive: true } post && await IsVisibleStartupAsync(post.StartupId, ct);
+
+    private async Task<bool> IsVisibleStartupAsync(int id, CancellationToken ct) =>
+        await startups.GetByIdAsync(id, ct) is { IsSuspended: false, IsDeleted: false };
 
     /// <summary>An investor with a pending or accepted pitch from this startup.</summary>
     private async Task<bool> IsRecipientAsync(Actor actor, int startupId, CancellationToken ct)

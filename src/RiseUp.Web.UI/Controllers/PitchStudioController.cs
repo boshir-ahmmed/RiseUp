@@ -71,6 +71,8 @@ public sealed class PitchStudioController(IPitchPackageFacade package, IPitchRoo
     [HttpPost("/pitches/package/video/{slot}"), RequestSizeLimit(VideoLimit), RequestFormLimits(MultipartBodyLengthLimit = VideoLimit)]
     public async Task<IActionResult> Video(PitchVideoSlot slot, IFormFile? video, IFormFile? poster, double? clientDuration, CancellationToken ct)
     {
+        if (slot is not (PitchVideoSlot.Pitch or PitchVideoSlot.Demo))
+            return Json(Result.Failure(ErrorCodes.Validation, "Create reels in Post & Reels."));
         var (file, error) = await UploadSaver.SaveAsync(video, UploadSaver.VideoExtensions, storage, clientDuration, ct);
         if (file is null) return Json(Result.Failure(ErrorCodes.InvalidMedia, error!));
         var (posterFile, _) = poster is null ? (null, null) : await UploadSaver.SaveAsync(poster, UploadSaver.ImageExtensions, storage, null, ct);
@@ -83,7 +85,7 @@ public sealed class PitchStudioController(IPitchPackageFacade package, IPitchRoo
     public async Task<IActionResult> RemoveVideo(PitchVideoSlot slot, CancellationToken ct) { Flash(await package.RemoveVideoAsync(Actor, slot, ct)); return Redirect("/pitches"); }
 
     [HttpPost("/pitches/package/visibility")]
-    public async Task<IActionResult> Visibility(bool publicTeaser, bool publicDemo, bool captions, CancellationToken ct) { Flash(await package.SetVisibilityAsync(Actor, publicTeaser, publicDemo, captions, ct)); return Redirect("/pitches"); }
+    public async Task<IActionResult> Visibility(bool publicDemo, bool captions, CancellationToken ct) { Flash(await package.SetVisibilityAsync(Actor, null, publicDemo, captions, ct)); return Redirect("/pitches"); }
 
     // ------------------------------------------------------------ deck
     [HttpPost("/pitches/package/deck"), RequestSizeLimit(21 * 1024 * 1024)]

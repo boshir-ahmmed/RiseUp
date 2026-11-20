@@ -19,12 +19,11 @@
 @if (Model.Tab == "package")
 {
     <div class="package-progress card card-b"><div class="row between"><h2 class="mb0">Your pitch package</h2><strong>@p.Completeness% complete</strong></div><progress aria-label="Pitch package completeness" value="@p.Completeness" max="100"></progress></div>
-    <details class="card card-b mt16"><summary class="linkbtn">File requirements and review</summary><div class="small muted mt8" style="margin-bottom:16px;display:block">Videos and documents are malware-scanned and reviewed by people when reported. They are <strong>never</strong> sent to AI, and RiseUp never writes or edits your pitch. Videos: MP4, MOV or WebM up to 200 MB (pitch ≤ 3 min, demo ≤ 2 min, teaser ≤ 60 s). Deck: PDF/PPTX ≤ 20 MB. Up to 6 pitch documents ≤ 10 MB each.</div></details>
-    <div class="grid g3">
+    <details class="card card-b mt16"><summary class="linkbtn">File requirements and review</summary><div class="small muted mt8" style="margin-bottom:16px;display:block">Videos and documents are malware-scanned and reviewed by people when reported. They are <strong>never</strong> sent to AI, and RiseUp never writes or edits your pitch. Videos: MP4, MOV or WebM up to 200 MB (pitch ≤ 3 min, demo ≤ 2 min). Deck: PDF/PPTX ≤ 20 MB. Up to 6 pitch documents ≤ 10 MB each.</div></details>
+    <div class="grid g2">
         @foreach (var (slot, label, v, hint, max) in new (PitchVideoSlot, string, VideoDto?, string, int)[] {
             (PitchVideoSlot.Pitch, "Investor pitch video", p.Pitch, "Up to 3 minutes. Shark-Tank style: who you are, the problem, the product, traction, the ask.", BusinessRules.PitchVideoMaxSeconds),
-            (PitchVideoSlot.Demo, "Product demo", p.Demo, "Up to 2 minutes of the real product in use. Investors watch this second.", BusinessRules.DemoVideoMaxSeconds),
-            (PitchVideoSlot.Teaser, "Public teaser (Reels)", p.Teaser, "Up to 60 seconds. Shown publicly in Reels when enabled — no funding figures.", BusinessRules.TeaserMaxSeconds) })
+            (PitchVideoSlot.Demo, "Product demo", p.Demo, "Up to 2 minutes of the real product in use. Investors watch this second.", BusinessRules.DemoVideoMaxSeconds) })
         {
             <div class="card card-b vcard">
                 <div class="row between"><h4 class="mb0">@label</h4>@if (v is not null) {<span class="badge @(v.Scan == ScanStatus.Clean ? "b-ver" : "b-pend")">@Dur(v.Seconds) · @(v.Scan == ScanStatus.Clean ? "Clean" : "Scanning")</span>} else {<span class="badge b-warn">Missing</span>}</div>
@@ -39,7 +38,7 @@
         }
     </div>
     <form method="post" action="/pitches/package/visibility" class="row mt8" asp-antiforgery="true">
-        <label class="switch"><input type="checkbox" name="publicTeaser" value="true" checked="@p.PublicTeaser" data-autosubmit /> Show teaser publicly in Reels</label>
+
         <label class="switch"><input type="checkbox" name="publicDemo" value="true" checked="@p.PublicDemo" data-autosubmit /> Show product demo publicly</label>
         <input type="hidden" name="captions" value="@p.Captions.ToString().ToLowerInvariant()" />
         <noscript><button class="btn btn-dark btn-sm">Save</button></noscript>

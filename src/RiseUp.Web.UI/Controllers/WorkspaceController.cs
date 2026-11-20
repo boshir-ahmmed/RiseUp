@@ -12,6 +12,7 @@ using RiseUp.Facade.Investors;
 using RiseUp.Facade.Notifications;
 using RiseUp.Facade.Payments;
 using RiseUp.Facade.Posts;
+using RiseUp.Facade.Pitching;
 using RiseUp.Facade.Promotions;
 using RiseUp.Facade.Startups;
 using RiseUp.Facade.TeamAccounts;
@@ -29,7 +30,7 @@ namespace RiseUp.Web.UI.Controllers;
 public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatchingFacade matching, IConversationFacade conversations,
     ITeamAccountFacade team, IDocumentFacade documents, IPostFacade posts, IPromotionFacade promotions, IWalletFacade wallets,
     IPaymentFacade payments, IStartupFacade startups, IInvestorFacade investors, IVerificationFacade verification,
-    INotificationFacade notifications, IFileStorage storage, RiseUp.Facade.Pitching.IMeetingFacade meetings) : AppController
+    INotificationFacade notifications, IFileStorage storage, IMeetingFacade meetings, IPitchPackageFacade pitchPackage) : AppController
 {
     [HttpGet("/" + UrlRewrite.Dashboard)]
     public async Task<IActionResult> Dashboard(CancellationToken ct)
@@ -203,15 +204,63 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
 
     // ------------------------------------------------------------ posts & promotions (owner)
     [Authorize(Policy = Policies.Founder), HttpGet("/my-posts")]
-    public async Task<IActionResult> MyPosts(int? edit, CancellationToken ct) =>
-        View(new MyPostsViewModel(await posts.ListOwnAsync(Actor, ct), await promotions.ListForStartupAsync(Actor, ct), (await wallets.GetAsync(Actor, ct)).Value, edit));
-
-    [Authorize(Policy = Policies.Founder), HttpPost("/my-posts")]
-    public async Task<IActionResult> SubmitPost(int? postId, PostCategory category, string title, string body, CancellationToken ct)
+    public async Task<IActionResult> MyPosts(int? edit, string? tab, CancellationToken ct)
     {
-        var result = await posts.SubmitAsync(Actor, new SubmitPostRequest(postId, category, title ?? "", body ?? ""), ct);
+        var library = await posts.ListOwnAsync(Actor, ct);
+        var editing = library.FirstOrDefault(p => p.Id == edit);
+        var reels = editing is null ? tab == "reels" : editing.Category == PostCategory.Reel;
+        var settings = await pitchPackage.GetTeaserSettingsAsync(Actor, ct);
+        return View(new MyPostsViewModel(library, await promotions.ListForStartupAsync(Actor, ct), (await wallets.GetAsync(Actor, ct)).Value,
+            editing?.Id, reels ? "reels" : "posts", settings.Name, settings.Teaser, settings.Public,
+            await promotions.ListPackagesAsync(ct)));
+    }
+
+    [Authorize(Policy = Policies.Founder), HttpPost("/my-posts"), RequestSizeLimit(110 * 1024 * 1024), RequestFormLimits(MultipartBodyLengthLimit = 110 * 1024 * 1024)]
+    public async Task<IActionResult> SubmitPost(int? postId, PostCategory category, string? title, string? body, string? intent,
+        IFormFile? attachment, double? clientDuration, CancellationToken ct)
+    {
+        var request = new SubmitPostRequest(postId, category, title ?? "", body ?? "");
+        var tab = category == PostCategory.Reel ? "reels" : "posts";
+        if (postId is not int existingId || !await posts.IsPublishedByOwnerAsync(Actor, existingId, ct))
+        {
+            var draft = await posts.SaveDraftAsync(Actor, request, ct);
+            if (draft.IsFailure) { Flash(draft); return RedirectToAction(nameof(MyPosts), new { tab, edit = postId }); }
+            postId = draft.Value;
+            request = request with { PostId = draft.Value };
+            if (attachment is { Length: > 0 })
+            {
+                var image = category != PostCategory.Reel && UploadSaver.ImageExtensions.Contains(Path.GetExtension(attachment.FileName), StringComparer.OrdinalIgnoreCase);
+                var (file, error) = await UploadSaver.SaveAsync(attachment, image ? UploadSaver.ImageExtensions : UploadSaver.VideoExtensions, storage, clientDuration, ct);
+                var attached = file is null ? Result.Failure(ErrorCodes.InvalidMedia, error!)
+                    : image ? await posts.AttachImageAsync(Actor, draft.Value, file, ct)
+                    : await posts.AttachVideoAsync(Actor, draft.Value, file, null, ct);
+                if (attached.IsFailure)
+                {
+                    if (file is not null) await storage.DeleteAsync(file.StorageKey, ct);
+                    Flash(attached);
+                    return RedirectToAction(nameof(MyPosts), new { tab, edit = draft.Value });
+                }
+            }
+            if (intent == "draft") { Flash(draft); return RedirectToAction(nameof(MyPosts), new { tab, edit = draft.Value }); }
+        }
+        var result = await posts.SubmitAsync(Actor, request, ct);
         Flash(result);
-        return RedirectToAction(nameof(MyPosts), result.IsFailure ? new { edit = postId ?? 0 } : null);
+        return RedirectToAction(nameof(MyPosts), new { tab, edit = result.IsFailure ? postId : null });
+    }
+
+    [Authorize(Policy = Policies.Founder), HttpPost("/my-posts/teaser/draft")]
+    public async Task<IActionResult> MoveTeaser(CancellationToken ct)
+    {
+        var result = await pitchPackage.MoveTeaserToDraftAsync(Actor, ct);
+        Flash(result);
+        return RedirectToAction(nameof(MyPosts), new { tab = "reels", edit = result.Value });
+    }
+
+    [Authorize(Policy = Policies.Founder), HttpPost("/my-posts/teaser/visibility")]
+    public async Task<IActionResult> TeaserVisibility(bool visible, CancellationToken ct)
+    {
+        Flash(await pitchPackage.SetVisibilityAsync(Actor, visible, null, null, ct));
+        return RedirectToAction(nameof(MyPosts), new { tab = "reels" });
     }
 
     /// <summary>Adds a ≤90 s video to a post (AJAX upload from the post editor; poster frame captured in the browser).</summary>
@@ -221,11 +270,17 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
         var (file, error) = await UploadSaver.SaveAsync(video, UploadSaver.VideoExtensions, storage, clientDuration, ct);
         if (file is null) return Json(Result.Failure(ErrorCodes.InvalidMedia, error!));
         var (posterFile, _) = poster is null ? (null, null) : await UploadSaver.SaveAsync(poster, UploadSaver.ImageExtensions, storage, null, ct);
-        return Json(await posts.AttachVideoAsync(Actor, id, file, posterFile, ct));
+        var result = await posts.AttachVideoAsync(Actor, id, file, posterFile, ct);
+        if (result.IsFailure)
+        {
+            await storage.DeleteAsync(file.StorageKey, ct);
+            if (posterFile is not null) await storage.DeleteAsync(posterFile.StorageKey, ct);
+        }
+        return Json(result);
     }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/my-posts/{id:int}/promote")]
-    public async Task<IActionResult> Promote(int id, int days, CancellationToken ct) { Flash(await promotions.PurchaseAsync(Actor, id, days, ct)); return RedirectToAction(nameof(MyPosts)); }
+    public async Task<IActionResult> Promote(int id, int days, string? tab, CancellationToken ct) { Flash(await promotions.PurchaseAsync(Actor, id, days, ct)); return RedirectToAction(nameof(MyPosts), new { tab }); }
 
     // ------------------------------------------------------------ wallet & payments (owner)
     [Authorize(Policy = Policies.Founder), HttpGet("/" + UrlRewrite.Wallet)]

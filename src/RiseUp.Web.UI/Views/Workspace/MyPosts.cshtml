@@ -1,48 +1,142 @@
 @model MyPostsViewModel
-@{ ViewData["Title"] = "Posts & promotions"; }
-<div class="page-h"><div><h1>Posts &amp; promotions</h1><p>Each new or edited post passes AI Model 1 before going public. Promotions use purchased credits only.</p></div><span class="badge b-gray" style="font-size:13px;padding:6px 12px">@(Model.Wallet?.PurchasedBalance ?? 0) purchased credits</span></div>
-<div class="grid g-detail" style="align-items:start">
-    <div class="card"><div class="card-h"><h3>Your posts</h3></div>
-        @if (Model.Posts.Count == 0) { <div class="empty">No posts yet</div> }
-        @foreach (var p in Model.Posts)
-        {
-            <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6">
-                <div class="row between"><strong>@(p.LiveTitle ?? p.PendingTitle)</strong>
-                    <div class="row" style="gap:4px">@if (p.LiveTitle is not null) {<span class="badge b-ver">Live</span>}@if (p.PendingTitle is not null) {<span class="badge @Ui.StatusClass(p.PendingState.ToString())">Edit: @p.PendingState</span>}@if (p.HasOpenPromotion) {<span class="badge b-promo">Promoted</span>}</div></div>
-                @if (p.PendingTitle is not null && p.LiveTitle is not null) { <div class="tiny muted mt8">The last approved version stays live until the edit passes.</div> }
-                @if (p.ReasonCode is not null) { <div class="tiny mt8">Reason code: <code>@p.ReasonCode</code></div> }
-                <div class="row mt8">
-                    @if (p.LiveTitle is not null) { <a class="btn btn-outline btn-sm" href="/posts/@p.Id">View post</a> }
-                    <a class="btn btn-outline btn-sm" href="/my-posts?edit=@p.Id">Edit</a>
-                    <form method="post" action="/my-posts/@p.Id/video" enctype="multipart/form-data" class="inline" asp-antiforgery="true"><label class="btn btn-outline btn-sm upl">🎬 Add video (≤90 s)<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime,.mov" data-video-upload data-max-seconds="90" /></label><span class="tiny muted" data-status></span><div class="progress-line" style="width:120px;display:inline-block;vertical-align:middle"><i></i></div></form>
-                    @if (p.LiveTitle is not null && !p.HasOpenPromotion)
-                    {
-                        <form method="post" action="/my-posts/@p.Id/promote" class="row inline" style="flex-wrap:nowrap" asp-antiforgery="true"><select class="input" name="days" style="width:auto;padding:5px 8px"><option value="1">1 day · 3 credits</option><option value="3" selected>3 days · 7 credits</option><option value="7">7 days · 15 credits</option></select><button class="btn btn-primary btn-sm">Promote</button></form>
-                    }
-                </div>
+@{
+    ViewData["Title"] = "Post & Reels";
+    var reels = Model.Tab == "reels";
+    var noun = reels ? "reel" : "post";
+    var items = Model.Posts.Where(p => (p.Category == PostCategory.Reel) == reels).ToList();
+    var editing = items.FirstOrDefault(p => p.Id == Model.EditId);
+    var liveEdit = editing?.LiveTitle is not null;
+    var preview = editing ?? items.FirstOrDefault(p => p.LiveTitle is not null && !p.IsHidden && p.PendingTitle is null);
+    var teaserPreview = reels && preview is null ? Model.Teaser : null;
+    var previewVideo = preview?.VideoUrl ?? teaserPreview?.Url;
+    var previewPoster = preview?.PosterUrl ?? teaserPreview?.PosterUrl;
+    var previewTitle = preview?.PendingTitle ?? preview?.LiveTitle ?? (teaserPreview is null ? null : "Startup teaser");
+    var title = editing?.PendingTitle ?? editing?.LiveTitle;
+    var balance = Model.Wallet?.PurchasedBalance ?? 0;
+    var campaigns = Model.Promotions.Where(c => items.Any(p => p.Id == c.PostId)).ToList();
+}
+<div class="post-studio">
+    <header class="page-h"><div><h1>Post &amp; Reels</h1><p>Share what’s happening at @Model.StartupName.</p></div>
+        <a class="studio-wallet" href="/wallet"><strong>@balance.ToString("N0")</strong> purchased credits</a>
+    </header>
+    <nav class="studio-tabs content-tabs" aria-label="Publication format">
+        <a href="/my-posts?tab=posts" class="@(!reels ? "on" : null)" aria-current="@(!reels ? "page" : null)"><partial name="_Icon" model='"edit"' /> Posts</a>
+        <a href="/my-posts?tab=reels" class="@(reels ? "on" : null)" aria-current="@(reels ? "page" : null)"><partial name="_Icon" model='"vid"' /> Reels</a>
+    </nav>
+    <div class="compose-grid">
+        <section class="studio-panel preview-panel" aria-labelledby="preview-heading">
+            <header class="studio-panel-head"><h2 id="preview-heading">@(reels ? "Reel preview" : "Feed preview")</h2>
+                <span class="preview-state" data-preview-state>@(teaserPreview is not null ? "Existing teaser" : editing is null && preview is not null ? "Latest publication" : "Draft preview")</span></header>
+            <div class="preview-canvas">
+                <article class="preview-card @(reels ? "preview-reel" : "")">
+                    <div class="preview-author"><span class="studio-avatar">@Ui.Initials(Model.StartupName)</span><div><strong>@Model.StartupName</strong><small data-preview-category>@(preview?.Category.ToString() ?? (reels ? "Reel" : "Announcements"))</small></div></div>
+                    <div class="preview-media @(reels ? "portrait-frame" : "")">
+                        <div class="preview-art" data-preview-art hidden="@(previewVideo is not null || previewPoster is not null)">
+                            <partial name="_Icon" model='@(reels ? "vid" : "edit")' /><span data-art-title>@(previewTitle ?? (reels ? "Your reel" : "Your next update"))</span>
+                        </div>
+                        <video controls playsinline preload="metadata" data-preview-video src="@previewVideo" poster="@previewPoster" hidden="@(previewVideo is null)" aria-label="Video preview"></video>
+                        <img data-preview-image src="@(previewVideo is null ? previewPoster : null)" alt="Post preview" hidden="@(previewVideo is not null || previewPoster is null)" />
+                    </div>
+                    <div class="preview-copy"><h3 data-preview-title>@(previewTitle ?? "Your title")</h3>
+                        <p data-preview-body>@(preview?.Body ?? (teaserPreview is not null ? "" : reels ? "Your caption will appear here." : "Your update will appear here."))</p></div>
+                </article>
             </div>
-        }
+        </section>
+        <section class="studio-panel studio-composer" aria-labelledby="compose-heading">
+            <header class="studio-panel-head"><h2 id="compose-heading">@(editing is null ? "Create a" : "Edit") @noun</h2>
+                <div class="row">
+                    <a class="mobile-preview-jump" href="#preview-heading">Preview</a>
+                    @if (editing is not null) { <a href="/my-posts?tab=@Model.Tab">New @noun</a> }
+                </div>
+            </header>
+            <form method="post" action="/my-posts" enctype="multipart/form-data" asp-antiforgery="true" class="compose-fields" data-composer
+                  data-video="@editing?.VideoUrl" data-poster="@editing?.PosterUrl" data-reel="@(reels ? "true" : "false")">
+                <input type="hidden" name="postId" value="@editing?.Id" />
+                @if (reels) { <input type="hidden" name="category" value="Reel" /> }
+                else
+                {
+                    <label class="field"><span>Category</span><select class="input" name="category">@foreach (var c in Enum.GetValues<PostCategory>().Where(c => c != PostCategory.Reel)) { <option value="@c" selected="@(editing?.Category == c)">@c</option> }</select></label>
+                }
+                <label class="field"><span>Title</span><input class="input" name="title" placeholder="Give your @noun a title" maxlength="150" data-count="150" required value="@title" /></label>
+                <label class="field"><span>@(reels ? "Caption" : "Post content")</span><textarea class="input" name="body" placeholder="@(reels ? "Tell people what they’re watching…" : "What would you like to share?")" maxlength="5000" data-count="5000" rows="4" required>@editing?.Body</textarea></label>
+                @if (!liveEdit)
+                {
+                    <label class="media-picker"><strong>@(reels ? "Reel video" : "Add media (optional)")</strong>
+                        <small>@(reels ? "9:16 player · MP4, MOV or WebM · up to 90 s and 100 MB" : "JPG, PNG or WebP up to 10 MB · video up to 90 s and 100 MB")</small>
+                        <input name="attachment" type="file" accept="@(reels ? ".mp4,.mov,.webm" : ".jpg,.jpeg,.png,.webp,.mp4,.mov,.webm")" required="@(reels && editing?.VideoUrl is null)" /></label>
+                    <input type="hidden" name="clientDuration" />
+                }
+                <small class="muted">Your title and @(reels ? "caption" : "content") go through a safety check before publication.</small>
+                <div class="compose-actions"><button class="btn btn-primary" name="intent" value="publish">Publish @noun</button>
+                    @if (!liveEdit) { <button class="btn btn-outline" name="intent" value="draft" formnovalidate>Save draft</button> }</div>
+            </form>
+        </section>
     </div>
-    <form class="card card-b stack" method="post" action="/my-posts" asp-antiforgery="true">
-        @{ var editing = Model.Posts.FirstOrDefault(p => p.Id == Model.EditId); }
-        <h3>@(editing is null ? "New post" : "Edit post")</h3>
-        <input type="hidden" name="postId" value="@editing?.Id" />
-        <label class="field"><span>Category</span><select class="input" name="category">@foreach (var c in Enum.GetValues<PostCategory>()) {<option value="@c" selected="@(editing?.Category == c)">@c</option>}</select></label>
-        <label class="field"><span>Title</span><input class="input" name="title" maxlength="150" data-count="150" required value="@(editing?.PendingTitle ?? editing?.LiveTitle)" /></label>
-        <label class="field"><span>Body</span><textarea class="input" name="body" maxlength="5000" data-count="5000" rows="7" required>@editing?.Body</textarea></label>
-        <button class="btn btn-primary">Submit for safety check</button>
-        <p class="tiny muted mb0">Try “guaranteed returns” to see a rejection. Comments and private chats are never sent to AI.</p>
-    </form>
-</div>
-<div class="card mt24"><div class="card-h"><h3>Promotions</h3></div>
-    @if (Model.Promotions.Count == 0) { <div class="empty">No promotions yet</div> }
-    @foreach (var p in Model.Promotions)
+    <section class="studio-panel library-panel">
+        <header class="studio-panel-head"><h2>Your @Model.Tab</h2><span class="muted small">@items.Count total</span></header>
+        @if (items.Count == 0) { <p class="empty">Your @Model.Tab and saved drafts will appear here.</p> }
+        @foreach (var p in items)
+        {
+            var name = p.LiveTitle ?? p.PendingTitle;
+            var live = p.LiveTitle is not null && !p.IsHidden;
+            <article class="studio-entry">
+                <div class="entry-summary"><div class="entry-thumb" aria-hidden="true">
+                    @if (p.PosterUrl is not null) { <img src="@p.PosterUrl" alt="" loading="lazy" /> }
+                    else { <partial name="_Icon" model='@(reels || p.VideoUrl is not null ? "vid" : "edit")' /> }
+                </div><div><h3>@(string.IsNullOrWhiteSpace(name) ? "Untitled " + noun : name)</h3>
+                    <small>@p.Category @if (p.PublishedAtUtc is DateTime date) {<text> · @Ui.Dhaka(date)</text>}</small></div></div>
+                <div class="entry-actions">
+                    <span class="badge @(live ? "b-ver" : "b-gray")">@(p.IsHidden ? "Hidden" : live ? "Published" : "Draft")</span>
+                    @if (p.PendingState is ModerationState.Rejected or ModerationState.AiUnavailable) { <span class="small">@(p.PendingState == ModerationState.Rejected ? "Needs revision" : "Awaiting safety check") @p.ReasonCode</span> }
+                    @if (live) { <a href="/posts/@p.Id">View</a> } <a href="/my-posts?edit=@p.Id">Edit</a>
+                    @if (live && !p.HasOpenPromotion && Model.Packages.Count > 0)
+                    {
+                        <details class="promote-picker"><summary>Promote</summary><form method="post" action="/my-posts/@p.Id/promote" asp-antiforgery="true">
+                            <input type="hidden" name="tab" value="@Model.Tab" />
+                            <label class="field"><span>Promotion package</span><select class="input" name="days">
+                                @foreach (var package in Model.Packages) { <option value="@package.Days" disabled="@(package.Cost > balance)">@package.Days @(package.Days == 1 ? "day" : "days") · @package.Cost credits</option> }
+                            </select></label>
+                            @if (Model.Packages.All(x => x.Cost > balance)) { <a href="/wallet">Buy purchased credits</a> }
+                            else { <button class="btn btn-primary btn-sm">Confirm promotion</button> }
+                        </form></details>
+                    }
+                    @if (p.HasOpenPromotion) { <a href="#campaigns">See campaign</a> }
+                </div>
+                @if (!reels && live)
+                {
+                    <details class="post-video-tools"><summary>@(p.VideoUrl is null ? "Add video" : "Replace video")</summary>
+                        <form method="post" action="/my-posts/@p.Id/video" enctype="multipart/form-data" asp-antiforgery="true">
+                            <label class="field">Video up to 90 seconds<input type="file" name="video" accept=".mp4,.mov,.webm" data-video-upload data-max-seconds="90" /></label>
+                            <div class="progress-line"><i></i></div><small data-status role="status"></small>
+                        </form></details>
+                }
+            </article>
+        }
+    </section>
+    @if (reels && Model.Teaser is { } teaser)
     {
-        <div style="padding:14px 20px;border-bottom:1px solid #EEF2F6"><div class="row between"><strong class="small">@p.PostTitle</strong><span class="badge @Ui.StatusClass(p.Status.ToString())">@p.Status</span></div>
-            <div class="tiny muted mt8">@p.Days-day package · @p.Cost purchased credits · @Ui.Left(p.Remaining) of paid time remaining@(p.PauseReason is null ? "" : " · paused: " + p.PauseReason)</div>
-            <details class="small mt8"><summary class="linkbtn">View details</summary><dl class="kv mt8"><dt>Impressions</dt><dd>@p.Impressions.ToString("N0")</dd><dt>Clicks</dt><dd>@p.Clicks</dd><dt>Engagements</dt><dd>@p.Engagements</dd><dt>Served via fallback</dt><dd>@p.FallbackImpressions impressions during AI outages</dd><dt>Refunds</dt><dd>Non-refundable unless RiseUp fails to activate it</dd></dl></details>
-        </div>
+        <section class="studio-panel legacy-teaser"><h2>Pitch Studio teaser</h2>
+            <div class="row"><video src="@teaser.Url" poster="@teaser.PosterUrl" controls playsinline preload="metadata" aria-label="Your existing teaser"></video>
+                <div><p>Currently @(Model.PublicTeaser ? "public in Reels" : "private"). Move this video into a private reel draft to edit its caption and publish it for promotion.</p>
+                    <form method="post" action="/my-posts/teaser/draft" asp-antiforgery="true"><button class="btn btn-outline">Move teaser to drafts</button></form>
+                    <form method="post" action="/my-posts/teaser/visibility" asp-antiforgery="true"><input type="hidden" name="visible" value="@((!Model.PublicTeaser).ToString().ToLowerInvariant())" /><button class="linkbtn">@(Model.PublicTeaser ? "Make teaser private" : "Show teaser publicly")</button></form>
+                </div></div>
+        </section>
     }
+    <section class="studio-panel" id="campaigns">
+        <header class="studio-panel-head"><h2>Promotions</h2><span class="small muted">@campaigns.Count campaigns</span></header>
+        @if (campaigns.Count == 0) { <p class="empty">Choose Promote on a published @noun to start a campaign.</p> }
+        @foreach (var p in campaigns)
+        {
+            <details class="studio-campaign"><summary><strong>@p.PostTitle</strong><span class="badge @Ui.StatusClass(p.Status.ToString())">@p.Status</span></summary>
+                <p class="small">@p.Days days · @p.Cost purchased credits · @Ui.Left(p.Remaining) remaining @p.PauseReason</p>
+                <dl class="kv"><dt>Impressions</dt><dd>@p.Impressions</dd><dt>Clicks</dt><dd>@p.Clicks</dd><dt>Engagements</dt><dd>@p.Engagements</dd><dt>Fallback impressions</dt><dd>@p.FallbackImpressions</dd></dl>
+                <small class="muted">Refunds apply if RiseUp fails to activate the campaign.</small>
+            </details>
+        }
+    </section>
 </div>
-
-@section Scripts { <script src="~/js/pages/studio.js" type="module" asp-append-version="true"></script> }
+@section Scripts {
+    <script src="~/js/pages/studio.js" type="module" asp-append-version="true"></script>
+    <script src="~/js/pages/post-composer.js" type="module" asp-append-version="true"></script>
+}

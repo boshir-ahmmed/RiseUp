@@ -13,4 +13,4 @@ using RiseUp.Framework.Time;
 
 namespace RiseUp.Facade.Posts;
 
-public sealed record OwnPostDto(int Id, PostCategory Category, string? LiveTitle, string? PendingTitle, ModerationState PendingState, string? ReasonCode, bool IsHidden, bool HasOpenPromotion, string? Body);
+public sealed record OwnPostDto(int Id, PostCategory Category, string? LiveTitle, string? PendingTitle, ModerationState PendingState, string? ReasonCode, bool IsHidden, bool HasOpenPromotion, string? Body, string? VideoUrl, string? PosterUrl, DateTime? PublishedAtUtc);

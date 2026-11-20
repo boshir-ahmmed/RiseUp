@@ -21,7 +21,7 @@
         {
             <a class="intro-spotlight" href="/reels#s-@spotlight.StartupId">
                 <img src="@spotlight.Teaser.PosterUrl" alt="" width="384" height="192" />
-                <span class="intro-profile"><span><strong>@spotlight.Name</strong><span>Watch the startup pitch · @Ui.Stage(spotlight.Stage)</span></span><span aria-hidden="true">▶</span></span>
+                <span class="intro-profile"><span><strong>@spotlight.Name</strong><span>Watch the startup teaser · @Ui.Stage(spotlight.Stage)</span></span><span aria-hidden="true">▶</span></span>
             </a>
         }
         else if (Model.Stories.FirstOrDefault() is { } featured)
@@ -41,7 +41,7 @@
         @if (actor.IsFounder)
         {
             <div class="card comp"><div class="comp-top"><a href="/me" aria-label="Your profile" style="line-height:0">@await Component.InvokeAsync("Shell", new { part = "Avatar" })</a><a class="comp-fake" href="/my-posts">@(Model.CanPost ? "Share an update from your startup…" : "Posting unlocks after verification")</a></div>
-                <div class="comp-acts"><a href="/my-posts" style="color:#378FE9" aria-label="Photo"><partial name="_Icon" model='"cam"' /><span>Photo</span></a><a href="/my-posts" style="color:#5F9B41" aria-label="Video"><partial name="_Icon" model='"vid"' /><span>Video</span></a><a href="/my-posts" style="color:#C37D16" aria-label="Milestone"><partial name="_Icon" model='"flag"' /><span>Milestone</span></a><a href="/pitches" style="color:#E06847" aria-label="Pitch"><partial name="_Icon" model='"pitch"' /><span>Pitch</span></a></div></div>
+                <div class="comp-acts"><a href="/my-posts" style="color:#378FE9" aria-label="Photo"><partial name="_Icon" model='"cam"' /><span>Photo</span></a><a href="/my-posts?tab=reels" style="color:#5F9B41" aria-label="Create reel"><partial name="_Icon" model='"vid"' /><span>Reel</span></a><a href="/my-posts" style="color:#C37D16" aria-label="Milestone"><partial name="_Icon" model='"flag"' /><span>Milestone</span></a><a href="/pitches" style="color:#E06847" aria-label="Pitch"><partial name="_Icon" model='"pitch"' /><span>Pitch</span></a></div></div>
         }
         <nav class="stories" aria-label="Verified startups">
             @foreach (var s in Model.Stories)
@@ -86,7 +86,7 @@
 
         @if (Model.Spotlight.Count > 0)
         {
-            <div class="card side-card @(actor.IsAuthenticated ? "" : "mt16")"><div class="row between"><h4 class="mb0">🔥 Trending pitches</h4><a class="tiny" href="/reels">See all</a></div>
+            <div class="card side-card @(actor.IsAuthenticated ? "" : "mt16")"><div class="row between"><h4 class="mb0">🔥 Startup teasers</h4><a class="tiny" href="/reels">See all</a></div>
                 @foreach (var s in Model.Spotlight.Take(4))
                 {
                     <a class="tp" href="/reels#s-@s.StartupId"><span class="tp-th">@if (s.Teaser.PosterUrl is not null) {<img src="@s.Teaser.PosterUrl" alt="" loading="lazy" />}<span>▶</span></span><span style="min-width:0;text-align:left"><strong class="small ell" style="display:block">@s.Name</strong><span class="tiny muted ell" style="display:block">@s.Industry · @Ui.Stage(s.Stage)</span></span></a>

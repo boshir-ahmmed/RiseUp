@@ -19,7 +19,7 @@ namespace RiseUp.Facade.Pitching;
 /// never sent to AI. The founder's written note on each pitch remains the only text checked by Model 1.
 /// </summary>
 public sealed class PitchPackageFacade(IPitchRepository pitches, IStartupRepository startups, IInvestorRepository investors, IConnectionRepository connections,
-    IShortlistRepository shortlist, IMediaRepository media, MediaIntake intake, IUnitOfWork uow, IClock clock, IValidator<AskInput> askValidator) : IPitchPackageFacade
+    IShortlistRepository shortlist, IMediaRepository media, MediaIntake intake, IUnitOfWork uow, IClock clock, IValidator<AskInput> askValidator, IPostRepository posts) : IPitchPackageFacade
 {
     private async Task<(PitchPackage? Package, Startup? Startup, Error? Error)> OwnAsync(Actor actor, bool create, CancellationToken ct)
     {
@@ -62,7 +62,6 @@ public sealed class PitchPackageFacade(IPitchRepository pitches, IStartupReposit
         {
             ("A 30-second hook", "Pitch video: open with the problem in one sentence and who has it.", p.PitchVideoId is not null),
             ("Show the product, don't describe it", "Product demo: a screen recording or real footage beats slides.", p.DemoVideoId is not null),
-            ("A public teaser", "60 seconds, no funding figures — shown in Reels when you enable it.", p.TeaserVideoId is not null),
             ("A deck investors can skim", "At least 5 slides: problem, solution, market, traction, ask.", slides.Count >= 5),
             ("Numbers investors can verify", "Two or more highlights with time periods.", p.HighlightLines.Count() >= 2),
             ("A clear ask", "Amount, instrument, valuation or cap, use of funds, runway.", p.AskAmountUsd > 0 && ask.UseOfFunds.Sum(u => u.Percent) == 100),
@@ -74,6 +73,47 @@ public sealed class PitchPackageFacade(IPitchRepository pitches, IStartupReposit
             p.PublicTeaser, p.PublicDemo, p.CaptionsAvailable, deck, slides, docs, ask, p.HighlightLines.ToList(),
             p.Team.OrderBy(t => t.Id).Select(t => new TeamDto(t.Name, t.Role)).ToList(), p.Faq.OrderBy(f => f.Id).Select(f => new FaqDto(f.Question, f.Answer)).ToList(),
             (int)Math.Round(checklist.Count(c => c.Item3) * 100.0 / checklist.Count), checklist);
+    }
+
+    public async Task<(string Name, VideoDto? Teaser, bool Public)> GetTeaserSettingsAsync(Actor actor, CancellationToken ct = default)
+    {
+        var (package, startup, error) = await OwnAsync(actor, false, ct);
+        if (error is not null || startup is null) return ("Your startup", null, false);
+        var teaser = package?.TeaserVideoId is int id ? await media.GetByIdAsync(id, ct) : null;
+        var dto = teaser is null ? null : new VideoDto(teaser.Id, UrlRewrite.Media(teaser.Id),
+            package?.TeaserPosterId is int poster ? UrlRewrite.Media(poster) : null, teaser.DurationSeconds ?? 0, teaser.ScanStatus);
+        return (startup.Name, dto, package?.PublicTeaser == true);
+    }
+
+    public async Task<VideoDto?> GetPublicTeaserAsync(int startupId, CancellationToken ct = default)
+    {
+        if ((await startups.GetByIdAsync(startupId, ct))?.IsActiveVerifiedAt(clock.UtcNow) != true ||
+            await pitches.GetPackageAsync(startupId, ct) is not { PublicTeaser: true, TeaserVideoId: int id } package ||
+            await media.GetByIdAsync(id, ct) is not { ScanStatus: ScanStatus.Clean } video) return null;
+        return new VideoDto(id, UrlRewrite.Media(id), package.TeaserPosterId is int poster ? UrlRewrite.Media(poster) : null,
+            video.DurationSeconds ?? 0, video.ScanStatus);
+    }
+
+    public async Task<Result<int>> MoveTeaserToDraftAsync(Actor actor, CancellationToken ct = default)
+    {
+        await using var tx = await uow.BeginTransactionAsync(ct);
+        var (package, startup, error) = await OwnAsync(actor, false, ct);
+        if (error is not null) return error;
+        if (package?.TeaserVideoId is not int id || await media.GetByIdAsync(id, ct) is not { Kind: MediaKind.TeaserVideo } video ||
+            video.OwnerStartupId != startup!.Id) return Guard.NotFound("Teaser");
+        var draft = new RiseUp.Entities.Social.StartupPost
+        {
+            StartupId = startup.Id, Category = PostCategory.Reel, PendingTitle = startup.Name,
+            PendingBody = startup.Tagline, VideoMediaId = id, VideoSeconds = video.DurationSeconds, PosterMediaId = package.TeaserPosterId
+        };
+        video.Kind = MediaKind.PostVideo;
+        package.TeaserVideoId = package.TeaserPosterId = null;
+        package.PublicTeaser = false;
+        Touch(package);
+        await posts.AddAsync(draft, ct);
+        await uow.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return Result.Success(draft.Id, "Your teaser is now a private reel draft.");
     }
 
     // ------------------------------------------------------------------ videos
@@ -116,16 +156,18 @@ public sealed class PitchPackageFacade(IPitchRepository pitches, IStartupReposit
         return Result.Success("Video removed.");
     }
 
-    public async Task<Result> SetVisibilityAsync(Actor actor, bool publicTeaser, bool publicDemo, bool captions, CancellationToken ct = default)
+    public async Task<Result> SetVisibilityAsync(Actor actor, bool? publicTeaser, bool? publicDemo, bool? captions, CancellationToken ct = default)
     {
         var (p, s, e) = await OwnAsync(actor, true, ct);
         if (e is not null) return Result.Failure(e);
-        if (publicTeaser && p!.TeaserVideoId is null) return Result.Failure(ErrorCodes.Validation, "Upload a teaser before making it public.");
-        if (publicDemo && p!.DemoVideoId is null) return Result.Failure(ErrorCodes.Validation, "Upload a product demo before making it public.");
-        if ((publicTeaser || publicDemo) && !s!.IsActiveVerifiedAt(clock.UtcNow)) return Result.Failure(ErrorCodes.NotVerified, "Public videos are available once your startup is verified.");
-        p!.PublicTeaser = publicTeaser; p.PublicDemo = publicDemo; p.CaptionsAvailable = captions;
+        if (publicTeaser == true && p!.TeaserVideoId is null) return Result.Failure(ErrorCodes.Validation, "Upload a teaser before making it public.");
+        if (publicDemo == true && p!.DemoVideoId is null) return Result.Failure(ErrorCodes.Validation, "Upload a product demo before making it public.");
+        if ((publicTeaser == true || publicDemo == true) && !s!.IsActiveVerifiedAt(clock.UtcNow)) return Result.Failure(ErrorCodes.NotVerified, "Public videos are available once your startup is verified.");
+        if (publicTeaser is bool showTeaser) p!.PublicTeaser = showTeaser;
+        if (publicDemo is bool showDemo) p!.PublicDemo = showDemo;
+        if (captions is bool hasCaptions) p!.CaptionsAvailable = hasCaptions;
         await uow.SaveChangesAsync(ct);
-        return Result.Success(publicTeaser ? "Saved. Your teaser is public in Reels." : "Saved.");
+        return Result.Success(publicTeaser == true ? "Saved. Your teaser is public in Reels." : "Saved.");
     }
 
     // ------------------------------------------------------------------ deck + slides
