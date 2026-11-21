@@ -24,7 +24,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Demo pitch videos imported into private storage by the Development seeder (never served from wwwroot). -->
-    <None Update="DemoMedia\**" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Bundled gallery and pitch media imported into private storage by the Development seeder (never served from wwwroot). -->
+    <None Update="DemoMedia\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

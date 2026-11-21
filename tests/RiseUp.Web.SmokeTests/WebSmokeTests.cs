@@ -1,4 +1,9 @@
 using System.Net;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using RiseUp.DataAccess;
+using RiseUp.DataAccess.Seed;
+using RiseUp.Entities.Abstractions;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -22,6 +27,42 @@ public sealed class RiseUpFactory : WebApplicationFactory<Program>
 public class WebSmokeTests(RiseUpFactory factory) : IClassFixture<RiseUpFactory>
 {
     private HttpClient Client(bool follow = false) => factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = follow, BaseAddress = new Uri("https://localhost") });
+
+    [Fact]
+    public async Task DemoProfileImagesRecoverAtTheSameUrlAfterStorageLoss()
+    {
+        using var client = Client();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<RiseUpDbContext>();
+        var files = scope.ServiceProvider.GetRequiredService<IFileStorage>();
+        var names = new[] { "portrait-sadia.jpg", "portrait-rafi.jpg", "logo-farhan.jpg", "field-freight.jpg" };
+        var assets = await db.MediaAssets.Where(a => names.Contains(a.FileName)).ToListAsync();
+        Assert.Equal(5, assets.Count); // The freight cover and the photo post have separate assets.
+        var originals = new Dictionary<int, byte[]>();
+        foreach (var asset in assets)
+        {
+            var url = $"/media/{asset.Id}";
+            originals[asset.Id] = await client.GetByteArrayAsync(url);
+            await files.DeleteAsync(asset.StorageKey);
+            using var missing = await client.GetAsync(url);
+            Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        }
+        await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();
+        foreach (var asset in assets)
+            Assert.Equal(originals[asset.Id], await client.GetByteArrayAsync($"/media/{asset.Id}"));
+    }
+
+    [Theory]
+    [InlineData("member.jpg", "image/jpeg")]
+    [InlineData("startup.png", "image/png")]
+    [InlineData("cover.jpg", "image/jpeg")]
+    public async Task NewProfileArtworkIsServed(string file, string contentType)
+    {
+        using var response = await Client().GetAsync($"/images/identity/{file}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(contentType, response.Content.Headers.ContentType?.MediaType);
+        Assert.NotEmpty(await response.Content.ReadAsByteArrayAsync());
+    }
 
     [Fact]
     public async Task SuggestionsMatchFirmAndNameWithoutContactOrFinancialFields()

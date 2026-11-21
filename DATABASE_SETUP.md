@@ -50,6 +50,12 @@ WHERE m.FileName LIKE 'reel-%.mp4';
 
 A fresh demo has 19 member portraits, eight startups with logos and covers, and four gallery reels. Repeating the import preserves existing demo edits and balances.
 
+## When a profile image is missing
+
+On the running site, open `/images/identity/member.jpg` to check the default avatar. The default startup artwork is at `/images/identity/startup.png` and `/images/identity/cover.jpg`. Newly registered members use these defaults until they upload their own images.
+
+An uploaded or demo image has a URL such as `/media/123`. SQL Server holds the media ID and storage key. The web app reads the bytes from its configured private storage folder. On a seeded Development database, starting the web app with the SQL Server launch profile restores missing bundled gallery files under their existing keys. For a personal upload with missing bytes, restore the original private storage folder from backup or upload the image again under **Me → Edit profile**. Startup owners can replace the company logo and cover in **Settings**.
+
 ## Find a newly registered profile
 
 Choose **RiseUp (SQL Server)** before registering. In Visual Studio, check the application's startup output for **RiseUp registration database**. It reports the SQL Server instance and database or the SQLite file used by that process. Run this query in the same SQL Server database, replacing the name with the one used at registration:

@@ -62,14 +62,14 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Ris
     private static string FindStartupProjectDirectory()
     {
         var current = Directory.GetCurrentDirectory();
-        if (File.Exists(Path.Combine(current, "appsettings.json"))) return current;
         var dir = new DirectoryInfo(current);
         while (dir is not null)
         {
+            if (File.Exists(Path.Combine(dir.FullName, "RiseUp.Web.UI.csproj"))) return dir.FullName;
             var candidate = Path.Combine(dir.FullName, "src", "RiseUp.Web.UI");
-            if (File.Exists(Path.Combine(candidate, "appsettings.json"))) return candidate;
+            if (File.Exists(Path.Combine(candidate, "RiseUp.Web.UI.csproj"))) return candidate;
             candidate = Path.Combine(dir.FullName, "RiseUp.Web.UI");
-            if (File.Exists(Path.Combine(candidate, "appsettings.json"))) return candidate;
+            if (File.Exists(Path.Combine(candidate, "RiseUp.Web.UI.csproj"))) return candidate;
             dir = dir.Parent;
         }
         return current;
