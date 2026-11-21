@@ -46,6 +46,13 @@ public sealed class ProfileController(IProfileFacade profiles, IFileStorage stor
     public async Task<IActionResult> Photo(IFormFile? file, CancellationToken ct) =>
         await ImageAsync(file, f => profiles.SetPhotoAsync(Actor, f, ct), ct);
 
+    [HttpPost("/me/logo"), RequestSizeLimit(3 * 1024 * 1024)]
+    public async Task<IActionResult> PersonalLogo(IFormFile? file, CancellationToken ct) =>
+        await ImageAsync(file, f => profiles.SetLogoAsync(Actor, f, ct), ct);
+
+    [HttpPost("/me/logo/remove")]
+    public async Task<IActionResult> RemoveLogo(CancellationToken ct) => Back(await profiles.RemoveLogoAsync(Actor, ct), nameof(Edit));
+
     [HttpPost("/me/photo/remove")]
     public async Task<IActionResult> RemovePhoto(CancellationToken ct) => Back(await profiles.RemovePhotoAsync(Actor, ct), nameof(Edit));
 

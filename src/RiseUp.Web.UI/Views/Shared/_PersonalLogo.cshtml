@@ -1,0 +1,2 @@
+@model (string Name, string? LogoUrl, int Color)
+<span class="personal-mark" title="Personal logo" style="background:@Ui.Color(Model.Color)">@Ui.Initials(Model.Name)@if (Model.LogoUrl is not null) { <img src="@Model.LogoUrl" alt="" data-personal-mark /> }</span>

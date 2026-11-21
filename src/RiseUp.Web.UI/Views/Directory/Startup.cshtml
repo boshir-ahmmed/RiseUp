@@ -8,7 +8,7 @@
 <section class="section" style="padding-top:32px"><div class="container">
     <a href="/startups" class="small">← All startups</a>
     <div class="card mk-card mt16" style="overflow:hidden">
-        <div class="sd-cover" style="@(s.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(s.ColorIndex)},#0F766E 60%,#134E4A)" : $"background:url('{s.CoverUrl}') center/cover")"></div>
+        <div class="sd-cover" style="@Ui.CoverStyle(s.CoverUrl)"></div>
         <div class="card-b" style="margin-top:-52px">
             <div class="row between" style="align-items:flex-end"><partial name="_Brand" model='(s.Name, s.ColorIndex, "lg", s.LogoUrl)' />
                 <div class="row">
@@ -48,7 +48,7 @@
                 else { <div class="lock">🔒 Funding requirements and business metrics are visible to verified investors only.</div> }
             </div>
             <div class="card card-b"><h3>Contact</h3>
-                @if (s.ContactEmail is not null) { <dl class="kv" style="grid-template-columns:auto 1fr"><dt>Founder</dt><dd>@s.OwnerName</dd><dt>Email</dt><dd>@s.ContactEmail</dd><dt>Phone</dt><dd>@(s.ContactPhone ?? "—")</dd></dl> }
+                @if (s.ContactEmail is not null) { <dl class="kv" style="grid-template-columns:auto 1fr"><dt>Founder</dt><dd class="row"><span class="member-identity"><partial name="_Avatar" model="(s.OwnerName!, s.OwnerPhotoUrl, s.ColorIndex, 52)" /><partial name="_PersonalLogo" model="(s.OwnerName!, s.OwnerLogoUrl, s.ColorIndex)" /></span> @s.OwnerName</dd><dt>Email</dt><dd>@s.ContactEmail</dd><dt>Phone</dt><dd>@(s.ContactPhone ?? "—")</dd></dl> }
                 else { <div class="lock">🔒 Contact details are shared only after a pitch or invitation is accepted.</div> }
             </div>
             <div class="card card-b small muted">@s.Views.ToString("N0") profile views (deduplicated per viewer per 24h)</div>

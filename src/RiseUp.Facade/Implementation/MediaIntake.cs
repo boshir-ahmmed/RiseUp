@@ -17,6 +17,7 @@ public sealed class MediaIntake(IMediaRepository media, IFileStorage storage, IM
     {
         [MediaKind.ProfilePhoto] = new(MediaTypes.Images, BusinessRules.ProfilePhotoMaxBytes, null, "Profile photos"),
         [MediaKind.ProfileCover] = new(MediaTypes.Images, BusinessRules.ProfileCoverMaxBytes, null, "Cover photos"),
+        [MediaKind.ProfileLogo] = new(MediaTypes.Images, BusinessRules.LogoMaxBytes, null, "Personal logos"),
         [MediaKind.StartupLogo] = new(MediaTypes.Images, BusinessRules.LogoMaxBytes, null, "Logos"),
         [MediaKind.StartupCover] = new(MediaTypes.Images, BusinessRules.ProfileCoverMaxBytes, null, "Cover images"),
         [MediaKind.VideoPoster] = new(MediaTypes.Images, 2 * 1024 * 1024, null, "Poster frames"),

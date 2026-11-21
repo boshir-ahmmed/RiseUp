@@ -29,7 +29,7 @@
                 <span class="preview-state" data-preview-state>@(teaserPreview is not null ? "Existing teaser" : editing is null && preview is not null ? "Latest publication" : "Draft preview")</span></header>
             <div class="preview-canvas">
                 <article class="preview-card @(reels ? "preview-reel" : "")">
-                    <div class="preview-author"><span class="studio-avatar">@Ui.Initials(Model.StartupName)</span><div><strong>@Model.StartupName</strong><small data-preview-category>@(preview?.Category.ToString() ?? (reels ? "Reel" : "Announcements"))</small></div></div>
+                    <div class="preview-author"><partial name="_Brand" model="(Model.StartupName, 0, string.Empty, Model.LogoUrl)" /><div><strong>@Model.StartupName</strong><small data-preview-category>@(preview?.Category.ToString() ?? (reels ? "Reel" : "Announcements"))</small></div></div>
                     <div class="preview-media @(reels ? "portrait-frame" : "")">
                         <div class="preview-art" data-preview-art hidden="@(previewVideo is not null || previewPoster is not null)">
                             <partial name="_Icon" model='@(reels ? "vid" : "edit")' /><span data-art-title>@(previewTitle ?? (reels ? "Your reel" : "Your next update"))</span>

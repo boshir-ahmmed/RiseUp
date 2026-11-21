@@ -18,7 +18,7 @@ namespace RiseUp.DataAccess;
 /// </summary>
 public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<RiseUpDbContext>
 {
-    private const string LocalDb = "Server=(localdb)\\MSSQLLocalDB;Database=RiseUp;Trusted_Connection=True;TrustServerCertificate=True";
+    public const string LocalDevelopmentConnection = "Server=(localdb)\\MSSQLLocalDB;Database=RiseUp;Trusted_Connection=True;TrustServerCertificate=True";
 
     public RiseUpDbContext CreateDbContext(string[] args)
     {
@@ -35,8 +35,8 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Ris
         var configuration = sources.AddEnvironmentVariables().Build();
 
         var connection = Environment.GetEnvironmentVariable("RISEUP_MIGRATIONS_CONNECTION")
-            ?? configuration.GetConnectionString("RiseUp")
-            ?? LocalDb;
+            ?? configuration.GetConnectionString("RiseUp");
+        if (string.IsNullOrWhiteSpace(connection)) connection = LocalDevelopmentConnection;
 
         var options = new DbContextOptionsBuilder<RiseUpDbContext>()
             .UseSqlServer(connection, sql => sql.MigrationsAssembly(typeof(RiseUpDbContext).Assembly.FullName));

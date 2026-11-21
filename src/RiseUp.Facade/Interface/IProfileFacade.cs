@@ -15,6 +15,8 @@ public interface IProfileFacade
     Task<ShellDto> GetShellAsync(Actor actor, CancellationToken ct = default);
     Task<Result<MyProfileDto>> GetMineAsync(Actor actor, CancellationToken ct = default);
     Task<Result> UpdateAsync(Actor actor, UpdateProfileRequest request, CancellationToken ct = default);
+    Task<Result> SetLogoAsync(Actor actor, UploadedFile file, CancellationToken ct = default);
+    Task<Result> RemoveLogoAsync(Actor actor, CancellationToken ct = default);
     Task<Result> SetPhotoAsync(Actor actor, UploadedFile file, CancellationToken ct = default);
     Task<Result> RemovePhotoAsync(Actor actor, CancellationToken ct = default);
     Task<Result> SetCoverAsync(Actor actor, UploadedFile file, CancellationToken ct = default);

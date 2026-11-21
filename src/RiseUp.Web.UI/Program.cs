@@ -13,6 +13,16 @@ using RiseUp.Web.UI.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    var config = builder.Configuration;
+    var hasSqlConnection = !string.IsNullOrWhiteSpace(config.GetConnectionString("RiseUp"));
+    if (config["Database:Provider"] == "Auto")
+        config["Database:Provider"] = hasSqlConnection ? "SqlServer" : "SqliteDemo";
+    if (!hasSqlConnection && config["Database:Provider"] == "SqlServer")
+        config["ConnectionStrings:RiseUp"] = DesignTimeDbContextFactory.LocalDevelopmentConnection;
+}
+
 builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 builder.Services.AddAntiforgery(o => { o.HeaderName = "X-CSRF-TOKEN"; o.Cookie.Name = "RiseUp.Csrf"; o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest; });
 
@@ -75,6 +85,17 @@ builder.Services.AddHealthChecks().AddDbContextCheck<RiseUpDbContext>("database"
 if (builder.Configuration.GetValue("Jobs:Enabled", true)) builder.Services.AddHostedService<ScheduledJobs>();
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    using var diagnosticScope = app.Services.CreateScope();
+    var context = diagnosticScope.ServiceProvider.GetRequiredService<RiseUpDbContext>();
+    var target = context.Database.GetDbConnection();
+    if (context.Database.IsSqlServer())
+        app.Logger.LogInformation("RiseUp registration database: SQL Server {Server}, database {Database}", target.DataSource, target.Database);
+    else
+        app.Logger.LogInformation("RiseUp registration database: SQLite {File}", Path.GetFullPath(target.DataSource));
+}
 
 if (app.Configuration.GetValue("Database:InitializeOnStartup", app.Environment.IsDevelopment()))
 {

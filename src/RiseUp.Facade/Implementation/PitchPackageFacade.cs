@@ -75,14 +75,14 @@ public sealed class PitchPackageFacade(IPitchRepository pitches, IStartupReposit
             (int)Math.Round(checklist.Count(c => c.Item3) * 100.0 / checklist.Count), checklist);
     }
 
-    public async Task<(string Name, VideoDto? Teaser, bool Public)> GetTeaserSettingsAsync(Actor actor, CancellationToken ct = default)
+    public async Task<(string Name, VideoDto? Teaser, bool Public, string? LogoUrl)> GetTeaserSettingsAsync(Actor actor, CancellationToken ct = default)
     {
         var (package, startup, error) = await OwnAsync(actor, false, ct);
-        if (error is not null || startup is null) return ("Your startup", null, false);
+        if (error is not null || startup is null) return ("Your startup", null, false, null);
         var teaser = package?.TeaserVideoId is int id ? await media.GetByIdAsync(id, ct) : null;
         var dto = teaser is null ? null : new VideoDto(teaser.Id, UrlRewrite.Media(teaser.Id),
             package?.TeaserPosterId is int poster ? UrlRewrite.Media(poster) : null, teaser.DurationSeconds ?? 0, teaser.ScanStatus);
-        return (startup.Name, dto, package?.PublicTeaser == true);
+        return (startup.Name, dto, package?.PublicTeaser == true, startup.LogoMediaId is int logo ? UrlRewrite.Media(logo) : null);
     }
 
     public async Task<VideoDto?> GetPublicTeaserAsync(int startupId, CancellationToken ct = default)

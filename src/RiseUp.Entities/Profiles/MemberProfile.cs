@@ -15,6 +15,7 @@ public class MemberProfile : BaseEntity, IConcurrencyAware
     public string Location { get; set; } = string.Empty;
     public string Bio { get; set; } = string.Empty;
     public string? LinkUrl { get; set; }
+    public int? LogoMediaId { get; set; }
     public int? PhotoMediaId { get; set; }
     public int? CoverMediaId { get; set; }
     public DateTime? NameChangedAtUtc { get; set; }

@@ -15,8 +15,16 @@ public sealed partial class DemoDataSeeder
         ("tasnim@juteloop.example", "tasnim"), ("ayesha@krishicloud.example", "ayesha"),
         ("sadia@padmavc.example", "sadia"), ("imran@angel.example", "imran"),
         ("nusrat@meghnacap.example", "nusrat"), ("arif@bengalangels.example", "arif"),
-        ("tanvir@deltagp.example", "tanvir"), ("mehnaz@angel.example", "mehnaz")
+        ("tanvir@deltagp.example", "tanvir"), ("mehnaz@angel.example", "mehnaz"),
+        ("super@riseup.example", "lamia"), ("verify@riseup.example", "rashed"),
+        ("moderator@riseup.example", "priya"), ("finance@riseup.example", "kamal")
     ];
+
+    private static readonly Dictionary<string, string> StartupCovers = new()
+    {
+        ["farhan"] = "freight", ["nabila"] = "grocery", ["mahin"] = "clinic", ["sabbir"] = "school",
+        ["ishrat"] = "solar", ["rezaul"] = "market", ["tasnim"] = "jute", ["ayesha"] = "farm"
+    };
 
     private sealed record FieldStory(string Owner, string Key, string Title, string Caption, string ReelTitle, string ReelCaption);
     private static readonly FieldStory[] Stories =
@@ -41,7 +49,8 @@ public sealed partial class DemoDataSeeder
             .SelectMany(slot => new[] { $"{p.Key}-{slot}.mp4", $"{p.Key}-{slot}.jpg" }));
         IEnumerable<string> galleryFiles = Portraits.Select(p => $"portrait-{p.Portrait}.jpg")
             .Concat(Stories.SelectMany(s => new[] { $"field-{s.Key}.jpg", $"reel-{s.Key}.mp4", $"reel-{s.Key}.jpg" }));
-        foreach (var name in pitchFiles.Concat(galleryFiles))
+        var branding = StartupCovers.SelectMany(s => new[] { $"logo-{s.Key}.jpg", $"field-{s.Value}.jpg" }).Append("portrait-rafi.jpg");
+        foreach (var name in pitchFiles.Concat(galleryFiles).Concat(branding))
             if (!File.Exists(Path.Combine(seedOptions.Value.DemoMediaPath, name)))
                 throw new FileNotFoundException($"Demo media is missing. Restore DemoMedia from the checkout: {name}");
     }
@@ -50,7 +59,7 @@ public sealed partial class DemoDataSeeder
     {
         // The original filename survives edits and soft deletion. A second import must respect both.
         var imported = (await db.MediaAssets.Where(a => a.FileName.StartsWith("portrait-") ||
-            a.FileName.StartsWith("field-") || a.FileName.StartsWith("reel-"))
+            a.FileName.StartsWith("field-") || a.FileName.StartsWith("logo-") || a.FileName.StartsWith("reel-"))
             .Select(a => new { a.OwnerAccountId, a.Kind, a.FileName }).ToListAsync(ct))
             .Select(a => (a.OwnerAccountId, a.Kind, a.FileName)).ToHashSet();
         var emails = Portraits.Select(p => p.Email.ToUpperInvariant()).ToArray();
@@ -69,11 +78,16 @@ public sealed partial class DemoDataSeeder
             if (profiles.TryGetValue(owner, out var profile) && profile.PhotoMediaId is null && !imported.Contains((owner, MediaKind.ProfilePhoto, name)))
                 profile.PhotoMediaId = (await LoadAsync(name, MediaKind.ProfilePhoto, startup?.Id, owner, ct)).Id;
 
-            var story = Stories.FirstOrDefault(s => s.Owner == portrait);
-            if (story is null || startup is null) continue;
-            var field = $"field-{story.Key}.jpg";
+            if (startup is null || !StartupCovers.TryGetValue(portrait, out var coverKey)) continue;
+            var logo = $"logo-{portrait}.jpg";
+            if (startup.LogoMediaId is null && !imported.Contains((owner, MediaKind.StartupLogo, logo)))
+                startup.LogoMediaId = (await LoadAsync(logo, MediaKind.StartupLogo, startup.Id, owner, ct)).Id;
+            var field = $"field-{coverKey}.jpg";
             if (startup.CoverMediaId is null && !imported.Contains((owner, MediaKind.StartupCover, field)))
                 startup.CoverMediaId = (await LoadAsync(field, MediaKind.StartupCover, startup.Id, owner, ct)).Id;
+
+            var story = Stories.FirstOrDefault(s => s.Owner == portrait);
+            if (story is null) continue;
             if (!imported.Contains((owner, MediaKind.PostImage, field)))
             {
                 var photo = await LoadAsync(field, MediaKind.PostImage, startup.Id, owner, ct);
@@ -87,14 +101,21 @@ public sealed partial class DemoDataSeeder
                 db.Posts.Add(Publication(startup.Id, PostCategory.Reel, story.ReelTitle, story.ReelCaption, poster.Id, video));
             }
         }
+        var team = await db.TeamAccounts.SingleOrDefaultAsync(t => t.Username == "rafi.ops" && t.Email == "rafi@nodifreight.example", ct);
+        if (team is not null && await db.MemberProfiles.SingleOrDefaultAsync(p => p.TeamAccountId == team.Id, ct) is { PhotoMediaId: null } member &&
+            !await db.MediaAssets.AnyAsync(a => a.OwnerTeamAccountId == team.Id && a.FileName == "portrait-rafi.jpg", ct))
+        {
+            member.PhotoMediaId = (await LoadAsync("portrait-rafi.jpg", MediaKind.ProfilePhoto, null, null, ct, team.Id)).Id;
+        }
         await db.SaveChangesAsync(ct);
     }
 
-    private async Task<MediaAsset> LoadAsync(string name, MediaKind kind, int? startup, int owner, CancellationToken ct)
+    private async Task<MediaAsset> LoadAsync(string name, MediaKind kind, int? startup, int? owner, CancellationToken ct, int? teamId = null)
     {
         var video = kind == MediaKind.PostVideo;
         var asset = await ImportAsync(name, kind, video ? "video/mp4" : "image/jpeg", video ? 9 : null, startup, owner, ct)
             ?? throw new FileNotFoundException($"Missing bundled demo file: {name}");
+        asset.OwnerTeamAccountId = teamId;
         await db.SaveChangesAsync(ct);
         return asset;
     }

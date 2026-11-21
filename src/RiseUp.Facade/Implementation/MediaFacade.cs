@@ -35,7 +35,7 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
     {
         switch (asset.Kind)
         {
-            case MediaKind.ProfilePhoto or MediaKind.ProfileCover or MediaKind.StartupLogo or MediaKind.StartupCover:
+            case MediaKind.ProfilePhoto or MediaKind.ProfileLogo or MediaKind.ProfileCover or MediaKind.StartupLogo or MediaKind.StartupCover:
                 return true;
             case MediaKind.PostImage or MediaKind.PostVideo:
                 return owner || await IsPublicPostMediaAsync(asset.Id, ct);

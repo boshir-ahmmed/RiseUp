@@ -1,7 +1,7 @@
 @model RiseUp.Web.UI.Components.ShellModel
 @{ var s = Model.Shell; }
 <div class="card spc">
-    <div class="spc-cover" style="@(s.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(s.ColorIndex)} 0%,#0F766E 55%,#134E4A 100%)" : $"background:url('{s.CoverUrl}') center/cover")"></div>
+    <div class="spc-cover" style="@Ui.CoverStyle(s.CoverUrl)"></div>
     <a href="/me" class="spc-av" aria-label="View your profile"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 64)" /></a>
     <div class="spc-b"><a href="/me" class="spc-n">@s.Name</a>@if (s.IsVerified) {<text> </text><span class="vtick" title="Verified account">✓</span>}<div class="tiny muted">@s.Headline</div>
         @if (s.HasPendingName) { <div class="tiny mt8"><span class="badge b-pend">Name change pending review</span></div> }</div>

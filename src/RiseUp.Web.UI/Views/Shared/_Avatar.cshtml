@@ -1,9 +1,2 @@
 @model (string Name, string? PhotoUrl, int Color, int Size)
-@if (Model.PhotoUrl is not null)
-{
-    <img class="avatar" src="@Model.PhotoUrl" alt="" style="width:@(Model.Size)px;height:@(Model.Size)px" loading="lazy" />
-}
-else
-{
-    <div class="avatar" aria-hidden="true" style="background:@Ui.Color(Model.Color);width:@(Model.Size)px;height:@(Model.Size)px;font-size:@((int)Math.Round(Model.Size * .36))px">@Ui.Initials(Model.Name)</div>
-}
+<img class="avatar" src="@(Model.PhotoUrl ?? Ui.DefaultAvatar)" data-image-fallback="@Ui.DefaultAvatar" alt="" style="width:@(Model.Size)px;height:@(Model.Size)px" loading="lazy" />

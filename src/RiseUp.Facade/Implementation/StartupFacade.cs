@@ -14,7 +14,7 @@ namespace RiseUp.Facade.Startups;
 
 public sealed class StartupFacade(IStartupRepository startups, IInvestorRepository investors, IUserAccountRepository accounts,
     IConnectionRepository connections, IVerificationRepository verification, IPromotionFacade promotions, IUnitOfWork uow, IClock clock,
-    IValidator<UpdateStartupRequest> validator, ActivityRecorder activity) : IStartupFacade
+    IValidator<UpdateStartupRequest> validator, ActivityRecorder activity, IProfileRepository profiles) : IStartupFacade
 {
     public async Task<PagedResult<StartupCardDto>> SearchAsync(Actor actor, SearchStartupsRequest request, CancellationToken ct = default)
     {
@@ -22,7 +22,7 @@ public sealed class StartupFacade(IStartupRepository startups, IInvestorReposito
         var text = request.Text?.Trim();
         if (text?.Length > 100) text = text[..100];
         var (items, total) = await startups.SearchAsync(new StartupSearch(text, request.Industry, request.Stage, request.Location, request.Sort, page.Skip, page.SafeSize, false), ct);
-        return new PagedResult<StartupCardDto>(items.Select(s => new StartupCardDto(s.Id, s.Name, s.Tagline, s.Description, s.Industry, s.Stage, s.Location, s.VerificationStatus, s.ViewCount, s.ColorIndex, s.LogoMediaId is null ? null : UrlRewrite.Media(s.LogoMediaId))).ToList(),
+        return new PagedResult<StartupCardDto>(items.Select(s => new StartupCardDto(s.Id, s.Name, s.Tagline, s.Description, s.Industry, s.Stage, s.Location, s.VerificationStatus, s.ViewCount, s.ColorIndex, s.LogoMediaId is null ? null : UrlRewrite.Media(s.LogoMediaId), s.CoverMediaId is int cover ? UrlRewrite.Media(cover) : null)).ToList(),
             total, page.SafePage, page.SafeSize);
     }
 
@@ -47,6 +47,7 @@ public sealed class StartupFacade(IStartupRepository startups, IInvestorReposito
         var canSeeRestricted = isOwner || verifiedInvestor;       // FR-027
         var canSeeContact = isOwner || isConnected;               // FR-041
         var owner = canSeeContact ? await accounts.GetByIdAsync(s.OwnerAccountId, ct) : null;
+        var ownerProfile = owner is null ? null : await profiles.GetForAccountAsync(owner.Id, ct);
         var canInvite = verifiedInvestor && s.IsActiveVerifiedAt(clock.UtcNow) && !isConnected && await connections.GetPendingForPairAsync(s.Id, investor!.Id, ct) is null;
 
         return Result.Success(new StartupDetailDto(s.Id, s.Name, s.Tagline, s.Description, s.Industry, s.Stage, s.Location, s.FoundingYear,
@@ -56,7 +57,9 @@ public sealed class StartupFacade(IStartupRepository startups, IInvestorReposito
             canSeeRestricted ? s.FundingGoalUsd : null,
             canSeeRestricted ? s.Metrics.Select(m => (m.Name, m.Value)).ToList() : null,
             owner?.FullName, owner?.Email, owner?.Phone, isOwner, isConnected, canInvite,
-            s.LogoMediaId is null ? null : UrlRewrite.Media(s.LogoMediaId), s.CoverMediaId is null ? null : UrlRewrite.Media(s.CoverMediaId)));
+            s.LogoMediaId is null ? null : UrlRewrite.Media(s.LogoMediaId), s.CoverMediaId is null ? null : UrlRewrite.Media(s.CoverMediaId),
+            ownerProfile?.PhotoMediaId is int photo ? UrlRewrite.Media(photo) : null,
+            ownerProfile?.LogoMediaId is int personalLogo ? UrlRewrite.Media(personalLogo) : null));
     }
 
     /// <summary>FR-020: ordinary edits keep verification; a legal-name change triggers re-verification and restrictions.</summary>

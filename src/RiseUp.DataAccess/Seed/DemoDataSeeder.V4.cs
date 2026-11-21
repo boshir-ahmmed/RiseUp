@@ -57,7 +57,7 @@ public sealed partial class DemoDataSeeder
             ["5 pilot buyers, 60k units/month", "31% less packaging weight per shipment", "EU buyer LOIs covering 1.1M trays"], [("Certification?", "Textile certification in progress.")]),
     ];
 
-    private async Task<MediaAsset?> ImportAsync(string fileName, MediaKind kind, string contentType, int? seconds, int? startupId, int ownerAccountId, CancellationToken ct)
+    private async Task<MediaAsset?> ImportAsync(string fileName, MediaKind kind, string contentType, int? seconds, int? startupId, int? ownerAccountId, CancellationToken ct)
     {
         var path = Path.Combine(seedOptions.Value.DemoMediaPath, fileName);
         if (!File.Exists(path)) return null;

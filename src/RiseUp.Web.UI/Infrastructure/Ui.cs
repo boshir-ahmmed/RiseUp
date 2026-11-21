@@ -7,6 +7,16 @@ public static class Ui
 {
     private static readonly string[] Palette = ["#0A8F85", "#24324A", "#7A5AF8", "#B45309", "#2E7D32", "#C2410C", "#0E7490", "#9F1239", "#4338CA", "#15803D"];
     public static string Color(int index) => Palette[Math.Abs(index) % Palette.Length];
+    public const string DefaultAvatar = "/images/identity/member.jpg";
+    public const string DefaultStartupLogo = "/images/identity/startup.png";
+    public const string DefaultCover = "/images/identity/cover.jpg";
+
+    public static string CoverStyle(string? mediaUrl)
+    {
+        var images = mediaUrl is null ? $"url('{DefaultCover}')" : $"url('{mediaUrl}'),url('{DefaultCover}')";
+        return $"background-image:{images};background-position:center;background-size:cover";
+    }
+
     /// <summary>Two initials from the first letters of the first two words (punctuation such as "(Verification)" ignored).</summary>
     public static string Initials(string name)
     {
