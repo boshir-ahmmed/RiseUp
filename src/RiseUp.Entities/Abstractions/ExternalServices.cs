@@ -66,6 +66,7 @@ public interface IFileStorage
 {
     Task<string> SaveAsync(Stream content, string fileName, CancellationToken ct = default);
     Task<Stream?> OpenAsync(string storageKey, CancellationToken ct = default);
+    Task RestoreIfMissingAsync(string storageKey, string bundledFilePath, CancellationToken ct = default);
     Task DeleteAsync(string storageKey, CancellationToken ct = default);
 }
 

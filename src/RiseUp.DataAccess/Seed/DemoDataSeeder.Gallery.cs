@@ -58,10 +58,23 @@ public sealed partial class DemoDataSeeder
     private async Task SeedGalleryAsync(CancellationToken ct)
     {
         // The original filename survives edits and soft deletion. A second import must respect both.
-        var imported = (await db.MediaAssets.Where(a => a.FileName.StartsWith("portrait-") ||
+        var originalAssets = (await db.MediaAssets.AsNoTracking().Where(a => a.FileName.StartsWith("portrait-") ||
             a.FileName.StartsWith("field-") || a.FileName.StartsWith("logo-") || a.FileName.StartsWith("reel-"))
-            .Select(a => new { a.OwnerAccountId, a.Kind, a.FileName }).ToListAsync(ct))
-            .Select(a => (a.OwnerAccountId, a.Kind, a.FileName)).ToHashSet();
+            .OrderBy(a => a.Id).ToListAsync(ct))
+            .ToLookup(a => (a.OwnerAccountId, a.OwnerTeamAccountId, a.Kind, a.FileName));
+
+        async Task<MediaAsset?> ExistingAsync(string name, MediaKind kind, int? owner, int? team = null)
+        {
+            var original = originalAssets[(owner, team, kind, name)].FirstOrDefault();
+            if (original is { DeletedAtUtc: null, ScanStatus: ScanStatus.Clean })
+            {
+                var source = new FileInfo(Path.Combine(seedOptions.Value.DemoMediaPath, name));
+                if (source.Exists && source.Length == original.SizeBytes)
+                    await storage.RestoreIfMissingAsync(original.StorageKey, source.FullName, ct);
+            }
+            return original;
+        }
+
         var emails = Portraits.Select(p => p.Email.ToUpperInvariant()).ToArray();
         var owners = await db.UserAccounts.Where(u => emails.Contains(u.NormalizedEmail))
             .ToDictionaryAsync(u => u.NormalizedEmail, u => u.Id, ct);
@@ -75,35 +88,39 @@ public sealed partial class DemoDataSeeder
             if (!owners.TryGetValue(email.ToUpperInvariant(), out var owner)) continue;
             startups.TryGetValue(owner, out var startup);
             var name = $"portrait-{portrait}.jpg";
-            if (profiles.TryGetValue(owner, out var profile) && profile.PhotoMediaId is null && !imported.Contains((owner, MediaKind.ProfilePhoto, name)))
+            if (await ExistingAsync(name, MediaKind.ProfilePhoto, owner) is null &&
+                profiles.TryGetValue(owner, out var profile) && profile.PhotoMediaId is null)
                 profile.PhotoMediaId = (await LoadAsync(name, MediaKind.ProfilePhoto, startup?.Id, owner, ct)).Id;
 
             if (startup is null || !StartupCovers.TryGetValue(portrait, out var coverKey)) continue;
             var logo = $"logo-{portrait}.jpg";
-            if (startup.LogoMediaId is null && !imported.Contains((owner, MediaKind.StartupLogo, logo)))
+            if (await ExistingAsync(logo, MediaKind.StartupLogo, owner) is null && startup.LogoMediaId is null)
                 startup.LogoMediaId = (await LoadAsync(logo, MediaKind.StartupLogo, startup.Id, owner, ct)).Id;
             var field = $"field-{coverKey}.jpg";
-            if (startup.CoverMediaId is null && !imported.Contains((owner, MediaKind.StartupCover, field)))
+            if (await ExistingAsync(field, MediaKind.StartupCover, owner) is null && startup.CoverMediaId is null)
                 startup.CoverMediaId = (await LoadAsync(field, MediaKind.StartupCover, startup.Id, owner, ct)).Id;
 
             var story = Stories.FirstOrDefault(s => s.Owner == portrait);
             if (story is null) continue;
-            if (!imported.Contains((owner, MediaKind.PostImage, field)))
+            if (await ExistingAsync(field, MediaKind.PostImage, owner) is null)
             {
                 var photo = await LoadAsync(field, MediaKind.PostImage, startup.Id, owner, ct);
                 db.Posts.Add(Publication(startup.Id, PostCategory.Products, story.Title, story.Caption, photo.Id));
             }
             var clip = $"reel-{story.Key}.mp4";
-            if (!imported.Contains((owner, MediaKind.PostVideo, clip)))
+            var reelVideo = await ExistingAsync(clip, MediaKind.PostVideo, owner);
+            var posterName = $"reel-{story.Key}.jpg";
+            var reelPoster = await ExistingAsync(posterName, MediaKind.VideoPoster, owner);
+            if (reelVideo is null)
             {
                 var video = await LoadAsync(clip, MediaKind.PostVideo, startup.Id, owner, ct);
-                var poster = await LoadAsync($"reel-{story.Key}.jpg", MediaKind.VideoPoster, startup.Id, owner, ct);
+                var poster = reelPoster ?? await LoadAsync(posterName, MediaKind.VideoPoster, startup.Id, owner, ct);
                 db.Posts.Add(Publication(startup.Id, PostCategory.Reel, story.ReelTitle, story.ReelCaption, poster.Id, video));
             }
         }
         var team = await db.TeamAccounts.SingleOrDefaultAsync(t => t.Username == "rafi.ops" && t.Email == "rafi@nodifreight.example", ct);
-        if (team is not null && await db.MemberProfiles.SingleOrDefaultAsync(p => p.TeamAccountId == team.Id, ct) is { PhotoMediaId: null } member &&
-            !await db.MediaAssets.AnyAsync(a => a.OwnerTeamAccountId == team.Id && a.FileName == "portrait-rafi.jpg", ct))
+        if (team is not null && await ExistingAsync("portrait-rafi.jpg", MediaKind.ProfilePhoto, null, team.Id) is null &&
+            await db.MemberProfiles.SingleOrDefaultAsync(p => p.TeamAccountId == team.Id, ct) is { PhotoMediaId: null } member)
         {
             member.PhotoMediaId = (await LoadAsync("portrait-rafi.jpg", MediaKind.ProfilePhoto, null, null, ct, team.Id)).Id;
         }

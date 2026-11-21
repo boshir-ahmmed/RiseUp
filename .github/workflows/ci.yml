@@ -47,3 +47,24 @@ jobs:
             IF (SELECT COUNT(*) FROM Posts p JOIN MediaAssets m ON m.Id=p.VideoMediaId WHERE m.FileName LIKE 'reel-%.mp4' AND p.LiveTitle IS NOT NULL) <> 4 THROW 51000, 'Missing reels', 1;
             IF (SELECT COUNT(*) FROM Posts p JOIN MediaAssets m ON m.Id=p.PosterMediaId WHERE m.FileName LIKE 'field-%.jpg') <> 4 THROW 51000, 'Missing image posts', 1;
             IF (SELECT COUNT(*) FROM UserAccounts) <> 18 THROW 51000, 'Unexpected account count', 1;"
+      - name: Serve SQL Server profile artwork with a fresh media directory
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ASPNETCORE_URLS: http://127.0.0.1:5087
+          Storage__RootPath: ${{ runner.temp }}/riseup-recovered-gallery
+          Jobs__Enabled: "false"
+        run: |
+          export ConnectionStrings__RiseUp="${RISEUP_TEST_SQLSERVER}Initial Catalog=RiseUpDemoCheck"
+          dotnet run --project src/RiseUp.Web.UI -c Release --no-build --no-launch-profile > "$RUNNER_TEMP/gallery-server.log" 2>&1 &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+          base="$ASPNETCORE_URLS"
+          curl -fsS --retry 15 --retry-connrefused --retry-delay 1 "$base/health" || { cat "$RUNNER_TEMP/gallery-server.log"; exit 1; }
+          web=src/RiseUp.Web.UI
+          curl -fsS "$base/images/identity/member.jpg" | cmp - "$web/wwwroot/images/identity/member.jpg"
+          check_image() {
+            url=$(curl -fsS "$base/search/suggestions?scope=$1&q=$2" | jq -er '.[0].photo | select(startswith("/media/"))')
+            curl -fsS "$base$url" | cmp - "$web/DemoMedia/$3"
+          }
+          check_image investors Padma portrait-sadia.jpg
+          check_image startups Nodi logo-farhan.jpg

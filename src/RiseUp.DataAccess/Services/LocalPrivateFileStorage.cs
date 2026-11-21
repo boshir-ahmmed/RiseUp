@@ -67,6 +67,27 @@ public sealed class LocalPrivateFileStorage(IOptions<StorageOptions> options) : 
         return Task.FromResult<Stream?>(File.Exists(path) ? File.OpenRead(path) : null);
     }
 
+    public async Task RestoreIfMissingAsync(string storageKey, string bundledFilePath, CancellationToken ct = default)
+    {
+        if (!IsSafeKey(storageKey)) throw new ArgumentException("Invalid media key.", nameof(storageKey));
+        var target = Path.Combine(Root, storageKey);
+        if (File.Exists(target)) return;
+
+        Directory.CreateDirectory(Root);
+        var staging = Path.Combine(Root, NewKey() + ".tmp");
+        try
+        {
+            await using (var source = File.OpenRead(bundledFilePath))
+            await using (var destination = File.Create(staging))
+                await source.CopyToAsync(destination, ct);
+
+            // Expose only a complete file. Another seed process may have restored it first.
+            try { File.Move(staging, target); }
+            catch (IOException) when (File.Exists(target)) { }
+        }
+        finally { File.Delete(staging); }
+    }
+
     public Task DeleteAsync(string storageKey, CancellationToken ct = default)
     {
         if (IsSafeKey(storageKey))
