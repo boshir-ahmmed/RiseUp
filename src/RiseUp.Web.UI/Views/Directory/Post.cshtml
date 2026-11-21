@@ -34,7 +34,7 @@
             <div class="ig-burst" data-burst="@p.Id">♥</div>
         </div>
         <div class="pd-side">
-            <header class="ig-h" style="border-bottom:1px solid var(--border)"><partial name="_Logo" model="(p.StartupName, p.ColorIndex, string.Empty)" /><div style="flex:1;min-width:0"><div class="row" style="gap:6px"><a href="/startups/@p.StartupId" class="ig-name">@p.StartupName</a>@if (p.StartupVerified) {<span class="vtick">✓</span>}</div><div class="tiny muted">@if (p.IsPromoted) {<span class="promo-l">Promoted · </span>}@p.Category · @Ui.Dhaka(p.PublishedAtUtc)</div></div><a class="btn btn-outline btn-sm" href="/startups/@p.StartupId">View profile</a></header>
+            <header class="ig-h" style="border-bottom:1px solid var(--border)"><partial name="_Brand" model="(p.StartupName, p.ColorIndex, string.Empty, p.LogoUrl)" /><div style="flex:1;min-width:0"><div class="row" style="gap:6px"><a href="/startups/@p.StartupId" class="ig-name">@p.StartupName</a>@if (p.StartupVerified) {<span class="vtick">✓</span>}</div><div class="tiny muted">@if (p.IsPromoted) {<span class="promo-l">Promoted · </span>}@p.Category · @Ui.Dhaka(p.PublishedAtUtc)</div></div><a class="btn btn-outline btn-sm" href="/startups/@p.StartupId">View profile</a></header>
             <div class="pd-scroll" id="comments">
                 <h1 style="font-size:20px;margin-bottom:8px">@p.Title</h1>
                 <p class="small" style="white-space:pre-wrap;color:#1F2937">@p.Body</p>

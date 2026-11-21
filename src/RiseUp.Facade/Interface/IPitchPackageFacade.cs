@@ -15,7 +15,7 @@ namespace RiseUp.Facade.Pitching;
 
 public interface IPitchPackageFacade
 {
-    Task<(string Name, VideoDto? Teaser, bool Public)> GetTeaserSettingsAsync(Actor actor, CancellationToken ct = default);
+    Task<(string Name, VideoDto? Teaser, bool Public, string? LogoUrl)> GetTeaserSettingsAsync(Actor actor, CancellationToken ct = default);
     Task<VideoDto?> GetPublicTeaserAsync(int startupId, CancellationToken ct = default);
     Task<Result<int>> MoveTeaserToDraftAsync(Actor actor, CancellationToken ct = default);
     Task<Result<PitchPackageDto>> GetOwnAsync(Actor actor, CancellationToken ct = default);

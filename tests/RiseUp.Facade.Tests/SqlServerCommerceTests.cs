@@ -61,6 +61,7 @@ public class SqlServerCommerceTests
                     email, "01712345678", "TestPassword123", true, "Test Startup", null)));
                 Assert.True(result.IsSuccess, result.Error.Message);
                 Assert.True((await Run<IAccountFacade, Result>(f => f.VerifyEmailAsync(result.Value!.EmailVerificationToken))).IsSuccess);
+                Assert.True(await db.MemberProfiles.AnyAsync(p => p.AccountId == result.Value!.AccountId));
                 return result.Value!.AccountId;
             }
             var owner = await Register(PrimaryRole.Founder, "founder@integration.example");

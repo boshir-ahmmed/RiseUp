@@ -1,9 +1,2 @@
 @model (string Name, int Color, string Css, string? LogoUrl)
-@if (Model.LogoUrl is not null)
-{
-    <img class="logo @Model.Css" src="@Model.LogoUrl" alt="" aria-hidden="true" loading="lazy" />
-}
-else
-{
-    <div class="logo @Model.Css" style="background:@Ui.Color(Model.Color)" aria-hidden="true">@Ui.Initials(Model.Name)</div>
-}
+<img class="logo @Model.Css" src="@(Model.LogoUrl ?? Ui.DefaultStartupLogo)" data-image-fallback="@Ui.DefaultStartupLogo" alt="" loading="lazy" />

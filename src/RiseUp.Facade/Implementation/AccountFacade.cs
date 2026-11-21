@@ -3,6 +3,7 @@ using RiseUp.Entities.Abstractions;
 using RiseUp.Entities.Common;
 using RiseUp.Entities.Identity;
 using RiseUp.Entities.Investors;
+using RiseUp.Entities.Profiles;
 using RiseUp.Entities.Startups;
 using RiseUp.Entities.Wallets;
 using RiseUp.Facade.Common;
@@ -15,7 +16,7 @@ namespace RiseUp.Facade.Identity;
 
 public sealed class AccountFacade(
     IUserAccountRepository accounts, IStartupRepository startups, IInvestorRepository investors, ITeamAccountRepository team,
-    IConnectionRepository connections, IWalletRepository wallets,
+    IConnectionRepository connections, IWalletRepository wallets, IProfileRepository profiles,
     IPostRepository posts, IPasswordHasher hasher, IMfaVerifier mfa, IUnitOfWork uow, IClock clock, IValidator<RegisterRequest> validator,
     ActivityRecorder activity, IPromotionFacade promotions) : IAccountFacade
 {
@@ -42,6 +43,7 @@ public sealed class AccountFacade(
             await accounts.AddAsync(account, ct);
             await uow.SaveChangesAsync(ct);
 
+            await profiles.AddAsync(new MemberProfile { AccountId = account.Id }, ct);
             if (request.Role == PrimaryRole.Founder)
             {
                 await startups.AddAsync(new Startup

@@ -1554,6 +1554,9 @@ namespace RiseUp.DataAccess.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<int?>("LogoMediaId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("NameChangedAtUtc")
                         .HasColumnType("datetime2");
 

@@ -94,7 +94,7 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
             p.CoverMediaId is null ? null : UrlRewrite.Media(p.CoverMediaId), id.Color, id.Verified, actor.IsTeamMember, actor.IsAnyAdmin,
             CanEditDetails(actor) && pending is null && next is null, CanHaveCover(actor), pending?.ToName, next, id.RoleLine,
             actor.IsTeamMember ? (await team.GetByIdAsync(actor.TeamAccountId!.Value, ct))?.StartupId : actor.StartupId, id.StartupName, actor.InvestorId,
-            (int)Math.Round(checklist.Count(c => c.Item2) * 100.0 / checklist.Count), checklist));
+            (int)Math.Round(checklist.Count(c => c.Item2) * 100.0 / checklist.Count), checklist, p.LogoMediaId is int logo ? UrlRewrite.Media(logo) : null));
     }
 
     // ------------------------------------------------------------------ details + name rules
@@ -109,7 +109,7 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
 
     public async Task<Result> UpdateAsync(Actor actor, UpdateProfileRequest request, CancellationToken ct = default)
     {
-        if (!CanEditDetails(actor)) return Result.Failure(Guard.Forbidden("Team members can change their profile photo only. Ask your Main Startup Owner to update your name or title."));
+        if (!CanEditDetails(actor)) return Result.Failure(Guard.Forbidden("Team members can change their profile photo and personal logo. Ask your Main Startup Owner to update your name or title."));
         var headline = (request.Headline ?? "").Trim();
         var location = (request.Location ?? "").Trim();
         var bio = (request.Bio ?? "").Trim();
@@ -211,29 +211,49 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
     }
 
     // ------------------------------------------------------------------ images
-    public async Task<Result> SetPhotoAsync(Actor actor, UploadedFile file, CancellationToken ct = default)
+    public Task<Result> SetPhotoAsync(Actor actor, UploadedFile file, CancellationToken ct = default) =>
+        SetMemberImageAsync(actor, file, false, ct);
+
+    public Task<Result> SetLogoAsync(Actor actor, UploadedFile file, CancellationToken ct = default) =>
+        SetMemberImageAsync(actor, file, true, ct);
+
+    private async Task<Result> SetMemberImageAsync(Actor actor, UploadedFile file, bool logo, CancellationToken ct)
     {
         if (!actor.IsAuthenticated) return Result.Failure(ErrorCodes.Unauthenticated, "Please sign in.");
-        var accepted = await intake.AcceptAsync(MediaKind.ProfilePhoto, file, null, actor.IsTeamMember ? null : actor.AccountId, actor.TeamAccountId, ct);
+        var accepted = await intake.AcceptAsync(logo ? MediaKind.ProfileLogo : MediaKind.ProfilePhoto, file, null,
+            actor.IsTeamMember ? null : actor.AccountId, actor.TeamAccountId, ct);
         if (accepted.IsFailure) return accepted;
         var p = (await LoadAsync(actor, true, ct))!;
-        var old = p.PhotoMediaId;
-        await uow.SaveChangesAsync(ct);   // assigns the media id
-        p.PhotoMediaId = accepted.Value!.Id;
-        await intake.DiscardAsync(old, clock.UtcNow, ct);
-        await activity.AuditAsync(actor, "Profile photo updated", actor.ViewerKey, "", ct: ct);
+        var old = logo ? p.LogoMediaId : p.PhotoMediaId;
         await uow.SaveChangesAsync(ct);
-        return Result.Success(accepted.Value.ScanStatus == ScanStatus.Clean ? "Profile photo updated." : "Photo uploaded. It will appear once the security scan finishes.");
+        if (logo) p.LogoMediaId = accepted.Value!.Id;
+        else p.PhotoMediaId = accepted.Value!.Id;
+        var label = logo ? "Personal logo" : "Profile photo";
+        await activity.AuditAsync(actor, $"{label} updated", actor.ViewerKey, "", ct: ct);
+        await uow.SaveChangesAsync(ct);
+        if (old.HasValue)
+        {
+            await intake.DiscardAsync(old, clock.UtcNow, ct);
+            await uow.SaveChangesAsync(ct);
+        }
+        return Result.Success(accepted.Value.ScanStatus == ScanStatus.Clean ? $"{label} updated." : "Uploaded. The image will appear after the security scan.");
     }
 
-    public async Task<Result> RemovePhotoAsync(Actor actor, CancellationToken ct = default)
+    public Task<Result> RemovePhotoAsync(Actor actor, CancellationToken ct = default) => RemoveMemberImageAsync(actor, false, ct);
+    public Task<Result> RemoveLogoAsync(Actor actor, CancellationToken ct = default) => RemoveMemberImageAsync(actor, true, ct);
+
+    private async Task<Result> RemoveMemberImageAsync(Actor actor, bool logo, CancellationToken ct)
     {
+        if (!actor.IsAuthenticated) return Result.Failure(ErrorCodes.Unauthenticated, "Please sign in.");
         var p = await LoadAsync(actor, false, ct);
-        if (p?.PhotoMediaId is null) return Result.Success("No photo to remove.");
-        var old = p.PhotoMediaId; p.PhotoMediaId = null;
+        var old = logo ? p?.LogoMediaId : p?.PhotoMediaId;
+        if (old is null) return Result.Success();
+        if (logo) p!.LogoMediaId = null;
+        else p!.PhotoMediaId = null;
+        await uow.SaveChangesAsync(ct);
         await intake.DiscardAsync(old, clock.UtcNow, ct);
         await uow.SaveChangesAsync(ct);
-        return Result.Success("Photo removed — your initials are shown instead.");
+        return Result.Success(logo ? "Personal logo removed." : "Profile photo removed.");
     }
 
     public async Task<Result> SetCoverAsync(Actor actor, UploadedFile file, CancellationToken ct = default)

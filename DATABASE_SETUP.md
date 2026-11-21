@@ -10,6 +10,7 @@ The solution includes versioned migrations and a development demo. One Package M
 
    ```json
    {
+     "Database:Provider": "SqlServer",
      "ConnectionStrings:RiseUp": "Server=.\\SQLEXPRESS;Database=RiseUpDemo;Integrated Security=True;Encrypt=True;TrustServerCertificate=True"
    }
    ```
@@ -47,7 +48,21 @@ JOIN dbo.MediaAssets AS m ON m.Id = p.VideoMediaId
 WHERE m.FileName LIKE 'reel-%.mp4';
 ```
 
-A fresh demo has 14 member portraits and four gallery reels. Repeating the import preserves existing demo edits and balances.
+A fresh demo has 19 member portraits, eight startups with logos and covers, and four gallery reels. Repeating the import preserves existing demo edits and balances.
+
+## Find a newly registered profile
+
+Choose **RiseUp (SQL Server)** before registering. In Visual Studio, check the application's startup output for **RiseUp registration database**. It reports the SQL Server instance and database or the SQLite file used by that process. Run this query in the same SQL Server database, replacing the name with the one used at registration:
+
+```sql
+SELECT DB_NAME() AS DatabaseName, SERVERPROPERTY('ServerName') AS ServerName;
+SELECT u.Id, u.Email, u.FullName, s.Name AS Startup
+FROM dbo.UserAccounts u
+LEFT JOIN dbo.Startups s ON s.OwnerAccountId = u.Id
+WHERE u.FullName = N'Farhan Kabir';
+```
+
+The default **RiseUp (configured database)** profile selects SQL Server when a development SQL connection is configured and otherwise uses the local SQLite demo. Each provider stores its own accounts. An account created while using the SQLite demo stays in that file when you switch to SQL Server. To make SQL Server your normal development target, set `"Database:Provider": "SqlServer"` alongside `ConnectionStrings:RiseUp` in the web project's User Secrets and choose **RiseUp (configured database)** or **RiseUp (SQL Server)**.
 
 ## Other migration commands
 

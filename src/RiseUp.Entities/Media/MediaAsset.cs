@@ -20,6 +20,6 @@ public class MediaAsset : BaseEntity
     public ScanStatus ScanStatus { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
 
-    public bool IsImage => Kind is MediaKind.ProfilePhoto or MediaKind.ProfileCover or MediaKind.StartupLogo or MediaKind.StartupCover or MediaKind.VideoPoster;
+    public bool IsImage => Kind is MediaKind.ProfilePhoto or MediaKind.ProfileLogo or MediaKind.ProfileCover or MediaKind.StartupLogo or MediaKind.StartupCover or MediaKind.VideoPoster;
     public bool IsVideo => Kind is MediaKind.PitchVideo or MediaKind.DemoVideo or MediaKind.TeaserVideo or MediaKind.PostVideo;
 }

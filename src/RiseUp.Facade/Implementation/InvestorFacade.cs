@@ -38,7 +38,7 @@ public sealed class InvestorFacade(IInvestorRepository investors, IStartupReposi
         var canPitch = actor.IsFounder && actor.StartupId is int s2 && !connected && i.ReceivePitches && (await startups.GetByIdAsync(s2, ct))?.IsActiveVerifiedAt(clock.UtcNow) == true
                        && await connections.GetPendingForPairAsync(s2, id, ct) is null;
         var prof = await profiles.GetForAccountAsync(i.AccountId, ct);
-        var card = ToCard(i, await CanSeeRangeAsync(actor, id, ct)) with { PhotoUrl = prof?.PhotoMediaId is null ? null : UrlRewrite.Media(prof.PhotoMediaId), CoverUrl = prof?.CoverMediaId is null ? null : UrlRewrite.Media(prof.CoverMediaId), Headline = string.IsNullOrWhiteSpace(prof?.Headline) ? null : prof!.Headline };
+        var card = ToCard(i, await CanSeeRangeAsync(actor, id, ct)) with { PhotoUrl = prof?.PhotoMediaId is null ? null : UrlRewrite.Media(prof.PhotoMediaId), LogoUrl = prof?.LogoMediaId is int logo ? UrlRewrite.Media(logo) : null, CoverUrl = prof?.CoverMediaId is null ? null : UrlRewrite.Media(prof.CoverMediaId), Headline = string.IsNullOrWhiteSpace(prof?.Headline) ? null : prof!.Headline };
         return Result.Success(new InvestorDetailDto(card,
             i.Claims.Select(c => (c.StartupName, c.Year, c.Round, c.IsConfirmed)).ToList(),
             account?.Email, account?.Phone, self, connected, canPitch,

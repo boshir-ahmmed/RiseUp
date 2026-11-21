@@ -9,4 +9,5 @@ namespace RiseUp.Facade.Startups;
 public sealed record StartupDetailDto(int Id, string Name, string Tagline, string Description, string Industry, FundingStage Stage, string Location,
     int FoundingYear, string? BusinessModel, string? Website, IReadOnlyList<string> Tags, VerificationStatus Status, DateTime? VerifiedUntilUtc, int Views, int ColorIndex,
     decimal? FundingGoalUsd, IReadOnlyList<(string Name, string Value)>? Metrics, string? OwnerName, string? ContactEmail, string? ContactPhone,
-    bool ViewerIsOwner, bool ViewerIsConnected, bool ViewerCanInvite, string? LogoUrl = null, string? CoverUrl = null);
+    bool ViewerIsOwner, bool ViewerIsConnected, bool ViewerCanInvite, string? LogoUrl = null, string? CoverUrl = null,
+    string? OwnerPhotoUrl = null, string? OwnerLogoUrl = null);

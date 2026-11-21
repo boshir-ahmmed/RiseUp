@@ -95,7 +95,7 @@
         }
         <div class="card side-card mt16">
             <div class="row between"><h4 class="mb0">@(Model.Recommended is null ? "Popular startups" : "Recommended for you")</h4>@if (Model.Recommended is not null) {<span class="badge @(Model.Recommended.UsedFallback ? "b-warn" : "b-ver")">@Model.Recommended.Engine</span>}</div>
-            @foreach (var s in (Model.Recommended?.Items.Select(i => (i.Id, i.Name, i.Subtitle, i.ColorIndex, (string?)null)) ?? Model.Stories.Take(4).Select(s => (s.Id, s.Name, s.Industry + " · " + Ui.Stage(s.Stage), s.ColorIndex, s.LogoUrl))).Take(4))
+            @foreach (var s in (Model.Recommended?.Items.Select(i => (i.Id, i.Name, i.Subtitle, i.ColorIndex, i.PhotoUrl)) ?? Model.Stories.Take(4).Select(s => (s.Id, s.Name, s.Industry + " · " + Ui.Stage(s.Stage), s.ColorIndex, s.LogoUrl))).Take(4))
             {
                 <div class="sugg"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.Item5)" /><div style="flex:1;min-width:0"><a href="/startups/@s.Id" class="small" style="font-weight:650;color:var(--ink)">@s.Name</a><div class="tiny muted ell">@s.Item3</div></div><a class="btn btn-outline btn-sm" href="/startups/@s.Id">View</a></div>
             }

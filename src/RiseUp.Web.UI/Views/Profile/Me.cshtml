@@ -5,9 +5,9 @@
     Layout = "_AppLayout";
 }
 <div class="card prof">
-    <div class="prof-cover" style="@(profile.CoverUrl is null ? $"background:linear-gradient(120deg,{Ui.Color(profile.ColorIndex)} 0%,#0F766E 55%,#134E4A 100%)" : $"background:url('{profile.CoverUrl}') center/cover")"></div>
+    <div class="prof-cover" style="@Ui.CoverStyle(profile.CoverUrl)"></div>
     <div class="prof-b">
-        <div class="prof-av"><partial name="_Avatar" model="(profile.Name, profile.PhotoUrl, profile.ColorIndex, 132)" /></div>
+        <div class="prof-av"><partial name="_Avatar" model="(profile.Name, profile.PhotoUrl, profile.ColorIndex, 132)" /><partial name="_PersonalLogo" model="(profile.Name, profile.LogoUrl, profile.ColorIndex)" /></div>
         <div class="row between" style="align-items:flex-start">
             <div>
                 <h1 class="prof-n">@profile.Name @if (profile.IsVerified) {<span class="vtick" style="font-size:14px;width:22px;height:22px" title="Verified account">✓</span>}</h1>

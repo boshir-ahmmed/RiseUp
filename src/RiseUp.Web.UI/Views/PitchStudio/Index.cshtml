@@ -117,7 +117,7 @@ else if (Model.Tab == "send")
                         <option value="">Choose an investor…</option>
                         @foreach (var i in Model.Investors)
                         {
-                            <option value="@i.Id" data-name="@i.Name" data-detail="@i.Affiliation" data-photo="@i.PhotoUrl" data-accepting="@(i.ReceivePitches ? "true" : "false")" selected="@((Model.ToInvestorId ?? draft?.InvestorId) == i.Id)">@i.Name — @i.Affiliation@(i.ReceivePitches ? "" : " (not accepting pitches)")</option>
+                            <option value="@i.Id" data-name="@i.Name" data-detail="@i.Affiliation" data-photo="@(i.PhotoUrl ?? Ui.DefaultAvatar)" data-accepting="@(i.ReceivePitches ? "true" : "false")" selected="@((Model.ToInvestorId ?? draft?.InvestorId) == i.Id)">@i.Name — @i.Affiliation@(i.ReceivePitches ? "" : " (not accepting pitches)")</option>
                         }
                     </select>
                 </div>

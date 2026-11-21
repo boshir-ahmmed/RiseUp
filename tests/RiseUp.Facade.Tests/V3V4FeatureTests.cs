@@ -104,7 +104,7 @@ public class V3V4FeatureTests
     }
 
     [Fact]
-    public async Task P06_TeamMember_CanChangePhotoOnly()
+    public async Task P06_TeamMember_CanChangeProfileImages()
     {
         await using var h = await TestHost.CreateAsync();
         var rafi = await h.Team();
@@ -114,6 +114,19 @@ public class V3V4FeatureTests
         Assert.True((await h.Run<IProfileFacade, Result>(x => x.SetPhotoAsync(rafi, photo))).IsSuccess);
         var shell = await h.Run<IProfileFacade, ShellDto>(x => x.GetShellAsync(rafi));
         Assert.StartsWith("/media/", shell.PhotoUrl);
+        var owner = await h.Founder();
+        var companyLogo = await h.Db(db => db.Startups.Where(s => s.Id == owner.StartupId).Select(s => s.LogoMediaId).SingleAsync());
+        var logo = await h.UploadAsync(Jpeg, "personal.jpg", "image/jpeg");
+        Assert.True((await h.Run<IProfileFacade, Result>(x => x.SetLogoAsync(rafi, logo))).IsSuccess);
+        var member = (await h.Run<IProfileFacade, Result<MyProfileDto>>(x => x.GetMineAsync(rafi))).Value!;
+        Assert.StartsWith("/media/", member.LogoUrl);
+        Assert.Equal(shell.PhotoUrl, member.PhotoUrl);
+        Assert.Null((await h.Run<IProfileFacade, Result<MyProfileDto>>(x => x.GetMineAsync(owner))).Value!.LogoUrl);
+        Assert.True((await h.Run<IProfileFacade, Result>(x => x.RemoveLogoAsync(rafi))).IsSuccess);
+        var after = (await h.Run<IProfileFacade, Result<MyProfileDto>>(x => x.GetMineAsync(rafi))).Value!;
+        Assert.Null(after.LogoUrl);
+        Assert.Equal(shell.PhotoUrl, after.PhotoUrl);
+        Assert.Equal(companyLogo, await h.Db(db => db.Startups.Where(s => s.Id == owner.StartupId).Select(s => s.LogoMediaId).SingleAsync()));
     }
 
     [Fact]

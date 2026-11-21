@@ -63,12 +63,12 @@ public sealed class DirectoryController(IStartupFacade startups, IInvestorFacade
         if (scope != "investors")
         {
             var matches = await startups.SearchAsync(Actor, new(query, industry, stage, null, "relevance", PageSize: limit), ct);
-            results.AddRange(matches.Items.Select(s => new ProfileSuggestion(s.Id, "startups", s.Name, s.Industry, s.LogoUrl, null)));
+            results.AddRange(matches.Items.Select(s => new ProfileSuggestion(s.Id, "startups", s.Name, s.Industry, s.LogoUrl ?? Ui.DefaultStartupLogo, null)));
         }
         if (scope != "startups")
         {
             var matches = await investors.SearchAsync(Actor, query, limit, ct);
-            results.AddRange(matches.Select(i => new ProfileSuggestion(i.Id, "investors", i.Name, i.Affiliation, i.PhotoUrl, i.ReceivePitches)));
+            results.AddRange(matches.Select(i => new ProfileSuggestion(i.Id, "investors", i.Name, i.Affiliation, i.PhotoUrl ?? Ui.DefaultAvatar, i.ReceivePitches)));
         }
         return results.OrderByDescending(r => r.Name.Equals(query, StringComparison.OrdinalIgnoreCase))
             .ThenByDescending(r => r.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase)).ThenBy(r => r.Name).ToList();

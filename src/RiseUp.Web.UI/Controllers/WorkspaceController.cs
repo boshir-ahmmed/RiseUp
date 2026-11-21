@@ -212,7 +212,7 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
         var settings = await pitchPackage.GetTeaserSettingsAsync(Actor, ct);
         return View(new MyPostsViewModel(library, await promotions.ListForStartupAsync(Actor, ct), (await wallets.GetAsync(Actor, ct)).Value,
             editing?.Id, reels ? "reels" : "posts", settings.Name, settings.Teaser, settings.Public,
-            await promotions.ListPackagesAsync(ct)));
+            await promotions.ListPackagesAsync(ct), settings.LogoUrl));
     }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/my-posts"), RequestSizeLimit(110 * 1024 * 1024), RequestFormLimits(MultipartBodyLengthLimit = 110 * 1024 * 1024)]

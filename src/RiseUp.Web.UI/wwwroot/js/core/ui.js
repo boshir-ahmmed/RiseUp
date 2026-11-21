@@ -106,5 +106,19 @@ document.addEventListener('dblclick', async e => {
   if (!btn.classList.contains('on')) await like(id, btn);
 });
 
+function recoverImage(image) {
+  if (!(image instanceof HTMLImageElement)) return;
+  if (image.hasAttribute('data-personal-mark')) {
+    image.remove();
+    return;
+  }
+  const fallback = image.dataset.imageFallback;
+  if (fallback && image.getAttribute('src') !== fallback) image.src = fallback;
+}
+document.addEventListener('error', event => recoverImage(event.target), true);
+document.querySelectorAll('img[data-image-fallback], img[data-personal-mark]').forEach(image => {
+  if (image.complete && !image.naturalWidth) recoverImage(image);
+});
+
 initClamp();
 initCounters();

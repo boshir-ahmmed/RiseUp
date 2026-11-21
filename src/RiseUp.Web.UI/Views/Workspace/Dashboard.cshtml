@@ -64,7 +64,7 @@
     <div class="card"><div class="card-h"><h3>Recommended</h3>@if (Model.Matches is not null) {<span class="badge @(Model.Matches.UsedFallback ? "b-warn" : "b-ver")">@Model.Matches.Engine</span>}</div>
         @foreach (var m in Model.Matches?.Items ?? [])
         {
-            <div class="row" style="padding:12px 20px;border-bottom:1px solid #EEF2F6;flex-wrap:nowrap"><partial name="_Logo" model="(m.Name, m.ColorIndex, string.Empty)" /><div style="flex:1;min-width:0"><a href="/@(actor.IsInvestor ? "startups" : "investors")/@m.Id" style="font-weight:650;color:var(--ink)">@m.Name</a><div>@foreach (var reason in m.Reasons.Take(2)) {<span class="reason">@reason</span>}</div></div><a class="btn btn-ghost btn-sm" href="/@(actor.IsInvestor ? "startups" : "investors")/@m.Id">View details</a></div>
+            <div class="row" style="padding:12px 20px;border-bottom:1px solid #EEF2F6;flex-wrap:nowrap">@if (actor.IsInvestor) { <partial name="_Brand" model="(m.Name, m.ColorIndex, string.Empty, m.PhotoUrl)" /> } else { <partial name="_Avatar" model="(m.Name, m.PhotoUrl, m.ColorIndex, 44)" /> }<div style="flex:1;min-width:0"><a href="/@(actor.IsInvestor ? "startups" : "investors")/@m.Id" style="font-weight:650;color:var(--ink)">@m.Name</a><div>@foreach (var reason in m.Reasons.Take(2)) {<span class="reason">@reason</span>}</div></div><a class="btn btn-ghost btn-sm" href="/@(actor.IsInvestor ? "startups" : "investors")/@m.Id">View details</a></div>
         }
         <div class="card-b tiny muted">Explanations of overlap with stated preferences — not investment advice.</div>
     </div>

@@ -12,4 +12,4 @@ namespace RiseUp.Facade.Profiles;
 
 public sealed record MyProfileDto(string Name, string Headline, string Location, string Bio, string? Link, string? PhotoUrl, string? CoverUrl, int ColorIndex,
     bool IsVerified, bool IsTeamMember, bool IsAdmin, bool CanEditName, bool CanHaveCover, string? PendingName, DateTime? NextNameChangeAtUtc,
-    string RoleLine, int? StartupId, string? StartupName, int? InvestorId, int Strength, IReadOnlyList<(string Item, bool Done)> Checklist);
+    string RoleLine, int? StartupId, string? StartupName, int? InvestorId, int Strength, IReadOnlyList<(string Item, bool Done)> Checklist, string? LogoUrl = null);

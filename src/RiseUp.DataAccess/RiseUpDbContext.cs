@@ -79,6 +79,9 @@ public class RiseUpDbContext(DbContextOptions<RiseUpDbContext> options, IClock c
         var columns = await Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('VerificationDocuments')").ToListAsync();
         if (!columns.Contains("Retention"))
             await Database.ExecuteSqlRawAsync("ALTER TABLE VerificationDocuments ADD COLUMN Retention INTEGER NOT NULL DEFAULT 0");
+        var profileColumns = await Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('MemberProfiles')").ToListAsync();
+        if (!profileColumns.Contains("LogoMediaId"))
+            await Database.ExecuteSqlRawAsync("ALTER TABLE MemberProfiles ADD COLUMN LogoMediaId INTEGER NULL");
         await transaction.CommitAsync();
     }
 
