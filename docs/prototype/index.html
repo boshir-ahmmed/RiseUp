@@ -1065,7 +1065,7 @@ function pageRegister(){
     <div class="grid g2"><label class="field"><span>Full legal name</span><input class="input" name="name" required autocomplete="name"></label><label class="field"><span>Mobile number</span><input class="input" name="phone" required placeholder="+880 1…" autocomplete="tel"></label></div>
     <label class="field"><span>Email</span><input class="input" type="email" name="email" required autocomplete="email"></label>
     ${role==="Investor"?`<label class="field"><span>Firm / affiliation</span><input class="input" name="aff" placeholder="Fund, angel network or Independent"></label>`:`<label class="field"><span>Startup name</span><input class="input" name="sname" required></label>`}
-    <label class="field"><span>Password</span><input class="input" type="password" name="pw" required minlength="10" autocomplete="new-password" data-pw><div class="help"><span data-pwhint>At least 10 characters with letters and numbers.</span></div></label>
+    <label class="field"><span>Password</span><input class="input" type="password" name="pw" required minlength="12" autocomplete="new-password" data-pw><div class="help"><span data-pwhint>${passwordRequirements}</span></div></label>
     <label class="check"><input type="checkbox" name="terms" required> <span>I accept the <a href="#legal-terms">Terms of Use v0.1</a> and <a href="#legal-privacy">Privacy Policy v0.1</a>.</span></label>
     <div class="err" data-err></div>
     <button class="btn btn-primary">Create ${role} account</button></form></div></section>`;
@@ -1578,7 +1578,9 @@ document.addEventListener("change",e=>{
 });
 document.addEventListener("input",e=>{
   if(e.target.dataset.c) updCount(e.target);
-  if(e.target.dataset.pw!==undefined){const v=e.target.value,h=$("[data-pwhint]");const sc=(v.length>=10)+/[a-z]/i.test(v)+/\d/.test(v)+/[^a-z0-9]/i.test(v)+(v.length>=14);h.textContent=["Too short","Weak","Fair","Good","Strong","Very strong"][sc]+" — use 10+ characters with letters and numbers."}
+  if(e.target.dataset.pw!==undefined){
+    $("[data-pwhint]").textContent = meetsPasswordPolicy(e.target.value) ? "Password meets the requirements." : passwordRequirements;
+  }
 });
 document.addEventListener("dblclick",e=>{
   const m=e.target.closest("[data-dbl]"); if(!m) return; const id=m.dataset.dbl; const p=S.posts.find(x=>x.id===id);
@@ -1734,8 +1736,16 @@ document.addEventListener("click",e=>{
   };
   if(H[a]){ if(el.tagName==="A"&&!["pitchto","promoteprep","signout","navclose"].includes(a)) e.preventDefault(); H[a](); }
 });
+const passwordRequirements = "Use at least 12 characters, including an uppercase letter, a lowercase letter, and a number.";
+function meetsPasswordPolicy(value){
+  return [...value].length >= 12 && /\p{Lu}/u.test(value) && /\p{Ll}/u.test(value) && /\p{Nd}/u.test(value);
+}
 function showOnceTemp(t,why){
-  const pw=Array.from(crypto.getRandomValues(new Uint8Array(9)),b=>"abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b%56]).join("");
+  const alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let pw;
+  do {
+    pw = Array.from(crypto.getRandomValues(new Uint8Array(14)), b => alphabet[b % alphabet.length]).join("");
+  } while (!meetsPasswordPolicy(pw));
   window._pw=pw;
   modal(why==="created"?"Team account created":"Password reset",`<div class="notice n-warn small">Shown once. Copy it now and share it securely. It is stored only as a one-way hash and will never be displayed or emailed again.</div><dl class="kv mt16"><dt>Username</dt><dd><code>${esc(t.username)}</code></dd><dt>Temporary password</dt><dd><code style="font-size:15px">${pw}</code></dd></dl>`,`<button class="btn btn-outline" data-act="copypw">Copy</button><button class="btn btn-primary" data-act="modal-close">I've saved it</button>`);
   render();
@@ -1806,7 +1816,7 @@ document.addEventListener("submit",e=>{
     login:()=>{if(S.now<S.lockUntil)return;const email=f.email.value.trim().toLowerCase();if(f.pw.value!=="demo1234"){S.loginFails++;if(S.loginFails>=5){S.lockUntil=S.now+15*MIN;S.loginFails=0;toast(fail("account_locked","Too many failed attempts. Locked for 15 minutes."))}else toast(fail("invalid_credentials",`Email or password is incorrect. ${5-S.loginFails} attempt(s) left.`));return render()}
       S.loginFails=0;const map={"farhan@nodifreight.example":"founder","ayesha@krishicloud.example":"founder2","sadia@padmavc.example":"investor","rafi.ops":"team"};setRole(map[email]||"founder");toast(ok("Signed in."))},
     forgot:()=>{toast(ok("If an account exists, a single-use reset link valid for 60 minutes has been sent."));go("login")},
-    register:()=>{const err=$("[data-err]");const pw=f.pw.value;if(!f.reportValidity())return;if(pw.length<10||!/[a-z]/i.test(pw)||!/\d/.test(pw)){err.textContent="Password must be 10+ characters with letters and numbers.";return}if(!f.terms.checked){err.textContent="You must accept the Terms and Privacy Policy.";return}
+    register:()=>{const err=$("[data-err]");const pw=f.pw.value;if(!f.reportValidity())return;if(!meetsPasswordPolicy(pw)){err.textContent=passwordRequirements;return}if(!f.terms.checked){err.textContent="You must accept the Terms and Privacy Policy.";return}
       modal("Check your email",`<p>We sent a verification link to <strong>${esc(f.email.value)}</strong>. You'll need to verify your email before using your dashboard.</p><p class="small muted">Accepted: Terms v0.1 and Privacy v0.1 at ${fmt(S.now)}.</p>`,`<button class="btn btn-primary" data-act="modal-close">OK</button>`);window._regRole="";f.reset();render();},
     contact:()=>{toast(ok("Thanks — your message has been received."));f.reset()},
     saveprof:()=>{if(r.kind==="founder"){const s=st(r.sid);const nameChanged=f.name.value.trim()!==s.name;s.tagline=f.tagline.value.slice(0,120);s.desc=f.desc.value.slice(0,2000);s.industry=f.industry.value;s.stage=f.stage.value;s.goal=Math.max(0,+f.goal.value||0);s.website=f.website.value;

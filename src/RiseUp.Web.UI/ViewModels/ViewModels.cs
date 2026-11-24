@@ -16,6 +16,7 @@ using RiseUp.Facade.TeamAccounts;
 using RiseUp.Facade.Verification;
 using RiseUp.Facade.Wallets;
 using RiseUp.Framework;
+using RiseUp.Framework.Constants;
 
 namespace RiseUp.Web.UI.ViewModels;
 
@@ -42,7 +43,7 @@ public sealed class RegisterViewModel
     [Required, StringLength(150), Display(Name = "Full legal name")] public string FullName { get; set; } = "";
     [Required, EmailAddress, StringLength(256)] public string Email { get; set; } = "";
     [Required, Phone, StringLength(30), Display(Name = "Mobile number")] public string Phone { get; set; } = "";
-    [Required, StringLength(100, MinimumLength = 10), DataType(DataType.Password)] public string Password { get; set; } = "";
+    [Required, StringLength(100, MinimumLength = PasswordPolicy.MinimumLength), DataType(DataType.Password)] public string Password { get; set; } = "";
     [Display(Name = "Startup name"), StringLength(100)] public string? StartupName { get; set; }
     [Display(Name = "Firm / affiliation"), StringLength(150)] public string? Affiliation { get; set; }
     [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the Terms and Privacy Policy.")] public bool AcceptTerms { get; set; }
