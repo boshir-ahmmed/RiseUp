@@ -12,6 +12,7 @@ using RiseUp.Facade.Common;
 using RiseUp.Facade.ConnectionRequests;
 using RiseUp.Facade.Identity;
 using RiseUp.Facade.Payments;
+using RiseUp.Facade.Pitching;
 using RiseUp.Framework.Results;
 
 namespace RiseUp.Facade.Tests;
@@ -72,7 +73,7 @@ public class SqlServerCommerceTests
             Assert.Equal(51002, collision.Number);
             Assert.Equal(2, await db.UserAccounts.CountAsync());
             await db.UserAccounts.Where(u => u.Id != owner).ExecuteUpdateAsync(s => s.SetProperty(u => u.Phone, "01712345679"));
-            await db.Database.MigrateAsync();
+            await db.Database.MigrateAsync("20261124160453_UniqueAccountContacts");
             var startup = await db.Startups.SingleAsync();
             var investor = await db.InvestorProfiles.SingleAsync();
             startup.VerificationStatus = investor.VerificationStatus = VerificationStatus.Verified;
@@ -102,6 +103,21 @@ public class SqlServerCommerceTests
             Assert.True((await Run<IConnectionRequestFacade, Result<int>>(f => f.SendPitchAsync(actor, request))).IsFailure);
             Assert.Equal(9, (await db.Wallets.AsNoTracking().SingleAsync()).PurchasedBalance);
             Assert.Equal(2, await db.TokenLedger.CountAsync());
+
+            // Upgrade a legacy pitch, then race two replies to the imported item.
+            var sent = await db.ConnectionRequests.SingleAsync();
+            sent.InfoRequestMessage = "Quarterly revenue";
+            sent.InfoRequestedAtUtc = sent.SentAtUtc;
+            await db.SaveChangesAsync();
+            await db.Database.MigrateAsync();
+            var item = await db.PitchInfoItems.AsNoTracking().SingleAsync();
+            Assert.Equal(sent.InfoRequestMessage, item.Prompt);
+            Assert.Equal(sent.InfoRequestedAtUtc, item.CreatedAtUtc);
+            Task<Result> Reply(string text) => Run<IPitchRoomFacade, Result>(f => f.ReplyToInfoAsync(actor, sent.Id, item.Id, text, null));
+            var replies = await Task.WhenAll(Reply("First response"), Reply("Second response"));
+            Assert.Single(replies, r => r.IsSuccess);
+            Assert.Single(replies, r => r.Error.Code == ErrorCodes.Conflict);
+            Assert.Equal(1, await db.Notifications.CountAsync(n => n.Text.Contains("replied to your information request")));
         }
         finally { await db.Database.EnsureDeletedAsync(); }
     }

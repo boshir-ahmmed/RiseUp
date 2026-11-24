@@ -1242,6 +1242,50 @@ namespace RiseUp.DataAccess.Migrations
                     b.ToTable("PitchFaqs");
                 });
 
+            modelBuilder.Entity("RiseUp.Entities.Pitching.PitchInfoItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AnsweredAtUtc")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("ReplyMediaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReplyText")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("RequestId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReplyMediaId")
+                        .IsUnique()
+                        .HasFilter("[ReplyMediaId] IS NOT NULL");
+
+                    b.HasIndex("RequestId");
+
+                    b.ToTable("PitchInfoItems");
+                });
+
             modelBuilder.Entity("RiseUp.Entities.Pitching.PitchPackage", b =>
                 {
                     b.Property<int>("Id")
@@ -2578,6 +2622,22 @@ namespace RiseUp.DataAccess.Migrations
                         .HasForeignKey("PackageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("RiseUp.Entities.Pitching.PitchInfoItem", b =>
+                {
+                    b.HasOne("RiseUp.Entities.Media.MediaAsset", "ReplyMedia")
+                        .WithOne()
+                        .HasForeignKey("RiseUp.Entities.Pitching.PitchInfoItem", "ReplyMediaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RiseUp.Entities.Connections.ConnectionRequest", null)
+                        .WithMany()
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ReplyMedia");
                 });
 
             modelBuilder.Entity("RiseUp.Entities.Pitching.PitchPackage", b =>

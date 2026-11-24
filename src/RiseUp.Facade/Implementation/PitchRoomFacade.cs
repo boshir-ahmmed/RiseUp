@@ -3,6 +3,7 @@ using RiseUp.Entities.Common;
 using RiseUp.Entities.Connections;
 using RiseUp.Entities.Pitching;
 using RiseUp.Facade.Common;
+using RiseUp.Facade.Media;
 using RiseUp.Framework.Constants;
 using RiseUp.Framework.Results;
 using RiseUp.Framework.Time;
@@ -16,7 +17,7 @@ namespace RiseUp.Facade.Pitching;
 /// 14-day decision window. Accept/decline go through <c>IConnectionRequestFacade.RespondAsync</c> (one connection, one chat).
 /// </summary>
 public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchRepository pitches, IStartupRepository startups, IInvestorRepository investors,
-    IShortlistRepository shortlist, PitchPackageFacade packages, NameDirectory names, IUnitOfWork uow, IClock clock, ActivityRecorder activity) : IPitchRoomFacade
+    IShortlistRepository shortlist, MediaIntake mediaIntake, PitchPackageFacade packages, NameDirectory names, IUnitOfWork uow, IClock clock, ActivityRecorder activity) : IPitchRoomFacade
 {
     private enum Role { None, Investor, Founder }
 
@@ -79,6 +80,12 @@ public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchReposi
             Documents = dto.Documents.Where(d => d.Scan == ScanStatus.Clean).ToList(),
         };
         var questions = r is null ? [] : (await pitches.ListQuestionsAsync(r.Id, ct)).Select(q => new RoomQuestionDto(q.Id, q.AskerName, q.Text, q.CreatedAtUtc, q.Answer, q.AnsweredAtUtc)).ToList();
+        var infoItems = r is null ? [] : (await pitches.ListInfoItemsAsync(r.Id, ct)).Select(item =>
+        {
+            var file = item.ReplyMedia is { ScanStatus: ScanStatus.Clean, DeletedAtUtc: null } ? item.ReplyMedia : null;
+            return new PitchInfoItemDto(item.Id, item.Prompt, item.ReplyText, item.AnsweredAtUtc, file?.FileName,
+                file is null ? null : UrlRewrite.Media(file.Id) + "?download=true");
+        }).ToList();
         var pending = r?.Status == RequestStatus.Pending;
         var investor = r is null ? null : await investors.GetByIdAsync(r.InvestorId, ct);
         var conn = r is null ? null : await requests.GetConnectionAsync(r.StartupId, r.InvestorId, ct);
@@ -88,7 +95,7 @@ public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchReposi
             r?.PackageVersion, package.PackageVersion, r?.Message, r?.InfoRequestedAtUtc, r?.InfoRequestMessage, dto, questions,
             role == Role.Investor && pending && questions.Count < BusinessRules.PitchQuestionsMax && !s.IsSuspended, Math.Max(0, BusinessRules.PitchQuestionsMax - questions.Count),
             role == Role.Investor && pending && !s.IsSuspended, role == Role.Founder && pending, role == Role.Founder && r is not null ? Stats(engagement) : null,
-            shortlisted, conn?.ConversationId));
+            shortlisted, conn?.ConversationId, infoItems));
     }
 
     public async Task<Result> TrackAsync(Actor actor, int requestId, TrackInput input, CancellationToken ct = default)
@@ -157,14 +164,57 @@ public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchReposi
         var (r, role) = await LoadAsync(actor, requestId, ct);
         if (r is null || role != Role.Investor) return Result.Failure(Guard.Forbidden());
         if (r.Status != RequestStatus.Pending || clock.UtcNow >= r.ExpiresAtUtc) return Result.Failure(ErrorCodes.NotPending, "This pitch is no longer pending.");
-        message = (message ?? "").Trim();
-        if (message.Length is < 5 or > BusinessRules.MoreInfoMax) return Result.Failure(ErrorCodes.Validation, $"Describe what would help you decide (5–{BusinessRules.MoreInfoMax} characters).");
-        r.InfoRequestedAtUtc = clock.UtcNow; r.InfoRequestMessage = message;   // ExpiresAtUtc is deliberately unchanged
-        var s = await startups.GetByIdAsync(r.StartupId, ct);
+        var prompts = (message ?? "").Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (prompts.Length is 0 or > BusinessRules.MoreInfoBatchMax || prompts.Any(p => p.Length > BusinessRules.MoreInfoMax))
+            return Result.Failure(ErrorCodes.Validation, $"Enter up to {BusinessRules.MoreInfoBatchMax} items, one per line, with up to {BusinessRules.MoreInfoMax} characters each.");
+
+        var startup = await startups.GetByIdAsync(r.StartupId, ct);
+        if (startup is null || startup.IsSuspended || startup.IsDeleted) return Result.Failure(Guard.Forbidden());
+        await pitches.AddInfoItemsAsync(prompts.Select(prompt => new PitchInfoItem { RequestId = r.Id, Prompt = prompt }), ct);
+        r.InfoRequestedAtUtc = clock.UtcNow;
+        r.InfoRequestMessage = prompts[^1];
         var name = await names.CurrentNameAsync(actor, ct);
-        await activity.NotifyAccountAsync(s!.OwnerAccountId, $"{name} requested more information on your pitch.", $"/pitch-room/{r.Id}", ct);
-        await uow.SaveChangesAsync(ct);
-        return Result.Success("Sent to the founder. The pitch stays pending and the 14-day window is unchanged.");
+        await activity.NotifyAccountAsync(startup.OwnerAccountId, $"{name} requested more information on your pitch.", $"/pitch-room/{r.Id}#information", ct);
+        return await SaveInformationAsync(r, "Request sent to the founder.", ct);
+    }
+
+    public async Task<Result> ReplyToInfoAsync(Actor actor, int requestId, int itemId, string? text, UploadedFile? file, CancellationToken ct = default)
+    {
+        var (r, role) = await LoadAsync(actor, requestId, ct);
+        if (r is null || role != Role.Founder) return Result.Failure(Guard.Forbidden("Only the founder of this pitch can reply."));
+        if (r.Status != RequestStatus.Pending || clock.UtcNow >= r.ExpiresAtUtc)
+            return Result.Failure(ErrorCodes.NotPending, "This pitch is no longer pending.");
+        var startup = await startups.GetByIdAsync(r.StartupId, ct);
+        if (startup is null || startup.IsDeleted || startup.IsSuspended) return Result.Failure(Guard.Forbidden());
+        var item = await pitches.GetInfoItemAsync(requestId, itemId, ct);
+        if (item is null) return Result.Failure(Guard.NotFound("Requested item"));
+        if (item.AnsweredAtUtc.HasValue) return Result.Failure(ErrorCodes.Conflict, "This item already has a reply.");
+        text = text?.Trim();
+        if (string.IsNullOrEmpty(text) && file is null) return Result.Failure(ErrorCodes.Validation, "Write a reply or attach a file.");
+        if (text?.Length > BusinessRules.MoreInfoReplyMax)
+            return Result.Failure(ErrorCodes.Validation, $"Replies can contain up to {BusinessRules.MoreInfoReplyMax} characters.");
+
+        if (file is not null)
+        {
+            var accepted = await mediaIntake.AcceptAsync(MediaKind.PitchInfoAttachment, file, startup.Id, actor.AccountId, null, ct);
+            if (accepted.IsFailure) return Result.Failure(accepted.Error);
+            item.ReplyMedia = accepted.Value;
+        }
+        item.ReplyText = string.IsNullOrEmpty(text) ? null : text;
+        item.AnsweredAtUtc = clock.UtcNow;
+        var investor = await investors.GetByIdAsync(r.InvestorId, ct);
+        await activity.NotifyAccountAsync(investor?.AccountId, $"{startup.Name} replied to your information request.", $"/pitch-room/{r.Id}#info-{item.Id}", ct);
+        return await SaveInformationAsync(r, "Reply sent to the investor.", ct);
+    }
+
+    private async Task<Result> SaveInformationAsync(ConnectionRequest request, string message, CancellationToken ct)
+    {
+        // Include the parent in the same optimistic write as the items, attachment and notification.
+        if (clock.UtcNow >= request.ExpiresAtUtc) return Result.Failure(ErrorCodes.NotPending, "This pitch has expired.");
+        request.Version = Guid.NewGuid();
+        try { await uow.SaveChangesAsync(ct); }
+        catch (PersistenceConflictException) { return Result.Failure(ErrorCodes.Conflict, "The pitch changed. Check the latest details before trying again."); }
+        return Result.Success(message);
     }
 
     public async Task<IReadOnlyList<SentPitchDto>> ListSentAsync(Actor actor, CancellationToken ct = default)

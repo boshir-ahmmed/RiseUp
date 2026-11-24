@@ -315,6 +315,68 @@ public class V3V4FeatureTests
         Assert.NotNull(after.InfoRequestedAtUtc);
     }
 
+    [Fact]
+    public async Task InformationRequests_PreserveEachItemAndScopeRepliesToThePitch()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var pitch = await PitchId(h, "seed:r4");
+        var investor = await h.Investor();
+        var founder = await h.SignIn("hello@takaledger.example");
+        var outsider = await h.Founder();
+        var otherInvestor = await h.Imran();
+
+        Task<Result> Ask(string prompts) => h.Run<IPitchRoomFacade, Result>(x => x.RequestMoreInfoAsync(investor, pitch, prompts));
+        Task<Result> Reply(Actor actor, int item, string? text, UploadedFile? file = null) =>
+            h.Run<IPitchRoomFacade, Result>(x => x.ReplyToInfoAsync(actor, pitch, item, text, file));
+        Assert.True((await Ask("Revenue breakdown\r\n\nFinancial model")).IsSuccess);
+        Assert.True((await Ask("Cash runway")).IsSuccess);
+        var items = (await h.Run<IPitchRoomFacade, Result<PitchRoomDto>>(x => x.GetAsync(founder, pitch))).Value!.InfoItems;
+        Assert.Equal(new[] { "Revenue breakdown", "Financial model", "Cash runway" }, items.Select(i => i.Prompt));
+        Assert.Equal(ErrorCodes.Forbidden, (await Reply(outsider, items[0].Id, "Wrong startup")).Error.Code);
+        Assert.Equal(ErrorCodes.Forbidden, (await Reply(investor, items[0].Id, "Self reply")).Error.Code);
+        Assert.Equal(ErrorCodes.Validation, (await Reply(founder, items[0].Id, " ")).Error.Code);
+        Assert.True((await Reply(founder, items[0].Id, "Quarterly revenue grew 12%.")).IsSuccess);
+        Assert.Equal(ErrorCodes.Conflict, (await Reply(founder, items[0].Id, "Duplicate")).Error.Code);
+        var rejected = await h.UploadAsync(Eicar, "rejected.pdf", "application/pdf");
+        Assert.Equal(ErrorCodes.MediaInfected, (await Reply(founder, items[1].Id, null, rejected)).Error.Code);
+        var file = await h.UploadAsync("%PDF-1.4 sample"u8.ToArray(), "forecast.pdf", "application/pdf");
+        Assert.True((await Reply(founder, items[1].Id, null, file)).IsSuccess);
+        var replies = (await h.Run<IPitchRoomFacade, Result<PitchRoomDto>>(x => x.GetAsync(investor, pitch))).Value!.InfoItems;
+        Assert.Equal("Quarterly revenue grew 12%.", replies[0].ReplyText);
+        Assert.Equal("forecast.pdf", replies[1].FileName);
+        Assert.Null(replies[2].AnsweredAtUtc);
+        var mediaId = await h.Db(db => db.PitchInfoItems.Where(i => i.Id == items[1].Id).Select(i => i.ReplyMediaId!.Value).SingleAsync());
+        foreach (var actor in new[] { Actor.Anonymous, outsider, otherInvestor })
+            Assert.Equal(ErrorCodes.NotFound, (await h.Run<IMediaFacade, Result<MediaStream>>(x => x.OpenAsync(actor, mediaId, true))).Error.Code);
+        var download = await h.Run<IMediaFacade, Result<MediaStream>>(x => x.OpenAsync(investor, mediaId, true));
+        Assert.Equal("forecast.pdf", download.Value!.FileName);
+        await download.Value.Content.DisposeAsync();
+        h.Clock.Advance(TimeSpan.FromDays(15));
+        Assert.Equal(ErrorCodes.NotPending, (await Reply(founder, items[2].Id, "Late reply")).Error.Code);
+    }
+
+    [Fact]
+    public async Task LegacyInformationRequest_IsImportedOnceAndCanBeAnswered()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var pitch = await PitchId(h, "seed:r4");
+        var item = await h.Db(async db =>
+        {
+            var request = await db.ConnectionRequests.FindAsync(pitch);
+            request!.InfoRequestMessage = "Please share the forecast.";
+            request.InfoRequestedAtUtc = h.Clock.UtcNow;
+            await db.SaveChangesAsync();
+            await db.Database.ExecuteSqlRawAsync("DROP TABLE PitchInfoItems");
+            await db.InitializeDemoDatabaseAsync();
+            await db.InitializeDemoDatabaseAsync();
+            return await db.PitchInfoItems.SingleAsync(i => i.RequestId == pitch);
+        });
+        Assert.Equal("Please share the forecast.", item.Prompt);
+        var founder = await h.SignIn("hello@takaledger.example");
+        var reply = await h.Run<IPitchRoomFacade, Result>(x => x.ReplyToInfoAsync(founder, pitch, item.Id, "Here is our forecast.", null));
+        Assert.True(reply.IsSuccess, reply.Error.Message);
+    }
+
     // ======================================================================= media access
     [Fact]
     public async Task M01_PrivatePitchMedia_OnlyForOwnerAndRecipients_TeasersPublicWhenOptedIn()

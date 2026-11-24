@@ -65,6 +65,7 @@ public class RiseUpDbContext(DbContextOptions<RiseUpDbContext> options, IClock c
     public DbSet<PitchTeamMember> PitchTeamMembers => Set<PitchTeamMember>();
     public DbSet<PitchFaq> PitchFaqs => Set<PitchFaq>();
     public DbSet<PitchDocument> PitchDocuments => Set<PitchDocument>();
+    public DbSet<PitchInfoItem> PitchInfoItems => Set<PitchInfoItem>();
     public DbSet<PitchQuestion> PitchQuestions => Set<PitchQuestion>();
     public DbSet<PitchEngagement> PitchEngagements => Set<PitchEngagement>();
     public DbSet<ShortlistEntry> Shortlist => Set<ShortlistEntry>();
@@ -87,6 +88,22 @@ public class RiseUpDbContext(DbContextOptions<RiseUpDbContext> options, IClock c
         if (hasContacts == 0)
             foreach (var sql in Migrations.AccountContactSchemaV1.Install(sqlite: true))
                 await Database.ExecuteSqlRawAsync(sql);
+        var hasInfoItems = await Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = 'PitchInfoItems'").SingleAsync();
+        if (hasInfoItems == 0)
+        {
+            await Database.ExecuteSqlRawAsync("""
+                CREATE TABLE PitchInfoItems (
+                    Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                    RequestId INTEGER NOT NULL REFERENCES ConnectionRequests(Id) ON DELETE CASCADE,
+                    Prompt TEXT NOT NULL, ReplyText TEXT NULL, AnsweredAtUtc TEXT NULL,
+                    ReplyMediaId INTEGER NULL REFERENCES MediaAssets(Id) ON DELETE RESTRICT,
+                    CreatedAtUtc TEXT NOT NULL, UpdatedAtUtc TEXT NULL);
+                CREATE INDEX IX_PitchInfoItems_RequestId ON PitchInfoItems(RequestId);
+                CREATE UNIQUE INDEX IX_PitchInfoItems_ReplyMediaId ON PitchInfoItems(ReplyMediaId);
+                """);
+            await Database.ExecuteSqlRawAsync(Migrations.PitchInformationSchemaV1.ImportRequests);
+        }
         await transaction.CommitAsync();
     }
 

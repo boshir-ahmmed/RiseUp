@@ -114,6 +114,18 @@ public sealed class PitchDocumentConfiguration : IEntityTypeConfiguration<PitchD
     }
 }
 
+public sealed class PitchInfoItemConfiguration : IEntityTypeConfiguration<PitchInfoItem>
+{
+    public void Configure(EntityTypeBuilder<PitchInfoItem> b)
+    {
+        b.Property(i => i.Prompt).HasMaxLength(500).IsRequired();
+        b.Property(i => i.ReplyText).HasMaxLength(2000);
+        b.Property(i => i.AnsweredAtUtc).IsConcurrencyToken();
+        b.HasOne<ConnectionRequest>().WithMany().HasForeignKey(i => i.RequestId);
+        b.HasOne(i => i.ReplyMedia).WithOne().HasForeignKey<PitchInfoItem>(i => i.ReplyMediaId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public sealed class PitchQuestionConfiguration : IEntityTypeConfiguration<PitchQuestion>
 {
     public void Configure(EntityTypeBuilder<PitchQuestion> b)

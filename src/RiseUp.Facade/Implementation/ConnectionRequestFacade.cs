@@ -256,8 +256,11 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
             : actor.IsInvestor ? await requests.ListForInvestorAsync(actor.InvestorId!.Value, ct) : [];
         var sNames = (await startups.GetManyAsync(list.Select(r => r.StartupId).Distinct().ToList(), ct)).ToDictionary(s => s.Id, s => s.Name);
         var iNames = (await investors.GetManyAsync(list.Select(r => r.InvestorId).Distinct().ToList(), ct)).ToDictionary(i => i.Id, i => i.DisplayName);
+        var pendingInfoIds = list.Where(r => actor.IsFounder && r.Type == RequestType.Pitch && r.InfoRequestedAtUtc.HasValue
+            && r.Status == RequestStatus.Pending && r.ExpiresAtUtc > clock.UtcNow).Select(r => r.Id).ToList();
+        var awaitingReply = pendingInfoIds.Count == 0 ? [] : (await pitchPackages.ListPitchesAwaitingInfoAsync(pendingInfoIds, ct)).ToHashSet();
         return list.Select(r => new RequestDto(r.Id, r.Type, r.StartupId, sNames.GetValueOrDefault(r.StartupId, "?"), r.InvestorId, iNames.GetValueOrDefault(r.InvestorId, "?"),
-            r.Message, r.SentAtUtc, r.ExpiresAtUtc, r.Status, r.DecisionNote, r.TokenBucket, r.Status == RequestStatus.Rejected ? r.ExpiresAtUtc : null)).ToList();
+            r.Message, r.SentAtUtc, r.ExpiresAtUtc, r.Status, r.DecisionNote, r.TokenBucket, r.Status == RequestStatus.Rejected ? r.ExpiresAtUtc : null, r.InfoRequestedAtUtc.HasValue, awaitingReply.Contains(r.Id))).ToList();
     }
 
     public async Task<int> ExpireDueAsync(CancellationToken ct = default)

@@ -30,6 +30,24 @@ public sealed class PitchRepository(RiseUpDbContext db) : IPitchRepository
         (await db.PitchQuestions.Where(q => requestIds.Contains(q.RequestId)).GroupBy(q => q.RequestId)
             .Select(g => new { g.Key, Total = g.Count(), Open = g.Count(x => x.Answer == null) }).ToListAsync(ct))
         .ToDictionary(x => x.Key, x => (x.Total, x.Open));
+    public async Task<IReadOnlyList<PitchInfoItem>> ListInfoItemsAsync(int requestId, CancellationToken ct) =>
+        await db.PitchInfoItems.AsNoTracking().Include(i => i.ReplyMedia).Where(i => i.RequestId == requestId)
+            .OrderBy(i => i.CreatedAtUtc).ThenBy(i => i.Id).ToListAsync(ct);
+
+    public Task<PitchInfoItem?> GetInfoItemAsync(int requestId, int itemId, CancellationToken ct) =>
+        db.PitchInfoItems.SingleOrDefaultAsync(i => i.Id == itemId && i.RequestId == requestId, ct);
+
+    public Task<List<int>> ListPitchesAwaitingInfoAsync(IReadOnlyCollection<int> requestIds, CancellationToken ct) =>
+        db.PitchInfoItems.Where(i => requestIds.Contains(i.RequestId) && i.AnsweredAtUtc == null)
+            .Select(i => i.RequestId).Distinct().ToListAsync(ct);
+
+    public Task AddInfoItemsAsync(IEnumerable<PitchInfoItem> items, CancellationToken ct) => db.PitchInfoItems.AddRangeAsync(items, ct);
+
+    public Task<ConnectionRequest?> FindInfoAttachmentRequestAsync(int mediaId, CancellationToken ct) =>
+        (from item in db.PitchInfoItems where item.ReplyMediaId == mediaId
+         join request in db.ConnectionRequests.AsNoTracking() on item.RequestId equals request.Id
+         select request).SingleOrDefaultAsync(ct);
+
     public Task<PitchQuestion?> GetQuestionAsync(int id, CancellationToken ct = default) => db.PitchQuestions.FirstOrDefaultAsync(q => q.Id == id, ct);
     public async Task AddQuestionAsync(PitchQuestion question, CancellationToken ct = default) => await db.PitchQuestions.AddAsync(question, ct);
     public Task<PitchEngagement?> GetEngagementAsync(int requestId, CancellationToken ct = default) => db.PitchEngagements.FirstOrDefaultAsync(e => e.RequestId == requestId, ct);
