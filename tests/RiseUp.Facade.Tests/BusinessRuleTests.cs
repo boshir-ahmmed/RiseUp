@@ -363,6 +363,7 @@ public class BusinessRuleTests
         await using var h = await TestHost.CreateAsync();
         var founder = await h.Founder(); var sadia = await h.Investor();
         var created = (await h.Run<ITeamAccountFacade, Result<OneTimeCredential>>(f => f.CreateAsync(founder, new("New Analyst", "Analyst", "new.analyst", "na@x.example", null)))).Value!;
+        Assert.True(RiseUp.Framework.Constants.PasswordPolicy.IsValid(created.TemporaryPassword));
         var convId = await h.Db(db => db.Conversations.Where(c => c.StartupId == founder.StartupId).Select(c => c.Id).SingleAsync());
         var rafiId = await h.Db(db => db.TeamAccounts.Where(t => t.Username == "rafi.ops").Select(t => t.Id).SingleAsync());
         await h.Run<IConversationFacade, Result>(f => f.SetTeamMembersAsync(founder, convId, [rafiId, created.TeamAccountId]));
@@ -636,6 +637,22 @@ public class BusinessRuleTests
         var id = await h.Db(db => db.InvestorProfiles.Where(x => x.AccountId == actor.AccountId).Select(x => x.Id).SingleAsync());
         Assert.True((await h.Run<IAccountFacade, Result>(f => f.DeleteAccountAsync(actor with { InvestorId = id }, "DELETE"))).IsSuccess);
         Assert.True((await Register("MEMBER@gmail.com", "+8801712345678")).IsSuccess);
+    }
+
+    [Fact]
+    public async Task RegistrationAndResetRequireTwelveCharactersWithBothCasesAndADigit()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var token = (await h.Run<IAccountFacade, Result<string>>(f => f.RequestPasswordResetAsync("hello@takaledger.example"))).Value!;
+        foreach (var invalid in new[] { "Ab123456789", "alllowercase1", "ALLUPPERCASE1", "NoDigitsHere" })
+        {
+            var registration = await h.Run<IAccountFacade, Result<RegisteredAccount>>(f => f.RegisterAsync(
+                new(PrimaryRole.Investor, "Test Investor", "policy@x.example", "+8801700000000", invalid, true)));
+            var reset = await h.Run<IAccountFacade, Result>(f => f.ResetPasswordAsync(token, invalid));
+            Assert.Equal(ErrorCodes.Validation, registration.Error.Code);
+            Assert.Equal(ErrorCodes.Validation, reset.Error.Code);
+        }
+        Assert.True((await h.Run<IAccountFacade, Result>(f => f.ResetPasswordAsync(token, "Password1234"))).IsSuccess);
     }
 
     [Fact]
