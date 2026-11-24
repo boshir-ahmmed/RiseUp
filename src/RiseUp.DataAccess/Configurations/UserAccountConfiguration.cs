@@ -8,6 +8,7 @@ public sealed class UserAccountConfiguration : IEntityTypeConfiguration<UserAcco
 {
     public void Configure(EntityTypeBuilder<UserAccount> b)
     {
+        b.ToTable(t => t.HasTrigger("TR_UserAccounts_Contacts"));
         b.Property(x => x.Email).HasMaxLength(256).IsRequired();
         b.Property(x => x.NormalizedEmail).HasMaxLength(256).IsRequired();
         b.HasIndex(x => x.NormalizedEmail).IsUnique();

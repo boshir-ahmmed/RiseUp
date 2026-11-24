@@ -74,7 +74,7 @@ public class RiseUpDbContext(DbContextOptions<RiseUpDbContext> options, IClock c
     // The development SQLite store uses EnsureCreated, while SQL Server uses versioned migrations.
     public async Task InitializeDemoDatabaseAsync()
     {
-        if (await Database.EnsureCreatedAsync()) return;
+        await Database.EnsureCreatedAsync();
         await using var transaction = await Database.BeginTransactionAsync();
         var columns = await Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('VerificationDocuments')").ToListAsync();
         if (!columns.Contains("Retention"))
@@ -82,6 +82,11 @@ public class RiseUpDbContext(DbContextOptions<RiseUpDbContext> options, IClock c
         var profileColumns = await Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('MemberProfiles')").ToListAsync();
         if (!profileColumns.Contains("LogoMediaId"))
             await Database.ExecuteSqlRawAsync("ALTER TABLE MemberProfiles ADD COLUMN LogoMediaId INTEGER NULL");
+        var hasContacts = await Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = 'AccountContacts'").SingleAsync();
+        if (hasContacts == 0)
+            foreach (var sql in Migrations.AccountContactSchemaV1.Install(sqlite: true))
+                await Database.ExecuteSqlRawAsync(sql);
         await transaction.CommitAsync();
     }
 

@@ -86,6 +86,7 @@ dotnet ef database update --project src/RiseUp.DataAccess --startup-project src/
 
 | Symptom | What to check |
 |---|---|
+| Migration reports a duplicate account email or contact number | Review the owner IDs in the error in SSMS. Confirm a distinct address or number with the affected users, correct the source records, then rerun `Update-Database`. For a changed member email, keep `UserAccounts.NormalizedEmail` in sync with the uppercased address. |
 | PMC does not recognize Update-Database | Restore NuGet packages, build the solution and reopen Package Manager Console. |
 | Cannot connect or login fails | Try the same server name and authentication in SSMS. Check database creation and schema permissions. |
 | Site shows SQLite or a different data set | Select the SQL Server launch profile. Check the startup project’s User Secrets and environment overrides. |

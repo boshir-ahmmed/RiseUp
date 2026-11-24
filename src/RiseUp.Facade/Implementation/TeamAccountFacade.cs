@@ -43,7 +43,11 @@ public sealed class TeamAccountFacade(ITeamAccountRepository team, IConversation
             Email = request.Email.Trim(), LinkedInUrl = request.LinkedInUrl, PasswordHash = hasher.Hash(password), Status = TeamAccountStatus.Active,
         };
         await team.AddAsync(t, ct);
-        await uow.SaveChangesAsync(ct);
+        try { await uow.SaveChangesAsync(ct); }
+        catch (PersistenceConflictException ex)
+        {
+            return ex.ContactError ?? new Error(ErrorCodes.Conflict, "Username or email already in use.");
+        }
         return Result.Success(new OneTimeCredential(t.Id, t.Username, password), "Team account created. Copy the password now — it will not be shown again.");
     }
 

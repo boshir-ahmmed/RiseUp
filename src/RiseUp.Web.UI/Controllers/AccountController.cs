@@ -72,7 +72,17 @@ public sealed class AccountController(IAccountFacade accounts, IWebHostEnvironme
         if (!RegistrationOpen) return View("RegistrationClosed");
         if (!ModelState.IsValid) return View("Register", model);
         var result = await accounts.RegisterAsync(new RegisterRequest(model.Role, model.FullName, model.Email, model.Phone, model.Password, model.AcceptTerms, model.StartupName, model.Affiliation), ct);
-        if (result.IsFailure) { ModelState.AddModelError("", result.Error.Message); return View("Register", model); }
+        if (result.IsFailure)
+        {
+            var field = result.Error.Code switch
+            {
+                ErrorCodes.EmailTaken => nameof(model.Email),
+                ErrorCodes.PhoneTaken => nameof(model.Phone),
+                _ => string.Empty
+            };
+            ModelState.AddModelError(field, result.Error.Message);
+            return View("Register", model);
+        }
         // In production the token is sent only by email (outbox). Development shows the link to make the flow testable.
         return View("CheckEmail", env.IsDevelopment() ? Url.Action(nameof(VerifyEmail), new { token = result.Value!.EmailVerificationToken }) : null);
     }

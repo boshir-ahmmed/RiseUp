@@ -9,6 +9,7 @@ public static class ErrorCodes
     public const string Unauthenticated = "unauthenticated";
     public const string Conflict = "conflict";
 
+    public const string PhoneTaken = "phone_taken";
     public const string EmailTaken = "email_taken";
     public const string InvalidCredentials = "invalid_credentials";
     public const string AccountLocked = "account_locked";
