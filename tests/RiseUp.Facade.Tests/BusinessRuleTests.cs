@@ -612,6 +612,34 @@ public class BusinessRuleTests
     }
 
     [Fact]
+    public async Task ContactsAreUniqueAcrossRolesAndFormatsAndReleasedOnDeletion()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var owner = await h.Founder();
+        Task<Result<RegisteredAccount>> Register(string email, string phone) =>
+            h.Run<IAccountFacade, Result<RegisteredAccount>>(f => f.RegisterAsync(
+                new(PrimaryRole.Investor, "Investor", email, phone, "Password1234", true)));
+        Task<Result<OneTimeCredential>> CreateTeam(string email) =>
+            h.Run<ITeamAccountFacade, Result<OneTimeCredential>>(f => f.CreateAsync(owner,
+                new("Test Member", "Analyst", "contact.test", email, null)));
+
+        Assert.Equal(ErrorCodes.EmailTaken, (await CreateTeam("SADIA@padmavc.example")).Error.Code);
+        var team = await CreateTeam("member@gmail.com");
+        Assert.True(team.IsSuccess, team.Error.Message);
+        Assert.True((await h.Run<ITeamAccountFacade, Result>(f => f.DeactivateAsync(owner, team.Value!.TeamAccountId))).IsSuccess);
+        Assert.Equal(ErrorCodes.EmailTaken, (await Register("MEMBER@gmail.com", "01712345678")).Error.Code);
+        Assert.True((await h.Run<ITeamAccountFacade, Result>(f => f.DeleteAsync(owner, team.Value!.TeamAccountId))).IsSuccess);
+        var account = await Register("member@gmail.com", "01712-345678");
+        Assert.True(account.IsSuccess, account.Error.Message);
+        foreach (var phone in new[] { "+880 1712 345678", "008801712345678", "০১৭১২৩৪৫৬৭৮" })
+            Assert.Equal(ErrorCodes.PhoneTaken, (await Register("other@gmail.com", phone)).Error.Code);
+        var actor = new Actor(account.Value!.AccountId, "Investor", PrimaryRole.Investor);
+        var id = await h.Db(db => db.InvestorProfiles.Where(x => x.AccountId == actor.AccountId).Select(x => x.Id).SingleAsync());
+        Assert.True((await h.Run<IAccountFacade, Result>(f => f.DeleteAccountAsync(actor with { InvestorId = id }, "DELETE"))).IsSuccess);
+        Assert.True((await Register("MEMBER@gmail.com", "+8801712345678")).IsSuccess);
+    }
+
+    [Fact]
     public async Task RegistrationAndResetRequireTwelveCharactersWithBothCasesAndADigit()
     {
         await using var h = await TestHost.CreateAsync();

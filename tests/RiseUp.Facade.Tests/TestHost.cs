@@ -83,7 +83,7 @@ public sealed class TestHost : IAsyncDisposable
     {
         var host = new TestHost(settings ?? [], configure);
         using var scope = host.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<RiseUpDbContext>().Database.EnsureCreatedAsync();
+        await scope.ServiceProvider.GetRequiredService<RiseUpDbContext>().InitializeDemoDatabaseAsync();
         await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();
         _ = host.Services.GetRequiredService<SpyContentSafety>();
         return host;

@@ -8,6 +8,7 @@ public sealed class TeamAccountConfiguration : IEntityTypeConfiguration<TeamAcco
 {
     public void Configure(EntityTypeBuilder<TeamAccount> b)
     {
+        b.ToTable(t => t.HasTrigger("TR_TeamAccounts_Contacts"));
         b.Property(x => x.Username).HasMaxLength(30).IsRequired();
         b.Property(x => x.Email).HasMaxLength(256).IsRequired();
         b.HasIndex(x => x.Username).IsUnique();

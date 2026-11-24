@@ -693,7 +693,12 @@ namespace RiseUp.DataAccess.Migrations
                     b.HasIndex("NormalizedEmail")
                         .IsUnique();
 
-                    b.ToTable("UserAccounts");
+                    b.ToTable("UserAccounts", t =>
+                        {
+                            t.HasTrigger("TR_UserAccounts_Contacts");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RiseUp.Entities.Investors.InvestorClaim", b =>
@@ -2222,7 +2227,12 @@ namespace RiseUp.DataAccess.Migrations
 
                     b.HasIndex("StartupId", "Status");
 
-                    b.ToTable("TeamAccounts");
+                    b.ToTable("TeamAccounts", t =>
+                        {
+                            t.HasTrigger("TR_TeamAccounts_Contacts");
+                        });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("RiseUp.Entities.Verification.OwnershipTransferCase", b =>

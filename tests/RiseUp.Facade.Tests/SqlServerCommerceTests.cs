@@ -47,7 +47,7 @@ public class SqlServerCommerceTests
         await using var provider = services.BuildServiceProvider();
         using var setup = provider.CreateScope();
         var db = setup.ServiceProvider.GetRequiredService<RiseUpDbContext>();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync("20261121060046_MemberProfileLogo");
         try
         {
             async Task<T> Run<F, T>(Func<F, Task<T>> act) where F : notnull
@@ -58,7 +58,7 @@ public class SqlServerCommerceTests
             async Task<int> Register(PrimaryRole role, string email)
             {
                 var result = await Run<IAccountFacade, Result<RegisteredAccount>>(f => f.RegisterAsync(new(role, "Test User",
-                    email, "01712345678", "TestPassword123", true, "Test Startup", null)));
+                    email, role == PrimaryRole.Founder ? "01712345678" : "01712345679", "TestPassword123", true, "Test Startup", null)));
                 Assert.True(result.IsSuccess, result.Error.Message);
                 Assert.True((await Run<IAccountFacade, Result>(f => f.VerifyEmailAsync(result.Value!.EmailVerificationToken))).IsSuccess);
                 Assert.True(await db.MemberProfiles.AnyAsync(p => p.AccountId == result.Value!.AccountId));
@@ -66,6 +66,13 @@ public class SqlServerCommerceTests
             }
             var owner = await Register(PrimaryRole.Founder, "founder@integration.example");
             await Register(PrimaryRole.Investor, "investor@integration.example");
+            // Upgrade a populated installation. Duplicates must be reported without altering either account.
+            await db.UserAccounts.Where(u => u.Id != owner).ExecuteUpdateAsync(s => s.SetProperty(u => u.Phone, "+880 1712-345678"));
+            var collision = await Assert.ThrowsAsync<SqlException>(() => db.Database.MigrateAsync());
+            Assert.Equal(51002, collision.Number);
+            Assert.Equal(2, await db.UserAccounts.CountAsync());
+            await db.UserAccounts.Where(u => u.Id != owner).ExecuteUpdateAsync(s => s.SetProperty(u => u.Phone, "01712345679"));
+            await db.Database.MigrateAsync();
             var startup = await db.Startups.SingleAsync();
             var investor = await db.InvestorProfiles.SingleAsync();
             startup.VerificationStatus = investor.VerificationStatus = VerificationStatus.Verified;
@@ -73,6 +80,16 @@ public class SqlServerCommerceTests
             db.TokenPackages.Add(new TokenPackage { Tokens = 10, PriceBdt = 500 });
             await db.SaveChangesAsync();
             var actor = new Actor(owner, "Test User", PrimaryRole.Founder, StartupId: startup.Id);
+            Task<Result<RegisteredAccount>> RegisterInvestor(string email, string phone) =>
+                Run<IAccountFacade, Result<RegisteredAccount>>(f => f.RegisterAsync(
+                    new(PrimaryRole.Investor, "Concurrent Investor", email, phone, "TestPassword123", true)));
+            var duplicate = await RegisterInvestor("duplicate@integration.example", "+880 1712-345678");
+            Assert.Equal(ErrorCodes.PhoneTaken, duplicate.Error.Code);
+            var attempts = await Task.WhenAll(
+                RegisterInvestor("first@integration.example", "01612345678"),
+                RegisterInvestor("second@integration.example", "008801612345678"));
+            Assert.Single(attempts, result => result.IsSuccess);
+            Assert.Single(attempts, result => result.IsFailure);
             var order = await Run<IPaymentFacade, Result<CheckoutDto>>(f => f.CreateOrderAsync(actor, 1));
             Assert.True(order.IsSuccess, order.Error.Message);
             var payload = $"{order.Value!.OrderNumber}|test-bank-1|PAID";

@@ -67,10 +67,10 @@ public sealed class AccountFacade(
             await transaction.CommitAsync(ct);
             return Result.Success(new RegisteredAccount(account.Id, token), "Check your email to verify your account.");
         }
-        catch (PersistenceConflictException)
+        catch (PersistenceConflictException ex)
         {
             await transaction.RollbackAsync(ct);
-            return new Error(ErrorCodes.Conflict, "The email or startup name is already in use. Check the details and try again.");
+            return ex.ContactError ?? new Error(ErrorCodes.Conflict, "The email, contact number, or startup name is already in use. Check the details and try again.");
         }
     }
 

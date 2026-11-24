@@ -15,5 +15,7 @@ public sealed class RegisterRequestValidator : AbstractValidator<RegisterRequest
         RuleFor(x => x.Password).Must(PasswordPolicy.IsValid).WithMessage(PasswordPolicy.Requirements);
         RuleFor(x => x.AcceptedTerms).Equal(true).WithMessage($"You must accept the Terms v{BusinessRules.TermsVersion} and Privacy Policy v{BusinessRules.PrivacyVersion}.");
         RuleFor(x => x.StartupName).NotEmpty().MaximumLength(100).When(x => x.Role == PrimaryRole.Founder);
+        RuleFor(x => x.Phone).Matches(@"^\s*\+?[0-9০-৯ ().\-]*[0-9০-৯][0-9০-৯ ().\-]*\s*$")
+            .WithMessage("Enter a contact number using digits and an optional country code.");
     }
 }
