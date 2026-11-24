@@ -168,8 +168,8 @@ public sealed class AccountFacade(
 
     public async Task<Result> ResetPasswordAsync(string token, string newPassword, CancellationToken ct = default)
     {
-        if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 10 || !newPassword.Any(char.IsDigit) || !newPassword.Any(char.IsLetter))
-            return Result.Failure(ErrorCodes.Validation, "Password must be at least 10 characters and include letters and numbers.");
+        if (!PasswordPolicy.IsValid(newPassword))
+            return Result.Failure(ErrorCodes.Validation, PasswordPolicy.Requirements);
         var record = await accounts.FindTokenAsync(ResetPurpose, SecureTokens.Hash(token ?? ""), ct);
         if (record is null || record.UsedAtUtc is not null || record.ExpiresAtUtc < clock.UtcNow)
             return Result.Failure(ErrorCodes.TokenInvalid, "This reset link is invalid, already used or older than 60 minutes.");
