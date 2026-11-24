@@ -40,6 +40,10 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
 }
 <div class="grid room" style="align-items:start">
     <div class="stack">
+        @if (!Model.IsPreview && (Model.InfoItems.Count > 0 || Model.CanDecide))
+        {
+            <partial name="_RequestedInformation" model="Model" />
+        }
         <div class="card"><div class="card-h"><div class="tabs" style="margin:0;border:0"><button type="button" class="on" data-vtab="pitch">Investor pitch@(p.Pitch is null ? "" : $" · {p.Pitch.Seconds / 60}:{p.Pitch.Seconds % 60:00}")</button><button type="button" data-vtab="demo">Product demo@(p.Demo is null ? "" : $" · {p.Demo.Seconds / 60}:{p.Demo.Seconds % 60:00}")</button></div>@if (Model.ViewerIsInvestor) {<span class="tiny muted">Watching is shared with the founder as pitch analytics</span>}</div>
             <div class="card-b">
                 <div data-vpane="pitch">
@@ -104,7 +108,7 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
             <dl class="kv mt16" style="grid-template-columns:1fr auto"><dt>Minimum ticket</dt><dd>@Ui.Usd(p.Ask.MinTicketUsd)</dd><dt>Runway after raise</dt><dd>@p.Ask.RunwayMonths months</dd></dl>
             <div class="mt16"><div class="tiny muted" style="margin-bottom:6px">Use of funds</div>@foreach (var u in p.Ask.UseOfFunds) {<div class="small">@u.Label · @u.Percent%<div class="bar mt8" style="margin-bottom:8px"><i style="width:@(u.Percent)%"></i></div></div>}</div>
             <p class="tiny muted mb0">Founder-stated. RiseUp does not verify financial projections or facilitate the investment.</p></div>
-        @if (Model.Note is not null) { <div class="card card-b"><h3>Founder's note</h3><p class="small" style="white-space:pre-wrap">@Model.Note</p>@if (Model.InfoRequest is not null) {<div class="notice n-info small" style="display:block">More information requested @Ui.Ago(Model.InfoRequestedAtUtc!.Value): “@Model.InfoRequest”</div>}</div> }
+        @if (Model.Note is not null) { <div class="card card-b"><h3>Founder's note</h3><p class="small" style="white-space:pre-wrap">@Model.Note</p></div> }
         <div class="card card-b"><h3>Highlights</h3><ul class="pk-hl">@foreach (var h in p.Highlights) {<li>@h</li>}</ul>@if (p.Highlights.Count == 0) {<p class="small muted mb0">None yet</p>}</div>
         <div class="card card-b"><h3>Team</h3>@foreach (var t in p.Team) {<div class="row" style="padding:6px 0;flex-wrap:nowrap"><partial name="_Avatar" model="(t.Name, (string?)null, Model.ColorIndex, 36)" /><div><strong class="small">@t.Name</strong><div class="tiny muted">@t.Role</div></div></div>}</div>
         @if (p.Faq.Count > 0) { <div class="card card-b"><h3>FAQ</h3>@foreach (var f in p.Faq) {<details class="small" style="padding:6px 0;border-bottom:1px solid #EEF2F6"><summary>@f.Question</summary><p class="muted mt8 mb0">@f.Answer</p></details>}</div> }
@@ -113,7 +117,7 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
             <div class="card card-b" style="border-color:var(--teal)"><h3>Your decision</h3><p class="tiny muted">Decide within @Ui.Left(Model.ExpiresAtUtc!.Value - DateTime.UtcNow). Declining starts the founder's 14-day cooldown. The founder’s credit was spent when this pitch was delivered.</p>
                 <div class="stack">
                     <form method="post" action="/pitch-room/@Model.RequestId/respond" asp-antiforgery="true"><input type="hidden" name="accept" value="true" /><button class="btn btn-primary" style="width:100%">Accept &amp; open conversation</button></form>
-                    <details><summary class="btn btn-outline" style="width:100%">Request more information</summary><form method="post" action="/pitch-room/@Model.RequestId/more-info" class="stack mt8" asp-antiforgery="true"><textarea class="input" name="message" rows="3" maxlength="500" required placeholder="What would help you decide?"></textarea><p class="tiny muted mb0">This does not pause the 14-day decision window.</p><button class="btn btn-dark btn-sm">Send request</button></form></details>
+                    <a class="btn btn-outline" href="#request-items">Request more information</a>
                     <form method="post" action="/pitch-room/@Model.RequestId/respond" asp-antiforgery="true"><input type="hidden" name="accept" value="false" /><button class="btn btn-danger" style="width:100%" data-confirm="Decline? The founder can send a new pitch only 14 days after the original send time.">Decline</button></form>
                 </div></div>
         }

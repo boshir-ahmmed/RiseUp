@@ -159,7 +159,7 @@ else if (Model.Tab == "sent")
                 <td><div class="bar" style="width:90px"><i style="width:@(s.Stats.PitchWatch)%"></i></div><span class="tiny muted">@s.Stats.PitchWatch%</span></td>
                 <td class="small">@s.Stats.SlidesViewed/@p.Slides.Count</td><td class="small">@s.Stats.DocsViewed/@s.AttachedDocuments</td>
                 <td class="small">@s.Questions@if (s.Unanswered > 0) {<text> </text><span class="badge b-warn">@s.Unanswered to answer</span>}</td>
-                <td><a class="btn btn-outline btn-sm" href="/pitch-room/@s.RequestId">Open room</a></td></tr>
+                <td><a class="btn btn-outline btn-sm" href="/pitch-room/@(s.RequestId)@(s.InfoRequested ? "#information" : "")">@(s.InfoRequested ? "View requested items" : "Open room")</a></td></tr>
         }
         </tbody></table></div>}</div>
     <p class="tiny muted mt8">Engagement is measured only inside the pitch room you sent. Investors see the standard privacy notice; no device data is collected.</p>

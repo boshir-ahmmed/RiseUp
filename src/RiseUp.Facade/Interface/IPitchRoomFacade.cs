@@ -3,6 +3,7 @@ using RiseUp.Entities.Common;
 using RiseUp.Entities.Connections;
 using RiseUp.Entities.Pitching;
 using RiseUp.Facade.Common;
+using RiseUp.Facade.Media;
 using RiseUp.Framework.Constants;
 using RiseUp.Framework.Results;
 using RiseUp.Framework.Time;
@@ -17,5 +18,6 @@ public interface IPitchRoomFacade
     Task<Result> AskAsync(Actor actor, int requestId, string text, CancellationToken ct = default);
     Task<Result> AnswerAsync(Actor actor, int questionId, string text, CancellationToken ct = default);
     Task<Result> RequestMoreInfoAsync(Actor actor, int requestId, string message, CancellationToken ct = default);
+    Task<Result> ReplyToInfoAsync(Actor actor, int requestId, int itemId, string? text, UploadedFile? file, CancellationToken ct = default);
     Task<IReadOnlyList<SentPitchDto>> ListSentAsync(Actor actor, CancellationToken ct = default);
 }

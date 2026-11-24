@@ -39,6 +39,14 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
                 return true;
             case MediaKind.PostImage or MediaKind.PostVideo:
                 return owner || await IsPublicPostMediaAsync(asset.Id, ct);
+            case MediaKind.PitchInfoAttachment:
+            {
+                if (asset.ScanStatus != ScanStatus.Clean) return false;
+                var request = await pitches.FindInfoAttachmentRequestAsync(asset.Id, ct);
+                setDownload(true);
+                return request is { Type: RequestType.Pitch } && (owner && actor.StartupId == request.StartupId
+                    || actor.IsInvestor && actor.InvestorId == request.InvestorId);
+            }
             case MediaKind.PitchDocument:
             {
                 if (owner) { setDownload(true); return true; }

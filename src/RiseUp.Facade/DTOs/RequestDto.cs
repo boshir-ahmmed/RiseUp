@@ -14,4 +14,4 @@ using RiseUp.Framework.Time;
 namespace RiseUp.Facade.ConnectionRequests;
 
 public sealed record RequestDto(int Id, RequestType Type, int StartupId, string StartupName, int InvestorId, string InvestorName, string Message,
-    DateTime SentAtUtc, DateTime ExpiresAtUtc, RequestStatus Status, string? DecisionNote, TokenBucket? Bucket, DateTime? ResendAllowedAtUtc);
+    DateTime SentAtUtc, DateTime ExpiresAtUtc, RequestStatus Status, string? DecisionNote, TokenBucket? Bucket, DateTime? ResendAllowedAtUtc, bool InfoRequested, bool NeedsFounderReply);

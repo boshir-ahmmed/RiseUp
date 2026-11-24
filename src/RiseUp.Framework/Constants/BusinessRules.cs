@@ -53,6 +53,8 @@ public static class BusinessRules
     public const int PitchQuestionsMax = 5;
     public const int PitchQuestionMax = 300;
     public const int PitchAnswerMax = 600;
+    public const int MoreInfoBatchMax = 20;
+    public const int MoreInfoReplyMax = 2000;
     public const int MoreInfoMax = 500;
     public const int ShortlistNoteMax = 300;
     public const int MeetingSlotsMax = 3;

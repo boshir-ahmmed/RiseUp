@@ -4,6 +4,7 @@
     var incoming = (Model.Type == RequestType.Pitch && actor.IsInvestor) || (Model.Type == RequestType.Invitation && actor.IsFounder);
     var counterpart = actor.IsInvestor ? Model.StartupName : Model.InvestorName;
     var href = actor.IsInvestor ? $"/startups/{Model.StartupId}" : $"/investors/{Model.InvestorId}";
+    var roomLabel = Model.NeedsFounderReply ? "Reply to requested items" : Model.InfoRequested ? "View requested items" : "Open pitch room";
     var remaining = Model.ExpiresAtUtc - DateTime.UtcNow;
 }
 <article class="inbox-request">
@@ -17,7 +18,7 @@
     </div>
     <div>
         <div class="row" style="gap:6px">
-            @if (Model.Type == RequestType.Pitch) { <a class="btn @(incoming && Model.Status == RequestStatus.Pending ? "btn-primary" : "btn-outline") btn-sm" href="/pitch-room/@Model.Id">Open pitch room</a> }
+            @if (Model.Type == RequestType.Pitch) { <a class="btn @(incoming && Model.Status == RequestStatus.Pending ? "btn-primary" : "btn-outline") btn-sm" href="/pitch-room/@(Model.Id)@(Model.InfoRequested ? "#information" : "")">@roomLabel</a> }
             @if (incoming && Model.Status == RequestStatus.Pending)
             {
                 <form method="post" action="/requests/@Model.Id/respond" class="inline" asp-antiforgery="true"><input type="hidden" name="accept" value="true" /><button class="btn @(Model.Type == RequestType.Pitch ? "btn-outline" : "btn-primary") btn-sm">Accept</button></form>
