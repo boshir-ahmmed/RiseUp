@@ -30,6 +30,31 @@ public class BusinessRuleTests
         await h.Db(async db => { var w = await db.Wallets.SingleAsync(x => x.StartupId == startupId); return (w.WelcomeBalance, w.PurchasedBalance); });
 
     [Fact]
+    public async Task ConnectedStartups_ListsOnlyAcceptedConnectionsForTheViewingInvestor()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var investor = await h.Investor();
+        var other = await h.Imran();
+        var founder = await h.Founder();
+        Task<IReadOnlyList<ConnectedStartupDto>> List(Actor viewer) =>
+            h.Run<IConnectionRequestFacade, IReadOnlyList<ConnectedStartupDto>>(f => f.ListConnectedStartupsAsync(viewer));
+        var connection = Assert.Single(await List(investor));
+        Assert.Equal(founder.StartupId, connection.StartupId);
+        Assert.True(connection.ProfileAvailable);
+        Assert.Empty(await List(other));
+        Assert.Empty(await List(founder));
+
+        var pitch = await h.Db(db => db.ConnectionRequests.SingleAsync(r => r.IdempotencyKey == "seed:r4"));
+        var accepted = await h.Run<IConnectionRequestFacade, Result>(f => f.RespondAsync(investor, pitch.Id, true, null));
+        Assert.True(accepted.IsSuccess, accepted.Error.Message);
+        var latest = (await List(investor)).First();
+        Assert.Equal(pitch.StartupId, latest.StartupId);
+        Assert.Equal(await h.Db(db => db.Connections.Where(c => c.StartupId == pitch.StartupId && c.InvestorId == investor.InvestorId)
+            .Select(c => c.ConversationId).SingleAsync()), latest.ConversationId);
+        Assert.Empty(await List(other));
+    }
+
+    [Fact]
     public async Task T01_OneStartupPerFounder_IsEnforcedByTheDatabase()
     {
         await using var h = await TestHost.CreateAsync();

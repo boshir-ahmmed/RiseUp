@@ -22,6 +22,7 @@ public interface IConnectionRepository : IRepository<ConnectionRequest>
     Task<IReadOnlyList<ConnectionRequest>> ListPendingDueAsync(DateTime nowUtc, int take, CancellationToken ct = default);
     Task<IReadOnlyList<ConnectionRequest>> ListPendingForStartupAsync(int startupId, CancellationToken ct = default);
     Task<IReadOnlyList<ConnectionRequest>> ListPendingForInvestorAsync(int investorId, CancellationToken ct = default);
+    Task<IReadOnlyList<StartupInvestorConnection>> ListInvestorConnectionsAsync(int investorId, CancellationToken ct);
     Task<StartupInvestorConnection?> GetConnectionAsync(int startupId, int investorId, CancellationToken ct = default);
     Task AddConnectionAsync(StartupInvestorConnection connection, CancellationToken ct = default);
     Task<BlockRelationship?> GetBlockAsync(int startupId, int investorId, CancellationToken ct = default);

@@ -1,0 +1,34 @@
+@model IReadOnlyList<ConnectedStartupDto>
+@{ ViewData["Title"] = "Connected startups"; }
+<partial name="_InvestorTabs" model='"/discover/connected"' />
+<partial name="_PageHeader" model='("Connected startups", (string?)null)' />
+@if (Model.Count == 0)
+{
+    <div class="card empty">
+        <h2>No connections yet</h2>
+        <p>Startups appear here when you accept a pitch or a founder accepts your invitation.</p>
+        <a class="btn btn-primary" href="/discover">Explore recommended startups</a>
+    </div>
+}
+else
+{
+    <div class="grid g2">
+        @foreach (var startup in Model)
+        {
+            <article class="card card-b match-card">
+                <div class="row">
+                    <img class="logo" src="@(startup.LogoUrl ?? Ui.DefaultStartupLogo)" data-image-fallback="@Ui.DefaultStartupLogo" alt="" loading="lazy" />
+                    <div>
+                        <h2 class="mb0">@startup.Name</h2>
+                        @if (startup.ProfileAvailable) { <div class="small muted">@string.Join(" · ", new[] {startup.Industry, startup.Location}.Where(x => !string.IsNullOrWhiteSpace(x)))</div> }
+                    </div>
+                </div>
+                <div class="small muted">Connected @Ui.Dhaka(startup.ConnectedAtUtc)</div>
+                <div class="row">
+                    <a class="btn btn-primary btn-sm" href="/conversations/@startup.ConversationId">Open conversation</a>
+                    @if (startup.ProfileAvailable) { <a class="btn btn-outline btn-sm" href="/startups/@startup.StartupId">View profile</a> }
+                </div>
+            </article>
+        }
+    </div>
+}

@@ -32,6 +32,10 @@ public sealed class ConnectionRepository(RiseUpDbContext db) : Repository<Connec
         await Set.Where(r => r.StartupId == startupId && r.Status == RequestStatus.Pending).ToListAsync(ct);
     public async Task<IReadOnlyList<ConnectionRequest>> ListPendingForInvestorAsync(int investorId, CancellationToken ct = default) =>
         await Set.Where(r => r.InvestorId == investorId && r.Status == RequestStatus.Pending).ToListAsync(ct);
+    public async Task<IReadOnlyList<StartupInvestorConnection>> ListInvestorConnectionsAsync(int investorId, CancellationToken ct) =>
+        await Db.Connections.AsNoTracking().Where(c => c.InvestorId == investorId)
+            .OrderByDescending(c => c.CreatedAtUtc).ThenByDescending(c => c.Id).ToListAsync(ct);
+
     public Task<StartupInvestorConnection?> GetConnectionAsync(int startupId, int investorId, CancellationToken ct = default) =>
         Db.Connections.FirstOrDefaultAsync(c => c.StartupId == startupId && c.InvestorId == investorId, ct);
     public async Task AddConnectionAsync(StartupInvestorConnection connection, CancellationToken ct = default) => await Db.Connections.AddAsync(connection, ct);

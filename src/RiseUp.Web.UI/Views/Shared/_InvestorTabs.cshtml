@@ -1,0 +1,7 @@
+@model string
+<nav class="investor-tabs" aria-label="Investor workspace">
+    @foreach (var (label, href) in new[] { ("Overview", "/dashboard"), ("Recommended", "/discover"), ("Connected", "/discover/connected"), ("Shortlist", "/shortlist"), ("Pitches & invitations", "/requests") })
+    {
+        <a href="@href" aria-current="@(Model == href ? "page" : null)">@label</a>
+    }
+</nav>

@@ -250,6 +250,21 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
         return Result.Success("Accepted — one connection and one private group chat were created.");
     }
 
+    public async Task<IReadOnlyList<ConnectedStartupDto>> ListConnectedStartupsAsync(Actor actor, CancellationToken ct = default)
+    {
+        if (!actor.IsInvestor || actor.InvestorId is not int investorId) return [];
+        var connections = await requests.ListInvestorConnectionsAsync(investorId, ct);
+        if (connections.Count == 0) return [];
+        var profiles = (await startups.GetManyAsync(connections.Select(c => c.StartupId).ToList(), ct)).ToDictionary(s => s.Id);
+        return connections.Select(c =>
+        {
+            if (!profiles.TryGetValue(c.StartupId, out var s) || s.IsDeleted || s.IsSuspended || s.VerificationStatus == VerificationStatus.Unverified)
+                return new ConnectedStartupDto(c.StartupId, c.ConversationId, c.CreatedAtUtc, "Startup profile unavailable", null, null, null, false);
+            return new ConnectedStartupDto(s.Id, c.ConversationId, c.CreatedAtUtc, s.Name, s.Industry, s.Location,
+                s.LogoMediaId.HasValue ? UrlRewrite.Media(s.LogoMediaId) : null, true);
+        }).ToList();
+    }
+
     public async Task<IReadOnlyList<RequestDto>> ListForActorAsync(Actor actor, CancellationToken ct = default)
     {
         IReadOnlyList<ConnectionRequest> list = actor.IsFounder && actor.StartupId is int sid ? await requests.ListForStartupAsync(sid, ct)

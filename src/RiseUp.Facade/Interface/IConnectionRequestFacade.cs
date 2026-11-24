@@ -20,6 +20,7 @@ public interface IConnectionRequestFacade
     Task<IReadOnlyList<DraftDto>> ListDraftsAsync(Actor actor, CancellationToken ct = default);
     Task<Result<int>> SendInvitationAsync(Actor actor, int startupId, string? note, string idempotencyKey, CancellationToken ct = default);
     Task<Result> RespondAsync(Actor actor, int requestId, bool accept, string? note, CancellationToken ct = default);
+    Task<IReadOnlyList<ConnectedStartupDto>> ListConnectedStartupsAsync(Actor actor, CancellationToken ct = default);
     Task<IReadOnlyList<RequestDto>> ListForActorAsync(Actor actor, CancellationToken ct = default);
     Task<int> InvitationsUsedTodayAsync(int investorId, CancellationToken ct = default);
     /// <summary>Background job: unanswered requests expire exactly 14×24h after the original send (FR-074/085).</summary>
