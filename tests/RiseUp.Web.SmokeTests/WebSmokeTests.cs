@@ -88,7 +88,7 @@ public class WebSmokeTests(RiseUpFactory factory) : IClassFixture<RiseUpFactory>
     public async Task PublicPages_Return200(string url) => Assert.Equal(HttpStatusCode.OK, (await Client().GetAsync(url)).StatusCode);
 
     [Theory]
-    [InlineData("/dashboard"), InlineData("/pitches"), InlineData("/wallet"), InlineData("/conversations"), InlineData("/admin"), InlineData("/admin/finance"),
+    [InlineData("/dashboard"), InlineData("/pitches"), InlineData("/wallet"), InlineData("/conversations"), InlineData("/discover/connected"), InlineData("/admin"), InlineData("/admin/finance"),
      InlineData("/me"), InlineData("/me/edit"), InlineData("/shortlist"), InlineData("/pitch-room/1"), InlineData("/admin/profile-changes")]
     public async Task ProtectedPages_RedirectAnonymousToLogin(string url)
     {

@@ -73,6 +73,10 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
         return View(new DiscoverViewModel(query, matches.UsedFallback, items, saved, matches.Items));
     }
 
+    [Authorize(Policy = Policies.Investor), HttpGet("/discover/connected")]
+    public async Task<IActionResult> Connected(CancellationToken ct) =>
+        View(await requests.ListConnectedStartupsAsync(Actor, ct));
+
     // Pitch Studio (package, send, sent, checklist) lives in PitchStudioController.
 
     // ------------------------------------------------------------ requests

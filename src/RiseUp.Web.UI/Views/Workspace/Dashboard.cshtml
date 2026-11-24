@@ -14,6 +14,10 @@
         _ => ("Review verification requirements", "/verification", "Complete verification to connect with other members.")
     };
 }
+@if (actor.IsInvestor)
+{
+    <partial name="_InvestorTabs" model='"/dashboard"' />
+}
 <header class="workspace-intro">
     <div><p class="workspace-name">@(Model.Startup?.Name ?? Model.Investor?.Card.Affiliation)</p>
     <h1>Good to see you, @actor.Name.Split(' ')[0]</h1><p>@hint</p></div>
