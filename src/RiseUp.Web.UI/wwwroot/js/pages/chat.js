@@ -20,6 +20,15 @@ function startChat(root) {
   // Leave a message being edited in place as new messages arrive.
   function render(doc) {
     const existing = new Map([...list.querySelectorAll('[data-msg]')].map(row => [row.dataset.msg, row]));
+    const incoming = [...doc.body.querySelectorAll('[data-msg]')];
+    const oldLastId = list.lastElementChild?.dataset.msg;
+    const hasNew = incoming.at(-1)?.dataset.msg !== oldLastId;
+    const same = incoming.length === existing.size && incoming.every(row => {
+      const old = existing.get(row.dataset.msg);
+      return old && old.textContent === row.textContent &&
+        old.querySelector('img')?.getAttribute('src') === row.querySelector('img')?.getAttribute('src');
+    });
+    if (same && list.querySelector('.history-link')?.href === doc.querySelector('.history-link')?.href) return;
     const stick = nearBottom();
     const anchor = [...existing.values()].find(row => row.getBoundingClientRect().bottom > list.getBoundingClientRect().top);
     const offset = anchor?.getBoundingClientRect().top;
@@ -35,7 +44,7 @@ function startChat(root) {
     else {
       const restored = anchor && list.querySelector('[data-msg="' + anchor.dataset.msg + '"]');
       if (restored) list.scrollTop += restored.getBoundingClientRect().top - offset;
-      jump.hidden = false;
+      if (hasNew) jump.hidden = false;
     }
     const latest = list.querySelector('.msg:not(.sys):last-of-type');
     const preview = root.querySelector('.chat-item.on [data-preview]');
@@ -131,7 +140,7 @@ function startChat(root) {
   const note = form.querySelector('[data-send-status]');
   const clear = form.querySelector('[data-clear-file]');
   file.addEventListener('change', () => { clear.hidden = !file.files.length; note.textContent = ''; });
-  clear.addEventListener('click', () => { file.value = ''; clear.hidden = true; file.focus(); });
+  clear.addEventListener('click', () => { file.value = ''; clear.hidden = true; note.textContent = ''; file.focus(); });
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (sending) return;
