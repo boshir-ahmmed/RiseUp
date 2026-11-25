@@ -17,8 +17,10 @@ namespace RiseUp.DataAccess.Repositories;
 
 public sealed class TeamAccountRepository(RiseUpDbContext db) : Repository<TeamAccount>(db), ITeamAccountRepository
 {
-    public async Task<IReadOnlyList<TeamAccount>> ListForStartupAsync(int startupId, CancellationToken ct = default) =>
-        await Set.Where(t => t.StartupId == startupId && t.Status != TeamAccountStatus.Deleted).OrderBy(t => t.Id).ToListAsync(ct);
+    public async Task<IReadOnlyList<TeamAccount>> ListForStartupAsync(int startupId, bool readOnly, CancellationToken ct = default) =>
+        await (readOnly ? Set.AsNoTracking() : Set).Where(t => t.StartupId == startupId && t.Status != TeamAccountStatus.Deleted).OrderBy(t => t.Id).ToListAsync(ct);
+    public Task<bool> HasActiveSessionAsync(int id, int version, CancellationToken ct = default) =>
+        Set.AnyAsync(t => t.Id == id && t.SessionVersion == version && t.Status == TeamAccountStatus.Active, ct);
     public Task<int> CountOccupyingSlotsAsync(int startupId, CancellationToken ct = default) =>
         Set.CountAsync(t => t.StartupId == startupId && t.Status != TeamAccountStatus.Deleted, ct);
     public Task<bool> UsernameOrEmailTakenAsync(string username, string email, CancellationToken ct = default) =>

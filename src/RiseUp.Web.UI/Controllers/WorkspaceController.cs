@@ -138,15 +138,44 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
 
     // ------------------------------------------------------------ team accounts (owner)
     [Authorize(Policy = Policies.Founder), HttpGet("/" + UrlRewrite.Team)]
-    public async Task<IActionResult> Team(CancellationToken ct) => View(await team.ListAsync(Actor, ct));
+    public Task<IActionResult> Team(int? edit, CancellationToken ct) => TeamPageAsync(edit, null, ct);
+
+    private async Task<IActionResult> TeamPageAsync(int? id, CreateTeamAccountRequest? input, CancellationToken ct)
+    {
+        var members = await team.ListAsync(Actor, ct);
+        var member = members.FirstOrDefault(m => m.Id == id);
+        if (id.HasValue && member is null) return NotFound();
+        ViewData["ReenterPassword"] = !string.IsNullOrEmpty(input?.Password);
+        var form = input is not null ? input with { Password = null } : new CreateTeamAccountRequest(
+            member?.FullName ?? "", member?.Designation ?? "", member?.Username ?? "", member?.Email ?? "", member?.LinkedInUrl,
+            GroupMode: member?.GroupMode ?? TeamGroupMode.Selected, GroupIds: member?.GroupIds.ToArray());
+        return View("Team", new TeamPageViewModel(members, await conversations.ListAsync(Actor, ct), id, form));
+    }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/team")]
     public async Task<IActionResult> CreateTeam(CreateTeamAccountRequest request, CancellationToken ct)
     {
+        if (!ModelState.IsValid) return await InvalidTeamFormAsync(null, request, ct);
         var result = await team.CreateAsync(Actor, request, ct);
         Flash(result);
-        if (result.IsSuccess) TempData["oneTime"] = $"{result.Value!.Username}|{result.Value.TemporaryPassword}";
+        if (result.IsFailure) return await TeamPageAsync(null, request, ct);
+        if (result.Value?.TemporaryPassword is string generated) TempData["oneTime"] = $"{result.Value.Username}|{generated}";
         return RedirectToAction(nameof(Team));
+    }
+
+    [Authorize(Policy = Policies.Founder), HttpPost("/team/{id:int}/edit")]
+    public async Task<IActionResult> EditTeam(int id, CreateTeamAccountRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid) return await InvalidTeamFormAsync(id, request, ct);
+        var result = await team.UpdateAsync(Actor, id, request, ct);
+        Flash(result);
+        return result.IsSuccess ? RedirectToAction(nameof(Team)) : await TeamPageAsync(id, request, ct);
+    }
+
+    private Task<IActionResult> InvalidTeamFormAsync(int? id, CreateTeamAccountRequest request, CancellationToken ct)
+    {
+        Flash(Result.Failure(ErrorCodes.Validation, "Check the required member details and group selection. Re-enter any new password."));
+        return TeamPageAsync(id, request, ct);
     }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/team/{id:int}/{op}")]

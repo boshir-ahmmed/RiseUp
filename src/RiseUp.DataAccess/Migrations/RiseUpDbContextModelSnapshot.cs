@@ -2234,6 +2234,11 @@ namespace RiseUp.DataAccess.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int>("GroupMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("LinkedInUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -2244,8 +2249,10 @@ namespace RiseUp.DataAccess.Migrations
 
                     b.Property<string>("PreviousConversationIds")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SessionVersion")
+                        .HasColumnType("int");
 
                     b.Property<int>("StartupId")
                         .HasColumnType("int");

@@ -62,7 +62,9 @@ public class TeamAccount : BaseEntity
     /// <summary>One-way hash only. Plaintext is shown once to the owner and never stored (FR-046).</summary>
     public string PasswordHash { get; set; } = string.Empty;
     public TeamAccountStatus Status { get; set; }
-    /// <summary>Conversation ids held before deactivation, used for "restore previous groups" (FR-054).</summary>
+    public int SessionVersion { get; set; }
+    public TeamGroupMode GroupMode { get; set; }
+    /// <summary>While inactive, stores selected group IDs (or exclusions for AllExcept) for reactivation.</summary>
     public string PreviousConversationIds { get; set; } = string.Empty;
 }
 

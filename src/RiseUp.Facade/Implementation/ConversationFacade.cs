@@ -16,7 +16,7 @@ namespace RiseUp.Facade.Conversations;
 /// </summary>
 public sealed class ConversationFacade(IConversationRepository conversations, IConnectionRepository connections, IStartupRepository startups,
     IInvestorRepository investors, ITeamAccountRepository team, IUserAccountRepository accounts, IUnitOfWork uow, IClock clock,
-    ActivityRecorder activity, IProfileRepository profiles, NameDirectory names) : IConversationFacade
+    ActivityRecorder activity, IProfileRepository profiles, NameDirectory names, TeamGroupMembership groupMembership) : IConversationFacade
 {
     private MemberKind? KindFor(Actor actor, Conversation c)
     {
@@ -180,22 +180,22 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
     /// <summary>FR-048–052: owner-only assignment; new members see full history; investor is notified; removal is immediate.</summary>
     public async Task<Result> SetTeamMembersAsync(Actor owner, int conversationId, IReadOnlyCollection<int> teamAccountIds, CancellationToken ct = default)
     {
+        await using var tx = await uow.BeginTransactionAsync(ct);
         var c = await conversations.GetWithMembersAsync(conversationId, ct);
         if (c is null || !owner.IsFounder || owner.StartupId != c.StartupId) return Result.Failure(Guard.Forbidden("Only the Main Startup Owner can manage members."));
-        var eligible = (await team.ListForStartupAsync(c.StartupId, ct)).Where(t => t.Status == TeamAccountStatus.Active).ToDictionary(t => t.Id);
-        if (teamAccountIds.Any(id => !eligible.ContainsKey(id))) return Result.Failure(ErrorCodes.Validation, "Only your active team accounts can be added.");
-        var now = clock.UtcNow;
-        var investor = await investors.GetByIdAsync(c.InvestorId, ct);
-        foreach (var m in c.Members.Where(m => m.Kind == MemberKind.Team && m.RemovedAtUtc == null && !teamAccountIds.Contains(m.TeamAccountId!.Value)))
-            m.RemovedAtUtc = now;
-        foreach (var id in teamAccountIds.Where(id => !c.Members.Any(m => m.TeamAccountId == id && m.RemovedAtUtc == null)))
+        var eligible = (await team.ListForStartupAsync(c.StartupId, readOnly: false, ct)).Where(t => t.Status == TeamAccountStatus.Active).ToDictionary(t => t.Id);
+        var selected = teamAccountIds.ToHashSet();
+        if (selected.Any(id => !eligible.ContainsKey(id))) return Result.Failure(ErrorCodes.Validation, "Only your active team accounts can be added.");
+        foreach (var m in c.Members.Where(m => m.Kind == MemberKind.Team && m.RemovedAtUtc == null && !selected.Contains(m.TeamAccountId!.Value)))
         {
-            await conversations.AddMemberAsync(new ConversationMember { ConversationId = c.Id, Kind = MemberKind.Team, TeamAccountId = id, AddedAtUtc = now }, ct);
-            await conversations.AddMessageAsync(new Message { ConversationId = c.Id, AuthorKind = MemberKind.Owner, AuthorName = "RiseUp", IsSystem = true, SentAtUtc = now, Body = $"{eligible[id].FullName} ({eligible[id].Designation}) joined the conversation." }, ct);
-            await activity.NotifyAccountAsync(investor?.AccountId, $"{owner.Name} added {eligible[id].FullName} to your conversation.", $"/conversations/{c.Id}", ct);
-            await activity.NotifyTeamAsync(id, $"You were added to the conversation with {investor?.DisplayName}.", $"/conversations/{c.Id}", ct);
+            m.RemovedAtUtc = clock.UtcNow;
+            if (eligible.TryGetValue(m.TeamAccountId!.Value, out var t) && t.GroupMode == TeamGroupMode.All)
+                t.GroupMode = TeamGroupMode.AllExcept;
         }
+        foreach (var id in selected.Where(id => !c.Members.Any(m => m.TeamAccountId == id && m.RemovedAtUtc == null)))
+            await groupMembership.AddAsync(c, eligible[id], ct);
         await uow.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Result.Success("Membership updated.");
     }
 

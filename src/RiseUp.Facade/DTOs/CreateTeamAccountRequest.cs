@@ -10,4 +10,5 @@ using RiseUp.Framework.Time;
 
 namespace RiseUp.Facade.TeamAccounts;
 
-public sealed record CreateTeamAccountRequest(string FullName, string Designation, string Username, string Email, string? LinkedInUrl);
+public sealed record CreateTeamAccountRequest(string FullName, string Designation, string Username, string Email, string? LinkedInUrl,
+    string? Password = null, TeamGroupMode GroupMode = TeamGroupMode.Selected, int[]? GroupIds = null);

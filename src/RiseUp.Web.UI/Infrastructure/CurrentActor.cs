@@ -48,7 +48,11 @@ public static class CurrentActor
         };
         var claims = new List<Claim> { new(ClaimTypes.Name, u.Name), new(ClaimTypes.Role, roleName), new(ClaimNames.MfaSatisfied, mfaSatisfied ? "true" : "false") };
         if (u.AccountId is int a) claims.Add(new(ClaimNames.AccountId, a.ToString()));
-        if (u.TeamAccountId is int t) claims.Add(new(ClaimNames.TeamAccountId, t.ToString()));
+        if (u.TeamAccountId is int t)
+        {
+            claims.Add(new(ClaimNames.TeamAccountId, t.ToString()));
+            claims.Add(new(ClaimNames.TeamSessionVersion, u.TeamSessionVersion.ToString()));
+        }
         if (u.StartupId is int s) claims.Add(new(ClaimNames.StartupId, s.ToString()));
         if (u.InvestorId is int i) claims.Add(new(ClaimNames.InvestorId, i.ToString()));
         return new ClaimsPrincipal(new ClaimsIdentity(claims, scheme));

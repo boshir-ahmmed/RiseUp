@@ -30,6 +30,7 @@ public static class Policies
 public static class ClaimNames
 {
     public const string AccountId = "riseup:account_id";
+    public const string TeamSessionVersion = "riseup:team_session_version";
     public const string TeamAccountId = "riseup:team_id";
     public const string StartupId = "riseup:startup_id";
     public const string InvestorId = "riseup:investor_id";

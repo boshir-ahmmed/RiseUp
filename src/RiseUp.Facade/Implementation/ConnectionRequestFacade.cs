@@ -15,7 +15,7 @@ namespace RiseUp.Facade.ConnectionRequests;
 
 public sealed class ConnectionRequestFacade(IConnectionRepository requests, IStartupRepository startups, IInvestorRepository investors,
     IWalletRepository wallets, IConversationRepository conversations, IContentSafetyModel model1, IUnitOfWork uow, IClock clock,
-    ActivityRecorder activity, ILogger<ConnectionRequestFacade> logger, IPitchRepository pitchPackages, IMediaRepository media, IProfileRepository memberProfiles) : IConnectionRequestFacade
+    ActivityRecorder activity, ILogger<ConnectionRequestFacade> logger, IPitchRepository pitchPackages, IMediaRepository media, IProfileRepository memberProfiles, ITeamAccountRepository team, TeamGroupMembership groupMembership) : IConnectionRequestFacade
 {
     private static readonly TimeSpan Model1Timeout = TimeSpan.FromSeconds(8);
 
@@ -236,6 +236,9 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
             await uow.SaveChangesAsync(ct);   // assigns conversation id
             await conversations.AddMessageAsync(new Message { ConversationId = conversation.Id, AuthorKind = MemberKind.Owner, AuthorName = "RiseUp", IsSystem = true, SentAtUtc = now,
                 Body = "Connection established. Contact details are now visible to both parties. Investment agreements and transfers happen outside RiseUp." }, ct);
+            foreach (var member in await team.ListForStartupAsync(r.StartupId, readOnly: true, ct))
+                if (member.Status == TeamAccountStatus.Active && member.GroupMode is TeamGroupMode.All or TeamGroupMode.AllExcept)
+                    await groupMembership.AddAsync(conversation, member, ct);
             await requests.AddConnectionAsync(new StartupInvestorConnection { StartupId = r.StartupId, InvestorId = r.InvestorId, ConversationId = conversation.Id }, ct);
             await activity.NotifyAccountAsync(startup.OwnerAccountId, $"You are now connected with {investor.DisplayName}.", "/conversations", ct);
             await activity.NotifyAccountAsync(investor.AccountId, $"You are now connected with {startup.Name}.", "/conversations", ct);
