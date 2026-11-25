@@ -710,21 +710,21 @@ dialog.crop-dialog::backdrop{background:rgba(15,23,42,.55)}
 .directory-cover{height:90px;border-radius:10px;background-color:#115c56}
 .preview-author .logo{width:40px;height:40px}
 
-.investor-tabs {
+.workspace-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: .25rem;
     margin-bottom: 1.25rem;
     border-bottom: 1px solid var(--border);
 }
-.investor-tabs a {
+.workspace-tabs a {
     padding: .7rem .85rem;
     border-bottom: 3px solid transparent;
     color: var(--muted);
     font-weight: 600;
 }
-.investor-tabs a:hover, .investor-tabs a:focus-visible { color: var(--ink); }
-.investor-tabs a[aria-current="page"] { border-color: var(--teal); color: var(--ink); }
+.workspace-tabs a:hover, .workspace-tabs a:focus-visible { color: var(--ink); }
+.workspace-tabs a[aria-current="page"] { border-color: var(--teal); color: var(--ink); }
 
 .pitch-discussion .qa { overflow-wrap: anywhere; }
 .pitch-discussion .qa p { white-space: pre-wrap; }

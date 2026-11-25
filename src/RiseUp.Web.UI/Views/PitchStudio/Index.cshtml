@@ -7,6 +7,7 @@
     string Dur(int s) => $"{s / 60}:{s % 60:00}";
     var draft = Model.EditDraftId is int did ? Model.Drafts.FirstOrDefault(d => d.Id == did) : null;
 }
+<partial name="_WorkspaceTabs" model='"/pitches"' />
 <div class="page-h"><div><h1>Pitch Studio</h1><p>Prepare your package, tailor a note for each investor and track your sent pitches.</p></div>
     <div class="row"><span class="badge b-gray" style="font-size:13px;padding:6px 12px">@(w?.WelcomeBalance ?? 0) Welcome · @(w?.PurchasedBalance ?? 0) Purchased</span><a class="btn btn-outline" href="/pitch-room/0">Preview as investor</a></div></div>
 <nav class="studio-tabs" aria-label="Pitch Studio">

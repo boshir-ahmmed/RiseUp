@@ -36,19 +36,29 @@ public class BusinessRuleTests
         var investor = await h.Investor();
         var other = await h.Imran();
         var founder = await h.Founder();
-        Task<IReadOnlyList<ConnectedStartupDto>> List(Actor viewer) =>
-            h.Run<IConnectionRequestFacade, IReadOnlyList<ConnectedStartupDto>>(f => f.ListConnectedStartupsAsync(viewer));
+        Task<IReadOnlyList<ConnectedProfileDto>> List(Actor viewer) =>
+            h.Run<IConnectionRequestFacade, IReadOnlyList<ConnectedProfileDto>>(f => f.ListConnectedStartupsAsync(viewer));
         var connection = Assert.Single(await List(investor));
-        Assert.Equal(founder.StartupId, connection.StartupId);
+        Assert.Equal(founder.StartupId, connection.ProfileId);
         Assert.True(connection.ProfileAvailable);
         Assert.Empty(await List(other));
         Assert.Empty(await List(founder));
+
+        Task<IReadOnlyList<ConnectedProfileDto>> ForStartup(Actor viewer) =>
+            h.Run<IConnectionRequestFacade, IReadOnlyList<ConnectedProfileDto>>(f => f.ListConnectedInvestorsAsync(viewer));
+        var partner = Assert.Single(await ForStartup(founder));
+        Assert.Equal(investor.InvestorId, partner.ProfileId);
+        Assert.Equal(connection.ConversationId, partner.ConversationId);
+        var taka = await h.SignIn("hello@takaledger.example");
+        Assert.Empty(await ForStartup(taka));
+        Assert.Empty(await ForStartup(investor));
 
         var pitch = await h.Db(db => db.ConnectionRequests.SingleAsync(r => r.IdempotencyKey == "seed:r4"));
         var accepted = await h.Run<IConnectionRequestFacade, Result>(f => f.RespondAsync(investor, pitch.Id, true, null));
         Assert.True(accepted.IsSuccess, accepted.Error.Message);
         var latest = (await List(investor)).First();
-        Assert.Equal(pitch.StartupId, latest.StartupId);
+        Assert.Equal(pitch.StartupId, latest.ProfileId);
+        Assert.Equal(latest.ConversationId, Assert.Single(await ForStartup(taka)).ConversationId);
         Assert.Equal(await h.Db(db => db.Connections.Where(c => c.StartupId == pitch.StartupId && c.InvestorId == investor.InvestorId)
             .Select(c => c.ConversationId).SingleAsync()), latest.ConversationId);
         Assert.Empty(await List(other));

@@ -15,7 +15,7 @@ namespace RiseUp.Facade.ConnectionRequests;
 
 public sealed class ConnectionRequestFacade(IConnectionRepository requests, IStartupRepository startups, IInvestorRepository investors,
     IWalletRepository wallets, IConversationRepository conversations, IContentSafetyModel model1, IUnitOfWork uow, IClock clock,
-    ActivityRecorder activity, ILogger<ConnectionRequestFacade> logger, IPitchRepository pitchPackages, IMediaRepository media) : IConnectionRequestFacade
+    ActivityRecorder activity, ILogger<ConnectionRequestFacade> logger, IPitchRepository pitchPackages, IMediaRepository media, IProfileRepository memberProfiles) : IConnectionRequestFacade
 {
     private static readonly TimeSpan Model1Timeout = TimeSpan.FromSeconds(8);
 
@@ -250,7 +250,7 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
         return Result.Success("Accepted — one connection and one private group chat were created.");
     }
 
-    public async Task<IReadOnlyList<ConnectedStartupDto>> ListConnectedStartupsAsync(Actor actor, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ConnectedProfileDto>> ListConnectedStartupsAsync(Actor actor, CancellationToken ct = default)
     {
         if (!actor.IsInvestor || actor.InvestorId is not int investorId) return [];
         var connections = await requests.ListInvestorConnectionsAsync(investorId, ct);
@@ -259,9 +259,27 @@ public sealed class ConnectionRequestFacade(IConnectionRepository requests, ISta
         return connections.Select(c =>
         {
             if (!profiles.TryGetValue(c.StartupId, out var s) || s.IsDeleted || s.IsSuspended || s.VerificationStatus == VerificationStatus.Unverified)
-                return new ConnectedStartupDto(c.StartupId, c.ConversationId, c.CreatedAtUtc, "Startup profile unavailable", null, null, null, false);
-            return new ConnectedStartupDto(s.Id, c.ConversationId, c.CreatedAtUtc, s.Name, s.Industry, s.Location,
+                return new ConnectedProfileDto(c.StartupId, c.ConversationId, c.CreatedAtUtc, "Startup profile unavailable", null, null, null, false);
+            return new ConnectedProfileDto(s.Id, c.ConversationId, c.CreatedAtUtc, s.Name, s.Industry, s.Location,
                 s.LogoMediaId.HasValue ? UrlRewrite.Media(s.LogoMediaId) : null, true);
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<ConnectedProfileDto>> ListConnectedInvestorsAsync(Actor actor, CancellationToken ct = default)
+    {
+        if (!actor.IsFounder || actor.StartupId is not int startupId) return [];
+        var connections = await requests.ListStartupConnectionsAsync(startupId, ct);
+        if (connections.Count == 0) return [];
+        var matches = await investors.GetManyAsync(connections.Select(c => c.InvestorId).ToList(), ct);
+        var visible = matches.Where(i => i.IsActiveVerifiedAt(clock.UtcNow)).ToDictionary(i => i.Id);
+        var photos = await memberProfiles.PhotoIdsForAccountsAsync(visible.Values.Select(i => i.AccountId).ToList(), ct);
+        return connections.Select(c =>
+        {
+            if (!visible.TryGetValue(c.InvestorId, out var investor))
+                return new ConnectedProfileDto(c.InvestorId, c.ConversationId, c.CreatedAtUtc, "Investor profile unavailable", null, null, null, false);
+            var photoUrl = photos.TryGetValue(investor.AccountId, out var photo) ? UrlRewrite.Media(photo) : null;
+            return new ConnectedProfileDto(investor.Id, c.ConversationId, c.CreatedAtUtc, investor.DisplayName,
+                investor.Affiliation, investor.Location, photoUrl, true);
         }).ToList();
     }
 

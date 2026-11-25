@@ -1,32 +1,37 @@
-@model IReadOnlyList<ConnectedStartupDto>
-@{ ViewData["Title"] = "Connected startups"; }
-<partial name="_InvestorTabs" model='"/discover/connected"' />
-<partial name="_PageHeader" model='("Connected startups", (string?)null)' />
+@model IReadOnlyList<ConnectedProfileDto>
+@{
+    var founder = CurrentActor.From(User).IsFounder;
+    var title = founder ? "Connected investors" : "Connected startups";
+    var directory = founder ? "/investors" : "/startups";
+    ViewData["Title"] = title;
+}
+<partial name="_WorkspaceTabs" model='"/discover/connected"' />
+<partial name="_PageHeader" model='(title, (string?)null)' />
 @if (Model.Count == 0)
 {
     <div class="card empty">
         <h2>No connections yet</h2>
-        <p>Startups appear here when you accept a pitch or a founder accepts your invitation.</p>
-        <a class="btn btn-primary" href="/discover">Explore recommended startups</a>
+        <p>@(founder ? "Investors appear here when they accept your pitch or you accept their invitation." : "Startups appear here when you accept a pitch or a founder accepts your invitation.")</p>
+        <a class="btn btn-primary" href="/discover">Explore recommended @(founder ? "investors" : "startups")</a>
     </div>
 }
 else
 {
     <div class="grid g2">
-        @foreach (var startup in Model)
+        @foreach (var profile in Model)
         {
             <article class="card card-b match-card">
                 <div class="row">
-                    <img class="logo" src="@(startup.LogoUrl ?? Ui.DefaultStartupLogo)" data-image-fallback="@Ui.DefaultStartupLogo" alt="" loading="lazy" />
+                    <img class="@(founder ? "avatar" : "logo")" width="48" height="48" src="@(profile.ImageUrl ?? (founder ? Ui.DefaultAvatar : Ui.DefaultStartupLogo))" data-image-fallback="@(founder ? Ui.DefaultAvatar : Ui.DefaultStartupLogo)" alt="" loading="lazy" />
                     <div>
-                        <h2 class="mb0">@startup.Name</h2>
-                        @if (startup.ProfileAvailable) { <div class="small muted">@string.Join(" · ", new[] {startup.Industry, startup.Location}.Where(x => !string.IsNullOrWhiteSpace(x)))</div> }
+                        <h2 class="mb0">@profile.Name</h2>
+                        @if (profile.ProfileAvailable) { <div class="small muted">@string.Join(" · ", new[] {profile.Detail, profile.Location}.Where(x => !string.IsNullOrWhiteSpace(x)))</div> }
                     </div>
                 </div>
-                <div class="small muted">Connected @Ui.Dhaka(startup.ConnectedAtUtc)</div>
+                <div class="small muted">Connected @Ui.Dhaka(profile.ConnectedAtUtc)</div>
                 <div class="row">
-                    <a class="btn btn-primary btn-sm" href="/conversations/@startup.ConversationId">Open conversation</a>
-                    @if (startup.ProfileAvailable) { <a class="btn btn-outline btn-sm" href="/startups/@startup.StartupId">View profile</a> }
+                    <a class="btn btn-primary btn-sm" href="/conversations/@profile.ConversationId">Open conversation</a>
+                    @if (profile.ProfileAvailable) { <a class="btn btn-outline btn-sm" href="@directory/@profile.ProfileId">View profile</a> }
                 </div>
             </article>
         }

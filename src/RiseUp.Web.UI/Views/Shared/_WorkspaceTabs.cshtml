@@ -1,0 +1,14 @@
+@model string
+@{
+    var actor = CurrentActor.From(User);
+    var dealTab = actor.IsFounder ? ("Pitch Studio", "/pitches") : ("Shortlist", "/shortlist");
+}
+@if (actor.IsInvestor || actor.IsFounder)
+{
+    <nav class="workspace-tabs" aria-label="@(actor.IsFounder ? "Startup workspace" : "Investor workspace")">
+        @foreach (var (label, href) in new[] { ("Overview", "/dashboard"), ("Recommended", "/discover"), ("Connected", "/discover/connected"), dealTab, ("Pitches & invitations", "/requests") })
+        {
+            <a href="@href" aria-current="@(Model == href ? "page" : null)">@label</a>
+        }
+    </nav>
+}
