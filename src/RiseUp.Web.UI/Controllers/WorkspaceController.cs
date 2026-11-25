@@ -10,6 +10,7 @@ using RiseUp.Facade.Conversations;
 using RiseUp.Facade.Discovery;
 using RiseUp.Facade.Investors;
 using RiseUp.Facade.Notifications;
+using RiseUp.Facade.Media;
 using RiseUp.Facade.Payments;
 using RiseUp.Facade.Posts;
 using RiseUp.Facade.Pitching;
@@ -30,7 +31,7 @@ namespace RiseUp.Web.UI.Controllers;
 public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatchingFacade matching, IConversationFacade conversations,
     ITeamAccountFacade team, IDocumentFacade documents, IPostFacade posts, IPromotionFacade promotions, IWalletFacade wallets,
     IPaymentFacade payments, IStartupFacade startups, IInvestorFacade investors, IVerificationFacade verification,
-    INotificationFacade notifications, IFileStorage storage, IMeetingFacade meetings, IPitchPackageFacade pitchPackage) : AppController
+    INotificationFacade notifications, IHubContext<Hubs.ChatHub> chatHub, ILogger<WorkspaceController> logger, IFileStorage storage, IMeetingFacade meetings, IPitchPackageFacade pitchPackage) : AppController
 {
     [HttpGet("/" + UrlRewrite.Dashboard)]
     public async Task<IActionResult> Dashboard(CancellationToken ct)
@@ -113,19 +114,63 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     }
 
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/conversations/{id:int}/messages")]
-    public async Task<IActionResult> SendMessage(int id, string body, [FromServices] Microsoft.AspNetCore.SignalR.IHubContext<Hubs.ChatHub> hub, CancellationToken ct)
+    [RequestSizeLimit(BusinessRules.PitchDocumentMaxBytes + 128 * 1024)]
+    public async Task<IActionResult> SendMessage(int id, string? body, IFormFile? file, CancellationToken ct)
     {
-        var sent = await conversations.SendAsync(Actor, id, body ?? "", ct);
-        if (sent.IsFailure) Flash(sent);
-        else await hub.Clients.Group(Hubs.ChatHub.Group(id)).SendAsync("changed", id, ct);
+        UploadedFile? staged = null;
+        if (file is not null)
+        {
+            if (!await conversations.CanAccessAsync(Actor, id, ct)) return Forbid();
+            if (file.Length > BusinessRules.PitchDocumentMaxBytes)
+                return ChatResponse(id, Result.Failure(ErrorCodes.Validation, "Choose a file up to 10 MB."));
+            var upload = await UploadSaver.SaveAsync(file, [.. UploadSaver.DocumentExtensions, .. UploadSaver.ImageExtensions], storage, null, ct);
+            if (upload.File is null) return ChatResponse(id, Result.Failure(ErrorCodes.Validation, upload.Error!));
+            staged = upload.File;
+        }
+        try
+        {
+            var result = await conversations.SendAsync(Actor, id, body ?? "", staged, ct);
+            if (result.IsSuccess)
+            {
+                staged = null;
+                await NotifyChatAsync(id);
+            }
+            return ChatResponse(id, result);
+        }
+        finally
+        {
+            if (staged is not null) await storage.DeleteAsync(staged.StorageKey, CancellationToken.None);
+        }
+    }
+
+    private IActionResult ChatResponse(int id, Result result)
+    {
+        if (Request.Headers.Accept.ToString().Contains("application/json")) return Json(result);
+        if (result.IsFailure) Flash(result);
         return Redirect($"/conversations/{id}");
     }
 
+    private async Task NotifyChatAsync(int id)
+    {
+        try { await chatHub.Clients.Group(Hubs.ChatHub.Group(id)).SendAsync("changed", id); }
+        catch (Exception ex) { logger.LogWarning(ex, "Live chat update could not be delivered after saving."); }
+    }
+
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/messages/{id:int}/edit")]
-    public async Task<IActionResult> EditMessage(int id, string body, int conversationId, CancellationToken ct) { Flash(await conversations.EditAsync(Actor, id, body, ct)); return Redirect($"/conversations/{conversationId}"); }
+    public async Task<IActionResult> EditMessage(int id, string? body, int conversationId, CancellationToken ct)
+    {
+        var result = await conversations.EditAsync(Actor, id, body ?? "", conversationId, ct);
+        if (result.IsSuccess) await NotifyChatAsync(conversationId);
+        return ChatResponse(conversationId, result);
+    }
 
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/messages/{id:int}/delete")]
-    public async Task<IActionResult> DeleteMessage(int id, int conversationId, CancellationToken ct) { Flash(await conversations.DeleteAsync(Actor, id, ct)); return Redirect($"/conversations/{conversationId}"); }
+    public async Task<IActionResult> DeleteMessage(int id, int conversationId, CancellationToken ct)
+    {
+        var result = await conversations.DeleteAsync(Actor, id, conversationId, ct);
+        if (result.IsSuccess) await NotifyChatAsync(conversationId);
+        return ChatResponse(conversationId, result);
+    }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/conversations/{id:int}/members")]
     public async Task<IActionResult> Members(int id, int[] teamIds, CancellationToken ct) { Flash(await conversations.SetTeamMembersAsync(Actor, id, teamIds, ct)); return Redirect($"/conversations/{id}"); }

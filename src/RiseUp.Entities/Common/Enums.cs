@@ -23,7 +23,7 @@ public enum LicenceHolderType { Individual = 1, Company = 2 }
 public enum TransferStatus { AwaitingIncomingConsent = 0, AwaitingReview = 1, Approved = 2, Rejected = 3 }
 
 // ---- v3/v4 ----
-public enum MediaKind { ProfilePhoto = 1, ProfileCover = 2, StartupLogo = 3, StartupCover = 4, ProfileLogo = 5, PitchVideo = 10, DemoVideo = 11, TeaserVideo = 12, VideoPoster = 13, PitchDeck = 14, PitchDocument = 15, PitchInfoAttachment = 16, PostVideo = 20, PostImage = 21 }
+public enum MediaKind { ProfilePhoto = 1, ProfileCover = 2, StartupLogo = 3, StartupCover = 4, ProfileLogo = 5, PitchVideo = 10, DemoVideo = 11, TeaserVideo = 12, VideoPoster = 13, PitchDeck = 14, PitchDocument = 15, PitchInfoAttachment = 16, PostVideo = 20, PostImage = 21, ChatAttachment = 30 }
 public enum PitchVideoSlot { Pitch = 1, Demo = 2, Teaser = 3 }
 public enum FundingInstrument { Equity = 1, Safe = 2, ConvertibleNote = 3, RevenueShare = 4 }
 public enum NameChangeStatus { Pending = 0, Approved = 1, Rejected = 2, Cancelled = 3 }

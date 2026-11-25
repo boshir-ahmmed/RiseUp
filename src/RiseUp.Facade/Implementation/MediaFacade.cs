@@ -14,7 +14,8 @@ namespace RiseUp.Facade.Media;
 /// owning founder and to investors who received a pitch from that startup (documents: only those attached to their pitch).
 /// </summary>
 public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IMalwareScanner scanner, IPitchRepository pitches,
-    ISavedPostRepository postsByMedia, IStartupRepository startups, IInvestorRepository investors, IUnitOfWork uow, IClock clock) : IMediaFacade
+    ISavedPostRepository postsByMedia, IStartupRepository startups, IInvestorRepository investors, IUnitOfWork uow, IClock clock,
+    IConversationRepository chats, Conversations.IConversationFacade chatAccess) : IMediaFacade
 {
     public async Task<Result<MediaStream>> OpenAsync(Actor actor, int mediaId, bool download, CancellationToken ct = default)
     {
@@ -28,7 +29,7 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
         if (download && !allowDownload && !ownerView) return new Error(ErrorCodes.ForbiddenDocument, "The founder has not enabled download for this file.");
         var stream = await storage.OpenAsync(asset.StorageKey, ct);
         if (stream is null) return Guard.NotFound("File");
-        return Result.Success(new MediaStream(stream, asset.ContentType, asset.FileName, download));
+        return Result.Success(new MediaStream(stream, asset.ContentType, asset.FileName, download || asset.Kind == MediaKind.ChatAttachment));
     }
 
     private async Task<bool> CanViewAsync(Actor actor, MediaAsset asset, bool owner, Action<bool> setDownload, CancellationToken ct)
@@ -39,6 +40,11 @@ public sealed class MediaFacade(IMediaRepository media, IFileStorage storage, IM
                 return true;
             case MediaKind.PostImage or MediaKind.PostVideo:
                 return owner || await IsPublicPostMediaAsync(asset.Id, ct);
+            case MediaKind.ChatAttachment:
+                setDownload(true);
+                return asset.ScanStatus == ScanStatus.Clean && actor.IsAuthenticated &&
+                    await chats.FindAttachmentConversationAsync(asset.Id, ct) is int conversationId &&
+                    await chatAccess.CanAccessAsync(actor, conversationId, ct);
             case MediaKind.PitchInfoAttachment:
             {
                 if (asset.ScanStatus != ScanStatus.Clean) return false;

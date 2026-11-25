@@ -26,6 +26,21 @@ public sealed class ChatHub(IConversationFacade conversations, IAccountFacade ac
         if (!await conversations.CanAccessAsync(CurrentActor.From(Context.User!), conversationId))
             throw new HubException("Not a participant.");
         await Groups.AddToGroupAsync(Context.ConnectionId, Group(conversationId));
+        var actor = CurrentActor.From(Context.User!);
+        var version = int.TryParse(Context.User!.FindFirst(ClaimNames.TeamSessionVersion)?.Value, out var parsed) ? parsed : 0;
+        await Groups.AddToGroupAsync(Context.ConnectionId, PeerGroup(conversationId, actor.ViewerKey, version));
+    }
+
+    private static string PeerGroup(int id, string key, int version) => $"{Group(id)}:{key}:{version}";
+
+    public async Task Typing(int conversationId, bool active)
+    {
+        await RequireCurrentSessionAsync();
+        var actor = CurrentActor.From(Context.User!);
+        var peers = await conversations.TypingPeersAsync(actor, conversationId, Context.ConnectionAborted);
+        if (peers.Count == 0) return;
+        var groups = peers.Select(p => PeerGroup(conversationId, p.ViewerKey, p.SessionVersion)).ToArray();
+        await Clients.Groups(groups).SendAsync("typing", conversationId, actor.ViewerKey, actor.Name, active);
     }
 
     public async Task Send(int conversationId, string body)

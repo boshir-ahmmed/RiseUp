@@ -15,9 +15,13 @@ public interface IConversationFacade
     Task<Result<ConversationDto>> RecentAsync(Actor actor, int conversationId, int? beforeId, CancellationToken ct = default);
     Task<Result<ConversationDto>> GetAsync(Actor actor, int conversationId, int page = 1, CancellationToken ct = default);
     Task<bool> CanAccessAsync(Actor actor, int conversationId, CancellationToken ct = default);
+    Task<IReadOnlyList<ChatPeer>> TypingPeersAsync(Actor actor, int conversationId, CancellationToken ct = default);
     Task<Result<MessageDto>> SendAsync(Actor actor, int conversationId, string body, CancellationToken ct = default);
+    Task<Result<MessageDto>> SendAsync(Actor actor, int conversationId, string body, Media.UploadedFile? attachment, CancellationToken ct);
     Task<Result> EditAsync(Actor actor, int messageId, string body, CancellationToken ct = default);
+    Task<Result> EditAsync(Actor actor, int messageId, string body, int? expectedConversationId, CancellationToken ct);
     Task<Result> DeleteAsync(Actor actor, int messageId, CancellationToken ct = default);
+    Task<Result> DeleteAsync(Actor actor, int messageId, int? expectedConversationId, CancellationToken ct);
     Task<Result> SetTeamMembersAsync(Actor owner, int conversationId, IReadOnlyCollection<int> teamAccountIds, CancellationToken ct = default);
     Task<Result> SetBlockedAsync(Actor actor, int conversationId, bool blocked, CancellationToken ct = default);
     Task<Result> SetMutedAsync(Actor actor, int conversationId, bool muted, CancellationToken ct = default);

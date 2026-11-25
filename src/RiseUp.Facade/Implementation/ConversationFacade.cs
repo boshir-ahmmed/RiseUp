@@ -16,7 +16,7 @@ namespace RiseUp.Facade.Conversations;
 /// </summary>
 public sealed class ConversationFacade(IConversationRepository conversations, IConnectionRepository connections, IStartupRepository startups,
     IInvestorRepository investors, ITeamAccountRepository team, IUserAccountRepository accounts, IUnitOfWork uow, IClock clock,
-    ActivityRecorder activity, IProfileRepository profiles, NameDirectory names, TeamGroupMembership groupMembership) : IConversationFacade
+    ActivityRecorder activity, IProfileRepository profiles, NameDirectory names, TeamGroupMembership groupMembership, Media.MediaIntake intake) : IConversationFacade
 {
     private MemberKind? KindFor(Actor actor, Conversation c)
     {
@@ -63,7 +63,7 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
         {
             var last = await conversations.LatestUserMessageAsync(c.Id, ct);
             result.Add(new ConversationSummaryDto(c.Id, await TitleAsync(actor, c, ct), c.StartupId, c.InvestorId,
-                last is null ? null : last.DeletedAtUtc is not null ? "Message deleted" : $"{last.AuthorName}: {last.Body}",
+                last is null ? null : last.DeletedAtUtc is not null ? "Message deleted" : $"{last.AuthorName}: {(last.Body.Length > 0 ? last.Body : last.Attachment?.FileName)}",
                 MemberRow(actor, c)?.Muted ?? false, await DisabledReasonAsync(c, ct)));
         }
         return result;
@@ -109,7 +109,8 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
             var author = (m.AuthorKind == MemberKind.Owner && startup?.IsDeleted == true) || (m.AuthorKind == MemberKind.Investor && investor?.IsDeleted == true) ? "Deleted user" : m.AuthorName;
             return new MessageDto(m.Id, m.IsSystem ? "RiseUp" : author, deleted ? "" : m.Body, m.SentAtUtc, mine, m.IsSystem, m.EditedAtUtc is not null, deleted,
                 mine && !deleted && now - m.SentAtUtc < BusinessRules.MessageEditWindow, mine && !deleted,
-                m.AuthorAccountId is int pa && photoA.TryGetValue(pa, out var p1) ? UrlRewrite.Media(p1) : m.AuthorTeamAccountId is int pt && photoT.TryGetValue(pt, out var p2) ? UrlRewrite.Media(p2) : null);
+                m.AuthorAccountId is int pa && photoA.TryGetValue(pa, out var p1) ? UrlRewrite.Media(p1) : m.AuthorTeamAccountId is int pt && photoT.TryGetValue(pt, out var p2) ? UrlRewrite.Media(p2) : null,
+                deleted ? null : m.AttachmentId, deleted ? null : m.Attachment?.FileName);
         }).ToList();
         var members = new List<string>();
         foreach (var m in c.Members.Where(m => m.RemovedAtUtc == null))
@@ -130,16 +131,41 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
         return Result.Success(new ConversationDto(summary, members, dtos, email, phone, older));
     }
 
-    public async Task<Result<MessageDto>> SendAsync(Actor actor, int conversationId, string body, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ChatPeer>> TypingPeersAsync(Actor actor, int conversationId, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(body) || body.Length > BusinessRules.MessageMax)
-            return new Error(ErrorCodes.Validation, "Messages must be 1–2,000 characters. Share longer material as an attachment.");
+        var (c, kind) = await LoadAsync(actor, conversationId, ct);
+        if (c is null || kind is null || await DisabledReasonAsync(c, ct) is not null) return [];
+        var activeTeam = (await team.ListForStartupAsync(c.StartupId, readOnly: true, ct))
+            .Where(t => t.Status == TeamAccountStatus.Active).ToDictionary(t => t.Id);
+        var peers = new List<ChatPeer>();
+        foreach (var m in c.Members.Where(m => m.RemovedAtUtc == null))
+        {
+            if (m.AccountId is int id && id != actor.AccountId) peers.Add(new($"a:{id}", 0));
+            if (m.TeamAccountId is int tid && tid != actor.TeamAccountId && activeTeam.TryGetValue(tid, out var t))
+                peers.Add(new($"t:{tid}", t.SessionVersion));
+        }
+        return peers;
+    }
+
+    public Task<Result<MessageDto>> SendAsync(Actor actor, int conversationId, string body, CancellationToken ct = default) =>
+        SendAsync(actor, conversationId, body, null, ct);
+
+    public async Task<Result<MessageDto>> SendAsync(Actor actor, int conversationId, string body, Media.UploadedFile? attachment, CancellationToken ct)
+    {
+        if (body.Length > BusinessRules.MessageMax || (string.IsNullOrWhiteSpace(body) && attachment is null))
+            return new Error(ErrorCodes.Validation, "Write a message, attach a file, or both. Text can be up to 2,000 characters.");
         var (c, kind) = await LoadAsync(actor, conversationId, ct);
         if (c is null || kind is null) return Guard.Forbidden("You are not a participant in this conversation.");
         if (await DisabledReasonAsync(c, ct) is { } reason) return new Error(ErrorCodes.MessagingDisabled, reason);
         var now = clock.UtcNow;
         var authorName = await names.CurrentNameAsync(actor, ct);
         var m = new Message { ConversationId = c.Id, AuthorKind = kind.Value, AuthorAccountId = actor.AccountId, AuthorTeamAccountId = actor.TeamAccountId, AuthorName = authorName, Body = body.Trim(), SentAtUtc = now };
+        if (attachment is not null)
+        {
+            var accepted = await intake.AcceptAsync(MediaKind.ChatAttachment, attachment, c.StartupId, actor.AccountId, actor.TeamAccountId, ct);
+            if (accepted.IsFailure) return accepted.Error;
+            m.Attachment = accepted.Value;
+        }
         await conversations.AddMessageAsync(m, ct);
         foreach (var member in c.Members.Where(x => x.RemovedAtUtc == null && !x.Muted && !(x.AccountId != null && x.AccountId == actor.AccountId) && !(x.TeamAccountId != null && x.TeamAccountId == actor.TeamAccountId)))
         {
@@ -147,27 +173,33 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
             else if (member.TeamAccountId is int tid) await activity.NotifyTeamAsync(tid, $"New message from {authorName}.", $"/conversations/{c.Id}#msgs", ct);
         }
         await uow.SaveChangesAsync(ct);
-        return Result.Success(new MessageDto(m.Id, m.AuthorName, m.Body, now, true, false, false, false, true, true));
+        return Result.Success(new MessageDto(m.Id, m.AuthorName, m.Body, now, true, false, false, false, true, true, AttachmentId: m.AttachmentId, FileName: m.Attachment?.FileName));
     }
 
-    public async Task<Result> EditAsync(Actor actor, int messageId, string body, CancellationToken ct = default)
+    public Task<Result> EditAsync(Actor actor, int messageId, string body, CancellationToken ct = default) =>
+        EditAsync(actor, messageId, body, null, ct);
+
+    public async Task<Result> EditAsync(Actor actor, int messageId, string body, int? expectedConversationId, CancellationToken ct)
     {
         var m = await conversations.GetMessageAsync(messageId, ct);
-        if (m is null) return Result.Failure(Guard.NotFound("Message"));
+        if (m is null || (expectedConversationId.HasValue && expectedConversationId != m.ConversationId)) return Result.Failure(Guard.NotFound("Message"));
         var (c, kind) = await LoadAsync(actor, m.ConversationId, ct);
         var mine = (m.AuthorAccountId != null && m.AuthorAccountId == actor.AccountId) || (m.AuthorTeamAccountId != null && m.AuthorTeamAccountId == actor.TeamAccountId);
         if (c is null || kind is null || !mine || m.DeletedAtUtc is not null) return Result.Failure(Guard.Forbidden("You can only edit your own messages."));
         if (clock.UtcNow - m.SentAtUtc >= BusinessRules.MessageEditWindow) return Result.Failure(ErrorCodes.EditWindowClosed, "Messages can only be edited for 15 minutes.");
-        if (string.IsNullOrWhiteSpace(body) || body.Length > BusinessRules.MessageMax) return Result.Failure(ErrorCodes.Validation, "Messages must be 1–2,000 characters.");
+        if ((string.IsNullOrWhiteSpace(body) && m.AttachmentId is null) || body.Length > BusinessRules.MessageMax) return Result.Failure(ErrorCodes.Validation, "Add message text or keep the attached file. Text can be up to 2,000 characters.");
         m.Body = body.Trim(); m.EditedAtUtc = clock.UtcNow;
         await uow.SaveChangesAsync(ct);
         return Result.Success("Message edited.");
     }
 
-    public async Task<Result> DeleteAsync(Actor actor, int messageId, CancellationToken ct = default)
+    public Task<Result> DeleteAsync(Actor actor, int messageId, CancellationToken ct = default) =>
+        DeleteAsync(actor, messageId, null, ct);
+
+    public async Task<Result> DeleteAsync(Actor actor, int messageId, int? expectedConversationId, CancellationToken ct)
     {
         var m = await conversations.GetMessageAsync(messageId, ct);
-        if (m is null) return Result.Failure(Guard.NotFound("Message"));
+        if (m is null || (expectedConversationId.HasValue && expectedConversationId != m.ConversationId)) return Result.Failure(Guard.NotFound("Message"));
         var (c, kind) = await LoadAsync(actor, m.ConversationId, ct);
         var mine = (m.AuthorAccountId != null && m.AuthorAccountId == actor.AccountId) || (m.AuthorTeamAccountId != null && m.AuthorTeamAccountId == actor.TeamAccountId);
         if (c is null || kind is null || !mine) return Result.Failure(Guard.Forbidden("You can only delete your own messages."));
