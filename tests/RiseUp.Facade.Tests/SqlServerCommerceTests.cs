@@ -13,6 +13,7 @@ using RiseUp.Facade.ConnectionRequests;
 using RiseUp.Facade.Identity;
 using RiseUp.Facade.Payments;
 using RiseUp.Facade.Pitching;
+using RiseUp.Facade.TeamAccounts;
 using RiseUp.Framework.Results;
 
 namespace RiseUp.Facade.Tests;
@@ -119,6 +120,12 @@ public class SqlServerCommerceTests
             var legacyMember = await db.TeamAccounts.AsNoTracking().SingleAsync();
             Assert.Equal(TeamGroupMode.Selected, legacyMember.GroupMode);
             Assert.Equal("17,24", legacyMember.PreviousConversationIds);
+            var teamMember = await Run<ITeamAccountFacade, Result<OneTimeCredential>>(f => f.CreateAsync(actor,
+                new("Team Analyst", "Analyst", "team.analyst", "Analyst@integration.example", null, "AnalystPass123")));
+            Assert.True(teamMember.IsSuccess, teamMember.Error.Message);
+            var login = await Run<IAccountFacade, Result<SignedInUser>>(f => f.SignInAsync(" ANALYST@INTEGRATION.EXAMPLE ", "AnalystPass123"));
+            Assert.True(login.IsSuccess, login.Error.Message);
+            Assert.Equal(teamMember.Value!.TeamAccountId, login.Value!.TeamAccountId);
             var item = await db.PitchInfoItems.AsNoTracking().SingleAsync();
             Assert.Equal(sent.InfoRequestMessage, item.Prompt);
             Assert.Equal(sent.InfoRequestedAtUtc, item.CreatedAtUtc);
