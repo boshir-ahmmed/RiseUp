@@ -18,8 +18,8 @@ public interface IAccountFacade
     Task<Result<RegisteredAccount>> RegisterAsync(RegisterRequest request, CancellationToken ct = default);
     Task<Result> ResendVerificationAsync(string email, CancellationToken ct = default);
     Task<Result> VerifyEmailAsync(string token, CancellationToken ct = default);
-    Task<Result<SignedInUser>> SignInAsync(string email, string password, CancellationToken ct = default);
-    Task<Result<SignedInUser>> SignInTeamMemberAsync(string username, string password, CancellationToken ct = default);
+    Task<Result<SignedInUser>> SignInAsync(string identifier, string password, CancellationToken ct = default);
+    Task<Result<SignedInUser>> SignInTeamMemberAsync(string identifier, string password, CancellationToken ct = default);
     Task<bool> IsTeamSessionCurrentAsync(int memberId, int version, CancellationToken ct = default);
     Task<Result> VerifyMfaAsync(int accountId, string code, CancellationToken ct = default);
     Task<Result<string>> RequestPasswordResetAsync(string email, CancellationToken ct = default);

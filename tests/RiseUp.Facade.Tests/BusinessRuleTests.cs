@@ -422,7 +422,7 @@ public class BusinessRuleTests
         var form = new CreateTeamAccountRequest("Sam Karim", "Analyst", "sam.team", "sam@demo.test", null,
             "FirstPassword123", TeamGroupMode.Selected, [group]);
         Task<Result<SignedInUser>> Login(string user, string password) =>
-            h.Run<IAccountFacade, Result<SignedInUser>>(f => f.SignInTeamMemberAsync(user, password));
+            h.Run<IAccountFacade, Result<SignedInUser>>(f => f.SignInAsync(user, password));
         var created = await h.Run<ITeamAccountFacade, Result<OneTimeCredential>>(f => f.CreateAsync(owner, form));
         Assert.True(created.IsSuccess, created.Error.Message);
         var id = created.Value!.TeamAccountId;
@@ -440,6 +440,8 @@ public class BusinessRuleTests
         Assert.True((await Edit(owner, changes)).IsSuccess);
         Assert.False(await CanRead());
         Assert.False((await Login(form.Username, form.Password!)).IsSuccess);
+        Assert.False((await Login(form.Email, form.Password!)).IsSuccess);
+        Assert.Equal(id, (await Login(changes.Email, form.Password!)).Value!.TeamAccountId);
         var signedIn = (await Login(changes.Username, form.Password!)).Value!;
         Task<bool> CurrentSession() => h.Run<IAccountFacade, bool>(f => f.IsTeamSessionCurrentAsync(id, signedIn.TeamSessionVersion));
         Assert.True(await CurrentSession());
@@ -452,6 +454,9 @@ public class BusinessRuleTests
         Assert.True(conflict.IsFailure);
         Assert.True(await CanRead());
         Assert.True((await Login(changes.Username, "Replacement12345")).IsSuccess);
+        Assert.False((await Login(changes.Email, "RejectedPassword123")).IsSuccess);
+        await h.Run<ITeamAccountFacade, Result>(f => f.DeactivateAsync(owner, id));
+        Assert.False((await Login(changes.Email, "Replacement12345")).IsSuccess);
     }
 
     [Fact]

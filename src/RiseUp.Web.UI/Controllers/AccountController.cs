@@ -25,10 +25,7 @@ public sealed class AccountController(IAccountFacade accounts, IWebHostEnvironme
     public async Task<IActionResult> Login(LoginViewModel model, CancellationToken ct)
     {
         if (!ModelState.IsValid) return View(model);
-        // Team members sign in with a username; founders, investors and admins with email. Passwords are hashed (no plaintext predicate).
-        var result = model.Identifier.Contains('@')
-            ? await accounts.SignInAsync(model.Identifier, model.Password, ct)
-            : await accounts.SignInTeamMemberAsync(model.Identifier, model.Password, ct);
+        var result = await accounts.SignInAsync(model.Identifier, model.Password, ct);
         if (result.IsFailure) { ModelState.AddModelError("", result.Error.Message); return View(model); }
         var user = result.Value!;
         if (user.MfaRequired)

@@ -104,9 +104,7 @@ public sealed class TestHost : IAsyncDisposable
 
     public async Task<Actor> SignIn(string identifier)
     {
-        var result = identifier.Contains('@')
-            ? await Run<IAccountFacade, RiseUp.Framework.Results.Result<SignedInUser>>(f => f.SignInAsync(identifier, DemoDataSeeder.DemoPassword))
-            : await Run<IAccountFacade, RiseUp.Framework.Results.Result<SignedInUser>>(f => f.SignInTeamMemberAsync(identifier, DemoDataSeeder.DemoPassword));
+        var result = await Run<IAccountFacade, RiseUp.Framework.Results.Result<SignedInUser>>(f => f.SignInAsync(identifier, DemoDataSeeder.DemoPassword));
         Assert.True(result.IsSuccess, result.Error.Message);
         var u = result.Value!;
         return new Actor(u.AccountId, u.Name, u.Role, u.AdminRole, u.StartupId, u.InvestorId, u.TeamAccountId, MfaSatisfied: u.Role == PrimaryRole.Admin);

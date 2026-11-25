@@ -148,6 +148,21 @@ public class WebSmokeTests(RiseUpFactory factory) : IClassFixture<RiseUpFactory>
         Assert.Contains("access-denied", admin.Headers.Location?.ToString() ?? "access-denied");
     }
 
+    [Theory]
+    [InlineData("  RAFI@NodiFreight.Example  ")]
+    [InlineData("rafi.ops")]
+    public async Task TeamMemberCanSignInToConversations(string identifier)
+    {
+        var client = Client();
+        var login = await client.GetStringAsync("/login");
+        var token = Regex.Match(login, "name=\"__RequestVerificationToken\" type=\"hidden\" value=\"([^\"]+)\"").Groups[1].Value;
+        var response = await client.PostAsync("/login", new FormUrlEncodedContent(new Dictionary<string, string>
+            { ["Identifier"] = identifier, ["Password"] = "Demo#2026pass", ["__RequestVerificationToken"] = token }));
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
+        Assert.Equal("/conversations", response.Headers.Location!.ToString());
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/conversations")).StatusCode);
+    }
+
     [Fact]
     public async Task AdminLogin_RequiresSecondFactor()
     {

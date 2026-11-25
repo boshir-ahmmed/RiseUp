@@ -25,6 +25,11 @@ public sealed class TeamAccountRepository(RiseUpDbContext db) : Repository<TeamA
         Set.CountAsync(t => t.StartupId == startupId && t.Status != TeamAccountStatus.Deleted, ct);
     public Task<bool> UsernameOrEmailTakenAsync(string username, string email, CancellationToken ct = default) =>
         Set.AnyAsync(t => t.Username == username || t.Email == email, ct);
-    public Task<TeamAccount?> FindByUsernameAsync(string username, CancellationToken ct = default) =>
-        Set.FirstOrDefaultAsync(t => t.Username == username && t.Status != TeamAccountStatus.Deleted, ct);
+    public Task<TeamAccount?> FindByLoginAsync(string identifier, CancellationToken ct = default)
+    {
+        var members = Set.Where(t => t.Status != TeamAccountStatus.Deleted);
+        if (!identifier.Contains('@')) return members.FirstOrDefaultAsync(t => t.Username == identifier, ct);
+        var normalizedEmail = identifier.ToUpperInvariant();
+        return members.FirstOrDefaultAsync(t => t.Email.Trim().ToUpper() == normalizedEmail, ct);
+    }
 }
