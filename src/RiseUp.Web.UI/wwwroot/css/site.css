@@ -745,3 +745,51 @@ dialog.crop-dialog::backdrop{background:rgba(15,23,42,.55)}
 .team-exclude, .team-groups:has([value="All"]:checked) .team-group-picker,
 .team-groups:has([value="AllExcept"]:checked) .team-include { display: none; }
 .team-groups:has([value="AllExcept"]:checked) .team-exclude { display: inline; }
+
+.sound-settings { margin: .5rem 0; padding: .7rem .5rem; border: 0; border-block: 1px solid var(--border); }
+.sound-settings legend { float: none; width: auto; font-size: .8rem; font-weight: 650; }
+.sound-settings label { display: flex; gap: .6rem; align-items: center; padding: .25rem 0; }
+.sound-settings input { accent-color: var(--teal); }
+.pk-media video { width: 100%; height: 100%; display: block; background: #101318; object-fit: contain; }
+.pk-tag { pointer-events: none; }
+
+.reels-view { max-width: 1200px; margin: 0 auto; color: #fafafa; background: #101214; border-radius: 20px; overflow: hidden; }
+#main > .reels-view { margin: 16px auto 32px; }
+.reels-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 18px; border-bottom: 1px solid #34363a; }
+.reels-head h1 { margin: 0; font-size: 1.35rem; color: inherit; }
+.reel-pager { display: flex; align-items: center; gap: 8px; }
+.reel-pager[hidden], .sound-settings[hidden] { display: none; }
+.reel-pager output { padding-right: 4px; color: #c4cbce; font-size: .8rem; font-variant-numeric: tabular-nums; }
+.reel-pager button { width: 40px; height: 40px; border: 1px solid #4a4c50; border-radius: 50%; background: #24272a; color: white; font-size: 1.1rem; }
+.reel-pager button:disabled { opacity: .35; }
+.reels-stream { height: clamp(320px, calc(100vh - 210px), 900px); height: clamp(320px, calc(100dvh - 210px), 900px); overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: thin; scrollbar-color: #53585d #17191c; }
+.reel-slide { height: 100%; scroll-snap-align: start; container-type: size; }
+.reel-scene { height: 100%; display: grid; align-items: center; justify-content: center; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 1rem; padding: 12px; background: radial-gradient(ellipse at center, #34393d 0%, #191b1e 42%, #101214 80%); }
+.reel-screen { grid-area: 1 / 2; width: min(48cqw, 53cqh); aspect-ratio: 9/16; background: #070809; overflow: hidden; border-radius: 14px; box-shadow: 0 8px 32px #0006; }
+.reel-screen video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.reel-caption { grid-area: 1 / 1; align-self: end; min-width: 0; max-height: 95%; overflow: auto; overflow-wrap: anywhere; padding: 8px; }
+.reel-author { display: flex; align-items: center; gap: 8px; color: white; font-weight: 650; font-size: .9rem; }
+.reel-author .logo { width: 32px; height: 32px; object-fit: cover; border-radius: 50%; }
+.reel-caption h2 { font-size: clamp(1rem, 2cqw, 1.5rem); color: inherit; line-height: 1.25; margin: .55rem 0 .3rem; }
+.reel-caption h2 a, .reel-description .linkbtn { color: inherit; }
+.reel-description { color: #c4cbce; font-size: .85rem; line-height: 1.45; margin: 0; }
+.reel-links { margin-top: .5rem; }
+.reel-actions { grid-area: 1 / 3; align-self: end; display: grid; gap: 8px; justify-items: start; }
+.reel-actions :is(button,a) { display: grid; justify-items: center; gap: 3px; min-width: 48px; background: transparent; border: 0; padding: 0; color: #f6f6f6; font-weight: 600; line-height: 1.2; font-size: .72rem; }
+.reel-actions svg { width: 42px; height: 42px; padding: 11px; background: #303438; border-radius: 50%; }
+.reel-actions :is(button,a):hover svg, .reel-pager button:enabled:hover { background: #454a50; }
+.reel-actions [aria-pressed="true"] { color: #6ce2d0; }
+.reels-view :focus-visible { outline: 2px solid #83f4dd; outline-offset: -2px; }
+@container (max-width: 740px) {
+  .reel-scene { grid-template: minmax(0, 1fr) auto / minmax(0, 1fr) auto; gap: 6px; padding: 8px; }
+  .reel-screen { grid-area: 1 / 1 / 2 / 3; align-self: stretch; justify-self: center; width: auto; height: 100%; max-width: 100%; }
+  .reel-actions { grid-area: 1 / 2; z-index: 1; padding-bottom: 44px; gap: 5px; }
+  .reel-caption { grid-area: 2 / 1 / 3 / 3; max-height: 30cqh; padding: 2px 6px; }
+  .reel-caption h2 { margin: .25rem 0; }
+  .reel-actions :is(button,a) { text-shadow: 0 1px 3px black; }
+}
+@media (max-width: 600px) {
+  .reels-view { border-radius: 12px; }
+  .reels-stream { height: max(320px, calc(100dvh - 185px)); }
+  .reels-head { padding: 7px 12px; }
+}

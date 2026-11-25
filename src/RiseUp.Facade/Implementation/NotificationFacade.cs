@@ -19,6 +19,9 @@ public sealed class NotificationFacade(IGovernanceRepository governance, IUnitOf
         _ => text,
     };
 
+    public Task<(int Alert, int Message)> LatestIdsAsync(Actor actor, CancellationToken ct = default) =>
+        governance.LatestNotificationIdsAsync(actor.AccountId, actor.TeamAccountId, ct);
+
     public async Task<int> UnreadCountAsync(Actor actor, CancellationToken ct = default) =>
         (await governance.ListNotificationsAsync(actor.AccountId, actor.TeamAccountId, 100, ct)).Count(n => !n.IsRead);
 

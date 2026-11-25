@@ -116,7 +116,7 @@
     @if (reels && Model.Teaser is { } teaser)
     {
         <section class="studio-panel legacy-teaser"><h2>Pitch Studio teaser</h2>
-            <div class="row"><video src="@teaser.Url" poster="@teaser.PosterUrl" controls playsinline preload="metadata" aria-label="Your existing teaser"></video>
+            <div class="row"><video src="@teaser.Url" poster="@teaser.PosterUrl" controls muted playsinline data-feedvideo preload="none" aria-label="Your existing teaser"></video>
                 <div><p>Currently @(Model.PublicTeaser ? "public in Reels" : "private"). Move this video into a private reel draft to edit its caption and publish it for promotion.</p>
                     <form method="post" action="/my-posts/teaser/draft" asp-antiforgery="true"><button class="btn btn-outline">Move teaser to drafts</button></form>
                     <form method="post" action="/my-posts/teaser/visibility" asp-antiforgery="true"><input type="hidden" name="visible" value="@((!Model.PublicTeaser).ToString().ToLowerInvariant())" /><button class="linkbtn">@(Model.PublicTeaser ? "Make teaser private" : "Show teaser publicly")</button></form>

@@ -400,6 +400,14 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     public async Task<IActionResult> Transfer(string incomingName, string incomingEmail, [FromServices] IWebHostEnvironment environment, CancellationToken ct) =>
         !environment.IsDevelopment() ? NotFound() : Back(await verification.RequestOwnershipTransferAsync(Actor, incomingName, incomingEmail, ct), nameof(Settings));
 
+    [Authorize, HttpGet("/notifications/latest")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> LatestNotificationIds(CancellationToken ct)
+    {
+        var (alert, message) = await notifications.LatestIdsAsync(Actor, ct);
+        return Ok(new { owner = Actor.ViewerKey, alert, message });
+    }
+
     [HttpGet("/notifications")]
     public async Task<IActionResult> Notifications(CancellationToken ct)
     {

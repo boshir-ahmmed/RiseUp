@@ -36,14 +36,14 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
                 <div data-vpane="pitch">
                     @if (p.Pitch is not null)
                     {
-                        <div class="vp"><video id="v-pitch" src="@p.Pitch.Url" poster="@p.Pitch.PosterUrl" controls playsinline preload="metadata" data-slot="Pitch"></video>
+                        <div class="vp"><video id="v-pitch" src="@p.Pitch.Url" poster="@p.Pitch.PosterUrl" controls muted playsinline data-feedvideo preload="none" data-slot="Pitch"></video>
                             <div class="chapters">@foreach (var c in chapters.Where(c => c.At < p.Pitch.Seconds)) {<button type="button" class="chip x" data-seek="@c.At" data-target="v-pitch">@((int)c.At / 60):@(((int)c.At % 60).ToString("00")) @c.Label</button>}</div>
                             </div>
                     }
                     else { <div class="lock" style="aspect-ratio:16/9;display:grid;place-items:center">No pitch video uploaded yet</div> }
                 </div>
                 <div data-vpane="demo" hidden>
-                    @if (p.Demo is not null) { <div class="vp"><video src="@p.Demo.Url" poster="@p.Demo.PosterUrl" controls playsinline preload="metadata" data-slot="Demo"></video></div> }
+                    @if (p.Demo is not null) { <div class="vp"><video src="@p.Demo.Url" poster="@p.Demo.PosterUrl" controls muted playsinline data-feedvideo preload="none" data-slot="Demo"></video></div> }
                     else { <div class="lock" style="aspect-ratio:16/9;display:grid;place-items:center">No product demo uploaded yet</div> }
                 </div>
             </div></div>

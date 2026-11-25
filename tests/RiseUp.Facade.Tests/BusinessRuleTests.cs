@@ -9,6 +9,7 @@ using RiseUp.Facade.ConnectionRequests;
 using RiseUp.Facade.Conversations;
 using RiseUp.Facade.Identity;
 using RiseUp.Facade.Moderation;
+using RiseUp.Facade.Notifications;
 using RiseUp.Facade.Payments;
 using RiseUp.Facade.Posts;
 using RiseUp.Facade.Promotions;
@@ -28,6 +29,33 @@ public class BusinessRuleTests
 
     private static async Task<(int Welcome, int Purchased)> Wallet(TestHost h, int startupId) =>
         await h.Db(async db => { var w = await db.Wallets.SingleAsync(x => x.StartupId == startupId); return (w.WelcomeBalance, w.PurchasedBalance); });
+
+    [Fact]
+    public async Task IncomingMessageSoundIsScopedToUnmutedRecipients()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var founder = await h.Founder();
+        var recipient = await h.Investor();
+        var team = await h.SignIn("rafi.ops");
+        var other = await h.Imran();
+        var id = await h.Db(db => db.Conversations.Select(c => c.Id).SingleAsync());
+        Task<(int Alert, int Message)> Latest(Actor a) =>
+            h.Run<INotificationFacade, (int, int)>(f => f.LatestIdsAsync(a));
+        var original = await Latest(recipient);
+        var senderState = await Latest(founder);
+        var otherState = await Latest(other);
+        var teamState = await Latest(team);
+        Assert.True((await h.Run<IConversationFacade, Result<MessageDto>>(f => f.SendAsync(founder, id, "First update"))).IsSuccess);
+        var received = await Latest(recipient);
+        Assert.True(received.Message > original.Message);
+        Assert.Equal(original.Alert, received.Alert);
+        Assert.True((await Latest(team)).Message > teamState.Message);
+        Assert.Equal(senderState, await Latest(founder));
+        Assert.Equal(otherState, await Latest(other));
+        await h.Run<IConversationFacade, Result>(f => f.SetMutedAsync(recipient, id, true));
+        Assert.True((await h.Run<IConversationFacade, Result<MessageDto>>(f => f.SendAsync(founder, id, "Second update"))).IsSuccess);
+        Assert.Equal(received, await Latest(recipient));
+    }
 
     [Fact]
     public async Task ConnectedStartups_ListsOnlyAcceptedConnectionsForTheViewingInvestor()

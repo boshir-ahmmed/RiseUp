@@ -143,8 +143,8 @@ public sealed class ConversationFacade(IConversationRepository conversations, IC
         await conversations.AddMessageAsync(m, ct);
         foreach (var member in c.Members.Where(x => x.RemovedAtUtc == null && !x.Muted && !(x.AccountId != null && x.AccountId == actor.AccountId) && !(x.TeamAccountId != null && x.TeamAccountId == actor.TeamAccountId)))
         {
-            if (member.AccountId is int aid) await activity.NotifyAccountAsync(aid, $"New message from {authorName}.", $"/conversations/{c.Id}", ct);
-            else if (member.TeamAccountId is int tid) await activity.NotifyTeamAsync(tid, $"New message from {authorName}.", $"/conversations/{c.Id}", ct);
+            if (member.AccountId is int aid) await activity.NotifyAccountAsync(aid, $"New message from {authorName}.", $"/conversations/{c.Id}#msgs", ct);
+            else if (member.TeamAccountId is int tid) await activity.NotifyTeamAsync(tid, $"New message from {authorName}.", $"/conversations/{c.Id}#msgs", ct);
         }
         await uow.SaveChangesAsync(ct);
         return Result.Success(new MessageDto(m.Id, m.AuthorName, m.Body, now, true, false, false, false, true, true));

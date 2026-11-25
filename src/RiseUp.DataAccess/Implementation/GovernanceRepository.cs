@@ -28,6 +28,16 @@ public sealed class GovernanceRepository(RiseUpDbContext db) : IGovernanceReposi
     public async Task<IReadOnlyList<Notification>> ListNotificationsAsync(int? accountId, int? teamAccountId, int take, CancellationToken ct = default) =>
         await db.Notifications.Where(n => (accountId != null && n.RecipientAccountId == accountId) || (teamAccountId != null && n.RecipientTeamAccountId == teamAccountId))
             .OrderByDescending(n => n.CreatedAtUtc).Take(take).ToListAsync(ct);
+    public async Task<(int Alert, int Message)> LatestNotificationIdsAsync(int? accountId, int? teamAccountId, CancellationToken ct = default)
+    {
+        var latest = await db.Notifications
+            .Where(n => (accountId != null && n.RecipientAccountId == accountId) || (teamAccountId != null && n.RecipientTeamAccountId == teamAccountId))
+            .GroupBy(n => n.Link != null && n.Link.EndsWith("#msgs"))
+            .Select(g => new { IsMessage = g.Key, Id = g.Max(n => n.Id) })
+            .ToDictionaryAsync(x => x.IsMessage, x => x.Id, ct);
+        return (latest.GetValueOrDefault(false), latest.GetValueOrDefault(true));
+    }
+
     private IQueryable<OutboxEvent> DueEmails(DateTime now)
     {
         var retryBefore = now.AddMinutes(-5);

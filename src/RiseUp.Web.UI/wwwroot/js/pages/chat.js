@@ -6,7 +6,10 @@ if (root && list && window.signalR) {
   const connection = new signalR.HubConnectionBuilder().withUrl('/hubs/chat').withAutomaticReconnect().build();
   const historical = new URLSearchParams(location.search).has('before');
   async function join() { await connection.invoke('Join', id); }
-  function newMessages() { refresh.textContent = 'Show latest messages'; }
+  function newMessages() {
+    refresh.textContent = 'Show latest messages';
+    document.dispatchEvent(new Event('riseup:check-alerts'));
+  }
   connection.on('changed', changed => { if (changed === id) newMessages(); });
   connection.onreconnected(async () => { await join(); newMessages(); });
   connection.start().then(join).catch(() => { /* Normal form posts remain available. */ });
