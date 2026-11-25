@@ -1,5 +1,6 @@
 import '../core/profile-search.js';
-// Shell + feed behaviours: Me menu, muted autoplay for feed videos, sound toggle, saving posts, spotlight teasers.
+import '../core/playback.js';
+import '../core/alert-sounds.js';
 import { post } from '../core/http.js';
 import { toast } from '../core/ui.js';
 
@@ -17,15 +18,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeAccountMenu(true);
 });
 
-// A user starts playback. Pause offscreen media to save bandwidth.
-const videos = document.querySelectorAll('video[data-feedvideo]');
-if (videos.length && 'IntersectionObserver' in window) {
-  const observer = new IntersectionObserver(entries => {
-    for (const entry of entries) if (!entry.isIntersecting) entry.target.pause();
-  });
-  videos.forEach(video => observer.observe(video));
-}
-
 document.addEventListener('click', async e => {
   const save = e.target.closest('[data-save]');
   if (save) {
@@ -36,17 +28,5 @@ document.addEventListener('click', async e => {
     save.setAttribute('aria-pressed', String(on));
     const label = save.querySelector('span'); if (label) label.textContent = on ? 'Saved' : 'Save';
     toast(r.message || (on ? 'Saved.' : 'Removed from saved.'));
-  }
-  // Pitch spotlight: swap the poster for the teaser video and play it inline.
-  const play = e.target.closest('[data-play]');
-  if (play) {
-    const box = play.closest('.pk-media');
-    if (!box || box.querySelector('video')) return;
-    const v = document.createElement('video');
-    v.src = play.dataset.play; v.controls = true; v.playsInline = true; v.autoplay = true;
-    v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000';
-    box.querySelectorAll('img,.pk-shade,.pk-play,.pk-dur').forEach(n => n.remove());
-    box.appendChild(v);
-    v.play().catch(() => {});
   }
 });

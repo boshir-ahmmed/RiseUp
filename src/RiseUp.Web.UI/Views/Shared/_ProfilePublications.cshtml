@@ -24,7 +24,7 @@
         }
         @if (Model.Reels && Model.Teaser is { } teaser)
         {
-            <div class="publication"><div class="portrait-frame"><video controls playsinline preload="metadata" src="@teaser.Url" poster="@teaser.PosterUrl" aria-label="Startup teaser"></video></div><strong>Startup teaser</strong></div>
+            <div class="publication"><div class="portrait-frame"><video controls muted playsinline data-feedvideo preload="none" src="@teaser.Url" poster="@teaser.PosterUrl" aria-label="Startup teaser"></video></div><strong>Startup teaser</strong></div>
         }
     </div>
     @if (items.Count == 0 && (!Model.Reels || Model.Teaser is null)) { <p class="empty">No published @(Model.Reels ? "reels" : "posts") yet.</p> }

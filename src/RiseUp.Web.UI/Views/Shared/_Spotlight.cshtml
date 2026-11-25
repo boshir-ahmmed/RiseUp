@@ -1,14 +1,11 @@
 @model SpotlightDto
 @{
     var signedIn = User.Identity?.IsAuthenticated == true;
-    var secs = Model.Teaser.Seconds;
 }
 <article class="card pk" aria-label="Pitch spotlight: @Model.Name">
     <div class="pk-media" style="--pc:@Ui.Color(Model.ColorIndex)">
-        @if (Model.Teaser.PosterUrl is not null) { <img src="@Model.Teaser.PosterUrl" alt="" loading="lazy" /> }
-        <div class="pk-shade"></div>
-        <span class="pk-tag">⚡ Pitch spotlight</span><span class="pk-dur">@(secs / 60):@((secs % 60).ToString("00"))</span>
-        <button type="button" class="pk-play" data-play="@Model.Teaser.Url" aria-label="Play @Model.Name teaser"><partial name="_Icon" model='"play"' /></button>
+        <video src="@Model.Teaser.Url" poster="@Model.Teaser.PosterUrl" muted controls playsinline preload="none" data-feedvideo aria-label="@Model.Name teaser"></video>
+        <span class="pk-tag">Pitch spotlight</span>
     </div>
     <div class="pk-b">
         <div class="row" style="gap:12px;flex-wrap:nowrap"><partial name="_Brand" model="(Model.Name, Model.ColorIndex, string.Empty, Model.LogoUrl)" />

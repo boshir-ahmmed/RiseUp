@@ -20,6 +20,11 @@
             @if (Model.Actor.IsFounder) { <a class="account-item" href="/settings">🏢 Startup profile</a><a class="account-item" href="/wallet">🪙 Wallet</a> }
             @if (Model.Actor.IsInvestor) { <a class="account-item" href="/shortlist">★ Shortlist</a><a class="account-item" href="/settings">⚙️ Preferences</a> }
             @if (Model.Actor.IsAnyAdmin) { <a class="account-item" href="/admin">🛡 Admin console</a> }
+            <fieldset class="sound-settings" data-sound-account="@Model.Actor.ViewerKey" hidden>
+                <legend>Sounds on this device</legend>
+                <label><input type="checkbox" data-tone="alert" checked /> Notifications</label>
+                <label><input type="checkbox" data-tone="message" checked /> Messages</label>
+            </fieldset>
             <form method="post" action="/logout" asp-antiforgery="true"><button class="account-item">↩ Sign out</button></form>
         </div>
     </div>

@@ -28,7 +28,7 @@
         {
             <div class="card card-b vcard">
                 <div class="row between"><h4 class="mb0">@label</h4>@if (v is not null) {<span class="badge @(v.Scan == ScanStatus.Clean ? "b-ver" : "b-pend")">@Dur(v.Seconds) · @(v.Scan == ScanStatus.Clean ? "Clean" : "Scanning")</span>} else {<span class="badge b-warn">Missing</span>}</div>
-                <div class="mt8">@if (v is not null) {<video src="@v.Url" poster="@v.PosterUrl" controls playsinline preload="metadata"></video>} else {<div class="ph">No video yet</div>}</div>
+                <div class="mt8">@if (v is not null) {<video src="@v.Url" poster="@v.PosterUrl" controls muted playsinline data-feedvideo preload="none"></video>} else {<div class="ph">No video yet</div>}</div>
                 <p class="tiny muted mt8">@hint</p>
                 <form method="post" action="/pitches/package/video/@slot" enctype="multipart/form-data" asp-antiforgery="true">
                     <label class="btn btn-outline btn-sm upl">@(v is null ? "Upload video" : "Replace video")<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime,.mov" data-video-upload data-max-seconds="@max" /></label>

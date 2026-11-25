@@ -3,42 +3,73 @@
     ViewData["Title"] = "Reels";
     var actor = CurrentActor.From(User);
     Layout = actor.IsAuthenticated ? "_AppLayout" : "_Layout";
+    var canInteract = actor.IsFounder || actor.IsInvestor;
+    var reels = Model.Reels.Where(r => r.VideoUrl is not null).ToList();
+    var total = reels.Count + Model.Teasers.Count;
 }
-<div class="@(actor.IsAuthenticated ? "" : "container")" style="max-width:720px;@(actor.IsAuthenticated ? "" : "padding-top:24px;padding-bottom:48px")">
-    <div class="page-h"><div><h1>Reels</h1><p>Watch short videos from the RiseUp community.</p></div><a class="btn btn-ghost btn-sm" href="/">← Feed</a></div>
-    @if (!actor.IsAuthenticated) { <div class="notice n-info" style="margin-bottom:14px;display:block"><a href="/register">Join</a> as a verified investor to request full pitches and see each startup's ask.</div> }
-    @foreach (var reel in Model.Reels)
+<section class="reels-view" aria-labelledby="reels-title">
+    <header class="reels-head">
+        <h1 id="reels-title">Reels</h1>
+        @if (total > 0)
+        {
+            <nav class="reel-pager" aria-label="Reel navigation" hidden>
+                <output aria-label="Reel position">1 / @total</output>
+                <button type="button" data-step="-1" aria-label="Previous reel" aria-controls="reels-stream" disabled>↑</button>
+                <button type="button" data-step="1" aria-label="Next reel" aria-controls="reels-stream">↓</button>
+            </nav>
+        }
+    </header>
+    @if (total == 0) { <p class="empty">No reels yet.</p> }
+    else
     {
-        <article class="card discover-reel" id="reel-@reel.Id">
-            <div class="portrait-frame"><video src="@reel.VideoUrl" poster="@reel.PosterUrl" controls playsinline preload="metadata" aria-label="@reel.Title"></video></div>
-            <div class="card-b">@if (reel.IsPromoted) {<span class="badge b-promo">Promoted</span>}
-                <h2><a href="/posts/@reel.Id">@reel.Title</a></h2>
-                <a href="/startups/@reel.StartupId?tab=reels">@reel.StartupName</a>
-                <p class="mt8"><partial name="_ReadMore" model="(reel.Body, 180)" /></p>
-            </div>
-        </article>
+        <div id="reels-stream" class="reels-stream" tabindex="0" role="region" aria-label="Reel player">
+            @foreach (var reel in reels)
+            {
+                <article class="reel-slide" id="reel-@reel.Id" aria-label="@reel.Title">
+                    <div class="reel-scene">
+                        <div class="reel-screen">
+                            <video src="@reel.VideoUrl" poster="@reel.PosterUrl" aria-label="@reel.Title" controls muted loop playsinline preload="none" data-feedvideo></video>
+                        </div>
+                        <div class="reel-caption">
+                            @if (reel.IsPromoted) { <span class="badge b-promo">Promoted</span> }
+                            <a class="reel-author" href="/startups/@reel.StartupId?tab=reels"><partial name="_Brand" model="(reel.StartupName, reel.ColorIndex, string.Empty, reel.LogoUrl)" />@reel.StartupName</a>
+                            <h2><a href="/posts/@reel.Id">@reel.Title</a></h2>
+                            @if (!string.IsNullOrWhiteSpace(reel.Body)) { <div class="reel-description"><partial name="_ReadMore" model="(reel.Body, 110)" /></div> }
+                        </div>
+                        <div class="reel-actions" role="group" aria-label="Reel actions">
+                            <button type="button" data-like="@reel.Id" data-can="@(canInteract ? "1" : "0")" aria-label="Like reel" aria-pressed="@(reel.LikedByMe ? "true" : "false")"><partial name="_Icon" model='"heart"' /><span data-likes="@reel.Id">@reel.Likes</span></button>
+                            <a href="/posts/@reel.Id#comments" aria-label="@reel.Comments comments"><partial name="_Icon" model='"cmt"' /><span>@reel.Comments</span></a>
+                            @if (canInteract) { <button type="button" data-save="@reel.Id" aria-pressed="@(reel.SavedByMe ? "true" : "false")"><partial name="_Icon" model='"save"' /><span>@(reel.SavedByMe ? "Saved" : "Save")</span></button> }
+                            <button type="button" data-share="@reel.Id" data-can="@(canInteract ? "1" : "0")"><partial name="_Icon" model='"share"' /><span>Share</span></button>
+                        </div>
+                    </div>
+                </article>
+            }
+            @foreach (var s in Model.Teasers)
+            {
+                <article class="reel-slide" id="s-@s.StartupId" aria-label="@s.Name teaser">
+                    <div class="reel-scene">
+                        <div class="reel-screen"><video src="@s.Teaser.Url" poster="@s.Teaser.PosterUrl" aria-label="@s.Name teaser" controls muted loop playsinline preload="none" data-feedvideo></video></div>
+                        <div class="reel-caption">
+                            <a class="reel-author" href="/startups/@s.StartupId"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" />@s.Name</a>
+                            <h2>@s.Tagline</h2>
+                            <p class="reel-description">Pitch teaser · @s.Industry · @Ui.Stage(s.Stage) · @s.Location</p>
+                            <div class="row reel-links">
+                                @if (s.ViewerIsVerifiedInvestor)
+                                {
+                                    if (s.PendingPitchRequestId is int rid) { <a class="btn btn-primary btn-sm" href="/pitch-room/@rid">Open pitch room</a> }
+                                    else if (s.Connected) { <span class="badge b-ver">Connected</span> <a class="btn btn-primary btn-sm" href="/conversations">Message</a> }
+                                    else if (s.InvitationPending) { <span class="badge b-pend">Invitation pending</span> }
+                                    else { <form method="post" action="/startups/@s.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><input type="hidden" name="note" value="I'd like to see your full pitch." /><button class="btn btn-primary btn-sm">Invite to connect</button></form> }
+                                }
+                                else if (!actor.IsAuthenticated) { <a class="btn btn-primary btn-sm" href="/register">Join to watch the full pitch</a> }
+                                @if (s.Demo is not null) { <a class="btn btn-outline btn-sm" href="@s.Demo.Url" target="_blank" rel="noopener">Watch product demo</a> }
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
     }
-    @if (Model.Teasers.Count == 0 && Model.Reels.Count == 0) { <div class="card"><div class="empty">No reels yet.</div></div> }
-    @foreach (var s in Model.Teasers)
-    {
-        <article class="ig card discover-reel" id="s-@s.StartupId">
-            <div class="portrait-frame"><video src="@s.Teaser.Url" poster="@s.Teaser.PosterUrl" controls muted playsinline preload="none" data-feedvideo class="ig-img" aria-label="@s.Name teaser"></video><span class="ig-cat" style="background:rgba(0,0,0,.55);color:#fff;display:block">Teaser · @(s.Teaser.Seconds / 60):@((s.Teaser.Seconds % 60).ToString("00"))</span></div>
-            <div class="ig-body" style="padding:12px 16px 16px">
-                <div class="row" style="flex-wrap:nowrap"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" /><div style="flex:1;min-width:0"><a href="/startups/@s.StartupId" class="ig-name">@s.Name</a> <span class="vtick">✓</span><div class="tiny muted">@s.Industry · @Ui.Stage(s.Stage) · @s.Location</div></div></div>
-                <p class="small mt8">@s.Tagline</p>
-                <div class="row mt8">
-                    @if (s.ViewerIsVerifiedInvestor)
-                    {
-                        if (s.PendingPitchRequestId is int rid) { <a class="btn btn-primary btn-sm" href="/pitch-room/@rid">Open pitch room</a> }
-                        else if (s.Connected) { <span class="badge b-ver">Connected</span> <a class="btn btn-primary btn-sm" href="/conversations">Message</a> }
-                        else if (s.InvitationPending) { <span class="badge b-pend">Invitation pending</span> }
-                        else { <form method="post" action="/startups/@s.StartupId/invite" class="inline" asp-antiforgery="true"><input type="hidden" name="idempotencyKey" value="@Guid.NewGuid().ToString("N")" /><input type="hidden" name="note" value="I'd like to see your full pitch." /><button class="btn btn-primary btn-sm">Invite to connect</button></form> }
-                    }
-                    else if (!actor.IsAuthenticated) { <a class="btn btn-primary btn-sm" href="/register">Join to watch the full pitch</a> }
-                    @if (s.Demo is not null) { <a class="btn btn-outline btn-sm" href="@s.Demo.Url" target="_blank" rel="noopener">Watch product demo</a> }
-                    <a class="btn btn-ghost btn-sm" href="/startups/@s.StartupId">View details</a>
-                </div>
-            </div>
-        </article>
-    }
-</div>
+</section>
+@section Scripts { <script src="~/js/pages/reels.js" asp-append-version="true" type="module"></script> }
