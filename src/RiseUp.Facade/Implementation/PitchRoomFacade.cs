@@ -83,7 +83,7 @@ public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchReposi
         var infoItems = r is null ? [] : (await pitches.ListInfoItemsAsync(r.Id, ct)).Select(item =>
         {
             var file = item.ReplyMedia is { ScanStatus: ScanStatus.Clean, DeletedAtUtc: null } ? item.ReplyMedia : null;
-            return new PitchInfoItemDto(item.Id, item.Prompt, item.ReplyText, item.AnsweredAtUtc, file?.FileName,
+            return new PitchInfoItemDto(item.Id, item.CreatedAtUtc, item.Prompt, item.ReplyText, item.AnsweredAtUtc, file?.FileName,
                 file is null ? null : UrlRewrite.Media(file.Id) + "?download=true");
         }).ToList();
         var pending = r?.Status == RequestStatus.Pending;
@@ -137,7 +137,7 @@ public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchReposi
         // Deliberately NOT sent to the content-safety model: Q&A is private, report-moderated like chat (FR-107).
         await pitches.AddQuestionAsync(new PitchQuestion { RequestId = r.Id, AskedByAccountId = actor.AccountId!.Value, AskerName = name, Text = text }, ct);
         var s = await startups.GetByIdAsync(r.StartupId, ct);
-        await activity.NotifyAccountAsync(s!.OwnerAccountId, $"{name} asked a question in your pitch room.", $"/pitch-room/{r.Id}", ct);
+        await activity.NotifyAccountAsync(s!.OwnerAccountId, $"{name} asked a question in your pitch room.", $"/pitch-room/{r.Id}#qa", ct);
         await uow.SaveChangesAsync(ct);
         return Result.Success("Question sent to the founder.");
     }
@@ -154,7 +154,7 @@ public sealed class PitchRoomFacade(IConnectionRepository requests, IPitchReposi
         q.Answer = text; q.AnsweredAtUtc = clock.UtcNow;
         var investor = await investors.GetByIdAsync(r.InvestorId, ct);
         var s = await startups.GetByIdAsync(r.StartupId, ct);
-        await activity.NotifyAccountAsync(investor?.AccountId, $"{s?.Name} answered your question.", $"/pitch-room/{r.Id}", ct);
+        await activity.NotifyAccountAsync(investor?.AccountId, $"{s?.Name} answered your question.", $"/pitch-room/{r.Id}#question-{q.Id}", ct);
         await uow.SaveChangesAsync(ct);
         return Result.Success("Answer posted.");
     }

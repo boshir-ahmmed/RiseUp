@@ -33,10 +33,10 @@ public sealed class PitchRoomController(IPitchRoomFacade rooms, IConnectionReque
     public async Task<IActionResult> Ask(int id, string text, CancellationToken ct) { Flash(await rooms.AskAsync(Actor, id, text, ct)); return Redirect($"/pitch-room/{id}#qa"); }
 
     [HttpPost("/pitch-questions/{id:int}/answer")]
-    public async Task<IActionResult> Answer(int id, int requestId, string text, CancellationToken ct) { Flash(await rooms.AnswerAsync(Actor, id, text, ct)); return Redirect($"/pitch-room/{requestId}#qa"); }
+    public async Task<IActionResult> Answer(int id, int requestId, string text, CancellationToken ct) { Flash(await rooms.AnswerAsync(Actor, id, text, ct)); return Redirect($"/pitch-room/{requestId}#question-{id}"); }
 
     [HttpPost("/pitch-room/{id:int}/more-info")]
-    public async Task<IActionResult> MoreInfo(int id, string message, CancellationToken ct) { Flash(await rooms.RequestMoreInfoAsync(Actor, id, message, ct)); return Redirect($"/pitch-room/{id}#information"); }
+    public async Task<IActionResult> MoreInfo(int id, string? message, string? text, CancellationToken ct) { Flash(await rooms.RequestMoreInfoAsync(Actor, id, text ?? message ?? "", ct)); return Redirect($"/pitch-room/{id}#information"); }
 
     [Authorize(Policy = Policies.Founder), HttpPost("/pitch-room/{id:int}/information/{itemId:int}/reply")]
     [RequestSizeLimit(BusinessRules.PitchDocumentMaxBytes + 128 * 1024)]

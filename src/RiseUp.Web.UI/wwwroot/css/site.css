@@ -725,3 +725,7 @@ dialog.crop-dialog::backdrop{background:rgba(15,23,42,.55)}
 }
 .investor-tabs a:hover, .investor-tabs a:focus-visible { color: var(--ink); }
 .investor-tabs a[aria-current="page"] { border-color: var(--teal); color: var(--ink); }
+
+.pitch-discussion .qa { overflow-wrap: anywhere; }
+.pitch-discussion .qa p { white-space: pre-wrap; }
+.pitch-discussion input[type="file"] { max-width: 100%; }
