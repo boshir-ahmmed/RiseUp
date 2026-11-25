@@ -1,0 +1,73 @@
+@model PitchRoomDto
+@{
+    var entries = PitchDiscussionEntry.ForRoom(Model);
+    var roomUrl = $"/pitch-room/{Model.RequestId}";
+}
+<section class="card pitch-discussion" id="information" aria-labelledby="qa">
+    <div class="card-h">
+        <h3 id="qa">Pitch discussion</h3>
+        @if (entries.Count > 0)
+        {
+            <span class="small muted">@entries.Count(e => e.AnsweredAtUtc.HasValue) of @entries.Count answered</span>
+        }
+    </div>
+    <div class="card-b stack">
+        @if (entries.Count == 0)
+        {
+            <p class="small muted">No questions or information requests yet.</p>
+        }
+        @foreach (var entry in entries)
+        {
+            var answered = entry.AnsweredAtUtc.HasValue;
+            <article class="qa" id="@entry.Anchor" aria-labelledby="prompt-@entry.Anchor">
+                <div class="row between">
+                    <span class="small muted">@(entry.IsRequest ? "Information request" : "Question") · @entry.AskedBy · @Ui.Ago(entry.AskedAtUtc)</span>
+                    <span class="badge @(answered ? "b-ver" : "b-gray")">@(answered ? "Answered" : "Unanswered")</span>
+                </div>
+                <p class="mt8" id="prompt-@entry.Anchor"><strong>@entry.Prompt</strong></p>
+                @if (answered)
+                {
+                    <div class="qa-a small">
+                        <strong>@Model.StartupName</strong> · @Ui.Dhaka(entry.AnsweredAtUtc!.Value)
+                        @if (entry.Reply is not null) { <p>@entry.Reply</p> }
+                        @if (entry.FileUrl is not null) { <a href="@entry.FileUrl">Download @entry.FileName</a> }
+                    </div>
+                }
+                else if (Model.CanAnswer && !Model.StartupSuspended)
+                {
+                    var replyUrl = entry.IsRequest ? $"{roomUrl}/information/{entry.Id}/reply" : $"/pitch-questions/{entry.Id}/answer";
+                    <form method="post" action="@replyUrl" enctype="@(entry.IsRequest ? "multipart/form-data" : null)" class="stack mt8" asp-antiforgery="true">
+                        @if (!entry.IsRequest) { <input type="hidden" name="requestId" value="@Model.RequestId" /> }
+                        <label for="reply-@entry.Anchor">Your reply</label>
+                        <textarea class="input" id="reply-@entry.Anchor" name="text" rows="2" required="@(!entry.IsRequest)"
+                                  maxlength="@(entry.IsRequest ? BusinessRules.MoreInfoReplyMax : BusinessRules.PitchAnswerMax)"
+                                  placeholder="@(entry.IsRequest ? "Write a reply, attach a file, or both" : "Answer this question")"></textarea>
+                        @if (entry.IsRequest)
+                        {
+                            <label class="small" for="attachment-@entry.Anchor">Attachment · PDF, PPTX or XLSX · up to 10 MB</label>
+                            <input id="attachment-@entry.Anchor" name="file" type="file" accept=".pdf,.pptx,.xlsx" />
+                        }
+                        <div><button class="btn btn-primary btn-sm">Send reply</button></div>
+                    </form>
+                }
+            </article>
+        }
+        @if (Model.CanDecide)
+        {
+            <form method="post" action="@(Model.CanAsk ? roomUrl + "/questions" : roomUrl + "/more-info")" class="stack" asp-antiforgery="true">
+                <label for="request-items">@(Model.CanAsk ? "Ask the founder" : "Request information")</label>
+                <textarea class="input" id="request-items" name="text" rows="2" required aria-describedby="discussion-help"></textarea>
+                <div class="tiny muted" id="discussion-help">
+                    @if (Model.CanAsk) { <div>Questions remaining: @Model.QuestionsLeft · @BusinessRules.PitchQuestionMax characters each.</div> }
+                    else { <div>All @BusinessRules.PitchQuestionsMax questions have been used.</div> }
+                    For text or files, request one item per line (up to @BusinessRules.MoreInfoBatchMax items, @BusinessRules.MoreInfoMax characters each).
+                </div>
+                <div class="row">
+                    @if (Model.CanAsk) { <button class="btn btn-primary btn-sm">Ask question</button> }
+                    <button class="btn btn-outline btn-sm" formaction="@roomUrl/more-info">Request information</button>
+                </div>
+            </form>
+        }
+        <p class="tiny muted mb0">Private to the founder and receiving investor · Never sent to AI.</p>
+    </div>
+</section>

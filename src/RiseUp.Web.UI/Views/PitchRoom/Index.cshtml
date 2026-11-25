@@ -29,21 +29,8 @@
 @if (Model.StartupSuspended) { <div class="notice n-danger" style="margin-bottom:16px">This startup account is suspended. The pitch room is read-only.</div> }
 @if (Model.Status is RequestStatus.Accepted) { <div class="notice n-ok" style="margin-bottom:16px">This pitch was accepted — you are connected. Continue in your <a href="/conversations/@Model.ConversationId">conversation</a>.</div> }
 else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or RequestStatus.Cancelled) { <div class="notice n-warn" style="margin-bottom:16px">This pitch is @Model.Status.ToString()!.ToLowerInvariant().</div> }
-@if (Model.Stats is { } stats)
-{
-    <div class="grid g4" style="margin-bottom:16px">
-        <div class="card kpi"><div class="l">Opened</div><div class="v" style="font-size:18px">@(stats.OpenedAtUtc is DateTime o ? "Yes · " + Ui.Ago(o) : "Not yet")</div></div>
-        <div class="card kpi"><div class="l">Pitch video watched</div><div class="v">@stats.PitchWatch%</div><div class="tiny muted">demo @stats.DemoWatch%</div></div>
-        <div class="card kpi"><div class="l">Deck slides viewed</div><div class="v">@stats.SlidesViewed/@p.Slides.Count</div></div>
-        <div class="card kpi"><div class="l">Documents viewed</div><div class="v">@stats.DocsViewed/@p.Documents.Count</div></div>
-    </div>
-}
 <div class="grid room" style="align-items:start">
     <div class="stack">
-        @if (!Model.IsPreview && (Model.InfoItems.Count > 0 || Model.CanDecide))
-        {
-            <partial name="_RequestedInformation" model="Model" />
-        }
         <div class="card"><div class="card-h"><div class="tabs" style="margin:0;border:0"><button type="button" class="on" data-vtab="pitch">Investor pitch@(p.Pitch is null ? "" : $" · {p.Pitch.Seconds / 60}:{p.Pitch.Seconds % 60:00}")</button><button type="button" data-vtab="demo">Product demo@(p.Demo is null ? "" : $" · {p.Demo.Seconds / 60}:{p.Demo.Seconds % 60:00}")</button></div>@if (Model.ViewerIsInvestor) {<span class="tiny muted">Watching is shared with the founder as pitch analytics</span>}</div>
             <div class="card-b">
                 <div data-vpane="pitch">
@@ -88,19 +75,7 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
             </div></div>
         @if (!Model.IsPreview)
         {
-            <div class="card" id="qa"><div class="card-h"><h3>Questions &amp; answers · @Model.Questions.Count/@BusinessRules.PitchQuestionsMax</h3><span class="tiny muted">Private to this pitch · never read by AI</span></div>
-                <div class="card-b">
-                    @foreach (var q in Model.Questions)
-                    {
-                        <div class="qa"><div class="small"><strong>@q.AskerName</strong> <span class="muted">· @Ui.Ago(q.AtUtc)</span></div><div class="small">@q.Text</div>
-                            @if (q.Answer is not null) { <div class="qa-a small"><strong>@Model.StartupName</strong> <span class="muted">· @Ui.Ago(q.AnsweredAtUtc!.Value)</span><br />@q.Answer</div> }
-                            else if (Model.CanAnswer) { <form method="post" action="/pitch-questions/@q.Id/answer" class="row mt8" style="flex-wrap:nowrap" asp-antiforgery="true"><input type="hidden" name="requestId" value="@Model.RequestId" /><input class="input" name="text" maxlength="600" required placeholder="Answer this question" /><button class="btn btn-dark btn-sm">Answer</button></form> }
-                            else { <div class="tiny muted mt8">Awaiting the founder's answer</div> }</div>
-                    }
-                    @if (Model.Questions.Count == 0) { <p class="small muted">No questions yet.</p> }
-                    @if (Model.CanAsk) { <form method="post" action="/pitch-room/@Model.RequestId/questions" class="row mt8" style="flex-wrap:nowrap" asp-antiforgery="true"><input class="input" name="text" maxlength="300" required placeholder="Ask the founder a question (@Model.QuestionsLeft left)" /><button class="btn btn-dark btn-sm">Ask</button></form> }
-                    else if (Model.ViewerIsInvestor && pending) { <p class="tiny muted">You've used all @BusinessRules.PitchQuestionsMax questions for this pitch.</p> }
-                </div></div>
+            <partial name="_PitchDiscussion" model="Model" />
         }
     </div>
     <div class="stack">
@@ -124,4 +99,13 @@ else if (Model.Status is RequestStatus.Rejected or RequestStatus.Expired or Requ
         @if (Model.ViewerIsInvestor && Model.Status == RequestStatus.Accepted && Model.ConversationId is int cid) { <div class="card card-b"><h3>Next step</h3><a class="btn btn-primary" style="width:100%" href="/conversations/@cid#meetings">Open conversation &amp; propose a meeting</a></div> }
     </div>
 </div>
+@if (Model.Stats is { } stats)
+{
+    <div class="grid g4 mt16">
+        <div class="card kpi"><div class="l">Opened</div><div class="v" style="font-size:18px">@(stats.OpenedAtUtc is DateTime o ? "Yes · " + Ui.Ago(o) : "Not yet")</div></div>
+        <div class="card kpi"><div class="l">Pitch video watched</div><div class="v">@stats.PitchWatch%</div><div class="tiny muted">demo @stats.DemoWatch%</div></div>
+        <div class="card kpi"><div class="l">Deck slides viewed</div><div class="v">@stats.SlidesViewed/@p.Slides.Count</div></div>
+        <div class="card kpi"><div class="l">Documents viewed</div><div class="v">@stats.DocsViewed/@p.Documents.Count</div></div>
+    </div>
+}
 @section Scripts { <script src="~/js/pages/room.js" type="module" asp-append-version="true"></script> }
