@@ -1,6 +1,6 @@
 @model IReadOnlyList<ShortlistItemDto>
 @{ ViewData["Title"] = "Shortlist"; Layout = "_AppLayout"; }
-<partial name="_InvestorTabs" model='"/shortlist"' />
+<partial name="_WorkspaceTabs" model='"/shortlist"' />
 <partial name="_PageHeader" model='("Shortlist", (string?)"Your private deal pipeline. Founders never see stages or notes.")' />
 <div class="row" style="margin-bottom:14px">@foreach (var st in Enum.GetValues<ShortlistStage>()) {<span class="badge b-gray">@st · @Model.Count(x => x.Stage2 == st)</span>}</div>
 <div class="card">

@@ -5,10 +5,7 @@
     var localProfiles = Model.AllMatches.Select(m => new { m.Id, m.Name, detail = m.Subtitle, photo = m.PhotoUrl ?? (investor ? Ui.DefaultStartupLogo : Ui.DefaultAvatar), kind = investor ? "startups" : "investors", href = $"{directory}/{m.Id}", m.Reasons });
     ViewData["Title"] = investor ? "Discover startups" : "Discover investors";
 }
-@if (investor)
-{
-    <partial name="_InvestorTabs" model='"/discover"' />
-}
+<partial name="_WorkspaceTabs" model='"/discover"' />
 <header class="page-h"><div><h1>@ViewData["Title"]</h1><p>Explore verified profiles matched to your @(investor ? "investment preferences" : "startup").</p></div>
     <a class="btn btn-outline" href="@directory">Browse directory</a></header>
 <form method="get" action="/discover" class="match-filter card card-b">

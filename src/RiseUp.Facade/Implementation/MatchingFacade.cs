@@ -49,9 +49,10 @@ public sealed class MatchingFacade(IStartupRepository startups, IInvestorReposit
         var me = await startups.GetByIdAsync(actor.StartupId.Value, ct);
         if (me is null) return new MatchList("none", false, []);
         var includeRange = me.IsActiveVerifiedAt(clock.UtcNow);   // FR-039: ranges visible to verified startups only
+        var connected = (await connections.ListStartupConnectionsAsync(me.Id, ct)).Select(c => c.InvestorId).ToHashSet();
         var pool = new List<InvestorProfile>();
         foreach (var i in await investors.ListActiveVerifiedAsync(500, ct))
-            if (await connections.GetBlockAsync(me.Id, i.Id, ct) is null) pool.Add(i);
+            if (!connected.Contains(i.Id) && await connections.GetBlockAsync(me.Id, i.Id, ct) is null) pool.Add(i);
         var (scores, engine, fallback) = await ranker.RankAsync(ToProfile(me), pool.Select(i => ToProfile(i, includeRange)).ToList(), ct);
         var byId = pool.ToDictionary(i => i.Id);
         var ranked = scores.Where(s => byId.ContainsKey(s.CandidateId)).Take(take).ToList();
