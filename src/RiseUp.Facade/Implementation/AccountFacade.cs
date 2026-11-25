@@ -144,8 +144,11 @@ public sealed class AccountFacade(
         var member = await team.FindByUsernameAsync((username ?? "").Trim(), ct);
         if (member is null || member.Status != TeamAccountStatus.Active || !hasher.Verify(member.PasswordHash, password ?? ""))
             return Result.Failure<SignedInUser>(ErrorCodes.InvalidCredentials, "Username or password is incorrect.");
-        return Result.Success(new SignedInUser(null, member.Id, member.FullName, PrimaryRole.TeamMember, AdminRole.None, member.StartupId, null, false));
+        return Result.Success(new SignedInUser(null, member.Id, member.FullName, PrimaryRole.TeamMember, AdminRole.None, member.StartupId, null, false, member.SessionVersion));
     }
+
+    public Task<bool> IsTeamSessionCurrentAsync(int memberId, int version, CancellationToken ct = default) =>
+        team.HasActiveSessionAsync(memberId, version, ct);
 
     public async Task<Result> VerifyMfaAsync(int accountId, string code, CancellationToken ct = default)
     {
@@ -204,7 +207,7 @@ public sealed class AccountFacade(
                 wallet.WelcomeBalance = 0; wallet.PurchasedBalance = 0;
             }
             foreach (var p in await posts.ListByStartupAsync(sid, false, ct)) { var tracked = await posts.GetByIdAsync(p.Id, ct); if (tracked is not null) tracked.IsHidden = true; }
-            foreach (var t in await team.ListForStartupAsync(sid, ct)) if (t.Status == TeamAccountStatus.Active) t.Status = TeamAccountStatus.Deactivated;
+            foreach (var t in await team.ListForStartupAsync(sid, readOnly: false, ct)) if (t.Status == TeamAccountStatus.Active) t.Status = TeamAccountStatus.Deactivated;
             await promotions.EndAllForStartupAsync(sid, ct);
             startup.IsDeleted = true; startup.Name = "Deleted startup"; startup.Description = ""; startup.Tagline = "";
         }

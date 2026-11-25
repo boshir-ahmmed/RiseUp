@@ -413,6 +413,89 @@ public class BusinessRuleTests
     }
 
     [Fact]
+    public async Task OwnerEditsTeamIdentityPasswordAndExistingGroupAccessAtomically()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var owner = await h.Founder();
+        var other = await h.SignIn("hello@takaledger.example");
+        var group = await h.Db(db => db.Conversations.Select(c => c.Id).SingleAsync());
+        var form = new CreateTeamAccountRequest("Sam Karim", "Analyst", "sam.team", "sam@demo.test", null,
+            "FirstPassword123", TeamGroupMode.Selected, [group]);
+        Task<Result<SignedInUser>> Login(string user, string password) =>
+            h.Run<IAccountFacade, Result<SignedInUser>>(f => f.SignInTeamMemberAsync(user, password));
+        var created = await h.Run<ITeamAccountFacade, Result<OneTimeCredential>>(f => f.CreateAsync(owner, form));
+        Assert.True(created.IsSuccess, created.Error.Message);
+        var id = created.Value!.TeamAccountId;
+        Assert.Null(created.Value.TemporaryPassword);
+        Assert.True((await Login(form.Username, form.Password!)).IsSuccess);
+        var member = new Actor(null, form.FullName, PrimaryRole.TeamMember, StartupId: owner.StartupId, TeamAccountId: id);
+        Task<bool> CanRead() => h.Run<IConversationFacade, bool>(f => f.CanAccessAsync(member, group));
+        Task<Result> Edit(Actor actor, CreateTeamAccountRequest input) => h.Run<ITeamAccountFacade, Result>(f => f.UpdateAsync(actor, id, input));
+        Assert.True(await CanRead());
+        Assert.Equal(ErrorCodes.Forbidden, (await Edit(other, form)).Error.Code);
+        Assert.Equal(ErrorCodes.Validation, (await Edit(owner, form with { Password = "short" })).Error.Code);
+        Assert.Equal(ErrorCodes.Validation, (await Edit(owner, form with { GroupIds = [int.MaxValue] })).Error.Code);
+        var changes = form with { FullName = "Sam Hossain", Username = "sam.ops", Email = "sam.ops@demo.test",
+            Designation = "Operations", LinkedInUrl = "https://www.linkedin.com/in/sam", Password = null, GroupMode = TeamGroupMode.AllExcept };
+        Assert.True((await Edit(owner, changes)).IsSuccess);
+        Assert.False(await CanRead());
+        Assert.False((await Login(form.Username, form.Password!)).IsSuccess);
+        var signedIn = (await Login(changes.Username, form.Password!)).Value!;
+        Task<bool> CurrentSession() => h.Run<IAccountFacade, bool>(f => f.IsTeamSessionCurrentAsync(id, signedIn.TeamSessionVersion));
+        Assert.True(await CurrentSession());
+        Assert.True((await Edit(owner, changes with { Password = "Replacement12345", GroupMode = TeamGroupMode.All })).IsSuccess);
+        Assert.False((await Login(changes.Username, form.Password!)).IsSuccess);
+        Assert.False(await CurrentSession());
+        Assert.True((await Login(changes.Username, "Replacement12345")).IsSuccess);
+        Assert.True(await CanRead());
+        var conflict = await Edit(owner, changes with { Email = "sadia@padmavc.example", Password = "RejectedPassword123" });
+        Assert.True(conflict.IsFailure);
+        Assert.True(await CanRead());
+        Assert.True((await Login(changes.Username, "Replacement12345")).IsSuccess);
+    }
+
+    [Fact]
+    public async Task NewGroupsRespectPolicyAndReactivationRestoresEditedExclusions()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var owner = await h.Founder();
+        var oldGroup = await h.Db(db => db.Conversations.Select(c => c.Id).SingleAsync());
+        var rafi = await h.SignIn("rafi.ops");
+        async Task<Actor> Create(string name, TeamGroupMode mode)
+        {
+            var request = new CreateTeamAccountRequest(name, "Analyst", name, $"{name}@demo.test", null, GroupMode: mode, GroupIds: [oldGroup]);
+            var r = await h.Run<ITeamAccountFacade, Result<OneTimeCredential>>(f => f.CreateAsync(owner, request));
+            return new Actor(null, name, PrimaryRole.TeamMember, StartupId: owner.StartupId, TeamAccountId: r.Value!.TeamAccountId);
+        }
+        var all = await Create("all.member", TeamGroupMode.All);
+        var except = await Create("except.member", TeamGroupMode.AllExcept);
+        Task<bool> Read(Actor a, int id) => h.Run<IConversationFacade, bool>(f => f.CanAccessAsync(a, id));
+        Assert.True(await Read(all, oldGroup));
+        Assert.False(await Read(except, oldGroup));
+        // An owner removing an "all groups" member inside a chat makes that group an exception.
+        await h.Run<IConversationFacade, Result>(f => f.SetTeamMembersAsync(owner, oldGroup, [rafi.TeamAccountId!.Value]));
+        var list = await h.Run<ITeamAccountFacade, IReadOnlyList<TeamAccountDto>>(f => f.ListAsync(owner));
+        Assert.Equal(TeamGroupMode.AllExcept, list.Single(t => t.Id == all.TeamAccountId).GroupMode);
+        var id = except.TeamAccountId!.Value;
+        await h.Run<ITeamAccountFacade, Result>(f => f.DeactivateAsync(owner, id));
+        var invitation = await h.Db(db => db.ConnectionRequests.Where(r => r.IdempotencyKey == "seed:r3").Select(r => r.Id).SingleAsync());
+        var accepted = await h.Run<IConnectionRequestFacade, Result>(f => f.RespondAsync(owner, invitation, true, null));
+        Assert.True(accepted.IsSuccess, accepted.Error.Message);
+        var newGroup = await h.Db(db => db.Conversations.Where(c => c.Id != oldGroup).Select(c => c.Id).SingleAsync());
+        Assert.True(await Read(all, newGroup));
+        Assert.False(await Read(all, oldGroup));
+        Assert.False(await Read(rafi, newGroup));
+        Assert.False(await Read(except, newGroup));
+        var edited = await h.Run<ITeamAccountFacade, Result>(f => f.UpdateAsync(owner, id,
+            new("Edited", "Role", "except.member", "except.member@demo.test", null, GroupMode: TeamGroupMode.AllExcept, GroupIds: [newGroup])));
+        Assert.True(edited.IsSuccess);
+        Assert.False(await Read(except, oldGroup));
+        await h.Run<ITeamAccountFacade, Result>(f => f.ReactivateAsync(owner, id, true));
+        Assert.True(await Read(except, oldGroup));
+        Assert.False(await Read(except, newGroup));
+    }
+
+    [Fact]
     public async Task T21_TeamMember_CannotUseOwnerActions()
     {
         await using var h = await TestHost.CreateAsync();

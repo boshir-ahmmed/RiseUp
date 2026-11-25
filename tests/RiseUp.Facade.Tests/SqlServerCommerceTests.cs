@@ -109,7 +109,16 @@ public class SqlServerCommerceTests
             sent.InfoRequestMessage = "Quarterly revenue";
             sent.InfoRequestedAtUtc = sent.SentAtUtc;
             await db.SaveChangesAsync();
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO TeamAccounts (StartupId, Username, Email, FullName, Designation, PasswordHash,
+                    Status, PreviousConversationIds, CreatedAtUtc)
+                VALUES ({startup.Id}, 'legacy.member', 'legacy@integration.example', 'Legacy Member', 'Analyst',
+                    'test-hash', 2, '17,24', SYSUTCDATETIME())
+                """);
             await db.Database.MigrateAsync();
+            var legacyMember = await db.TeamAccounts.AsNoTracking().SingleAsync();
+            Assert.Equal(TeamGroupMode.Selected, legacyMember.GroupMode);
+            Assert.Equal("17,24", legacyMember.PreviousConversationIds);
             var item = await db.PitchInfoItems.AsNoTracking().SingleAsync();
             Assert.Equal(sent.InfoRequestMessage, item.Prompt);
             Assert.Equal(sent.InfoRequestedAtUtc, item.CreatedAtUtc);

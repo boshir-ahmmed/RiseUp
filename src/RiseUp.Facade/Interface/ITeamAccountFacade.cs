@@ -14,6 +14,7 @@ public interface ITeamAccountFacade
 {
     Task<IReadOnlyList<TeamAccountDto>> ListAsync(Actor owner, CancellationToken ct = default);
     Task<Result<OneTimeCredential>> CreateAsync(Actor owner, CreateTeamAccountRequest request, CancellationToken ct = default);
+    Task<Result> UpdateAsync(Actor owner, int id, CreateTeamAccountRequest request, CancellationToken ct = default);
     Task<Result<OneTimeCredential>> ResetPasswordAsync(Actor owner, int teamAccountId, CancellationToken ct = default);
     Task<Result> DeactivateAsync(Actor owner, int teamAccountId, CancellationToken ct = default);
     Task<Result> ReactivateAsync(Actor owner, int teamAccountId, bool restorePreviousConversations, CancellationToken ct = default);

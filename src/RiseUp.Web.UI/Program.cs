@@ -46,6 +46,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.Cookie.SameSite = SameSiteMode.Lax;
         o.ExpireTimeSpan = TimeSpan.FromHours(8);
         o.SlidingExpiration = true;
+        o.Events.OnValidatePrincipal = TeamSession.ValidateCookieAsync;
     });
 
 builder.Services.AddAuthorization(o =>

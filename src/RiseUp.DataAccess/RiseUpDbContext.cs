@@ -83,6 +83,11 @@ public class RiseUpDbContext(DbContextOptions<RiseUpDbContext> options, IClock c
         var profileColumns = await Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('MemberProfiles')").ToListAsync();
         if (!profileColumns.Contains("LogoMediaId"))
             await Database.ExecuteSqlRawAsync("ALTER TABLE MemberProfiles ADD COLUMN LogoMediaId INTEGER NULL");
+        var teamColumns = await Database.SqlQueryRaw<string>("SELECT name AS Value FROM pragma_table_info('TeamAccounts')").ToListAsync();
+        if (!teamColumns.Contains("GroupMode"))
+            await Database.ExecuteSqlRawAsync("ALTER TABLE TeamAccounts ADD COLUMN GroupMode INTEGER NOT NULL DEFAULT 0");
+        if (!teamColumns.Contains("SessionVersion"))
+            await Database.ExecuteSqlRawAsync("ALTER TABLE TeamAccounts ADD COLUMN SessionVersion INTEGER NOT NULL DEFAULT 0");
         var hasContacts = await Database.SqlQueryRaw<int>(
             "SELECT COUNT(*) AS Value FROM sqlite_master WHERE type = 'table' AND name = 'AccountContacts'").SingleAsync();
         if (hasContacts == 0)

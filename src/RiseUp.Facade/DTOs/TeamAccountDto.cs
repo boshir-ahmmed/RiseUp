@@ -10,4 +10,5 @@ using RiseUp.Framework.Time;
 
 namespace RiseUp.Facade.TeamAccounts;
 
-public sealed record TeamAccountDto(int Id, string FullName, string Designation, string Username, string Email, TeamAccountStatus Status, IReadOnlyList<int> ConversationIds);
+public sealed record TeamAccountDto(int Id, string FullName, string Designation, string Username, string Email, TeamAccountStatus Status, IReadOnlyList<int> ConversationIds,
+    string? LinkedInUrl, TeamGroupMode GroupMode, IReadOnlyList<int> GroupIds);

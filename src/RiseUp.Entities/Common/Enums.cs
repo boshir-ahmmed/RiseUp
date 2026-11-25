@@ -7,6 +7,7 @@ public enum FundingStage { PreSeed = 1, Seed = 2, SeriesA = 3, SeriesB = 4 }
 public enum RequestType { Pitch = 1, Invitation = 2 }
 public enum RequestStatus { Pending = 0, Accepted = 1, Rejected = 2, Expired = 3, Cancelled = 4 }
 public enum TokenBucket { Welcome = 1, Purchased = 2 }
+public enum TeamGroupMode { Selected = 0, All = 1, AllExcept = 2 }
 public enum TeamAccountStatus { Active = 1, Deactivated = 2, Deleted = 3 }
 public enum MemberKind { Owner = 1, Investor = 2, Team = 3 }
 public enum PostCategory { Announcements = 1, Milestones = 2, Products = 3, Achievements = 4, Funding = 5, Hiring = 6, Reel = 7 }

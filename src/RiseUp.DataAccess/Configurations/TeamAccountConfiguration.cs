@@ -16,7 +16,7 @@ public sealed class TeamAccountConfiguration : IEntityTypeConfiguration<TeamAcco
         b.Property(x => x.FullName).HasMaxLength(150).IsRequired();
         b.Property(x => x.Designation).HasMaxLength(100).IsRequired();
         b.Property(x => x.PasswordHash).HasMaxLength(512).IsRequired();
-        b.Property(x => x.PreviousConversationIds).HasMaxLength(500);
+        b.Property(x => x.GroupMode).HasDefaultValue(RiseUp.Entities.Common.TeamGroupMode.Selected);
         b.HasIndex(x => new { x.StartupId, x.Status });
         b.HasOne<Startup>().WithMany().HasForeignKey(x => x.StartupId).OnDelete(DeleteBehavior.Cascade);
     }

@@ -12,4 +12,4 @@ namespace RiseUp.Facade.TeamAccounts;
 
 
 /// <summary>The plaintext password exists only in this response and is never stored, logged or emailed (FR-046).</summary>
-public sealed record OneTimeCredential(int TeamAccountId, string Username, string TemporaryPassword);
+public sealed record OneTimeCredential(int TeamAccountId, string Username, string? TemporaryPassword);

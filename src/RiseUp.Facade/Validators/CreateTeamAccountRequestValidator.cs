@@ -17,7 +17,10 @@ public sealed class CreateTeamAccountRequestValidator : AbstractValidator<Create
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Designation).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Username).NotEmpty().Matches("^[a-z0-9._]{3,30}$").WithMessage("Username: 3–30 lowercase letters, digits, dots or underscores.");
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.GroupMode).IsInEnum();
+        RuleFor(x => x.Password).Must(PasswordPolicy.IsValid).WithMessage(PasswordPolicy.Requirements)
+            .MaximumLength(100).When(x => !string.IsNullOrEmpty(x.Password));
         RuleFor(x => x.LinkedInUrl).MaximumLength(200);
     }
 }
