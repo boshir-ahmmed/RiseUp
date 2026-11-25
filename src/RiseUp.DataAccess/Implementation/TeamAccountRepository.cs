@@ -29,7 +29,11 @@ public sealed class TeamAccountRepository(RiseUpDbContext db) : Repository<TeamA
     {
         var members = Set.Where(t => t.Status != TeamAccountStatus.Deleted);
         if (!identifier.Contains('@')) return members.FirstOrDefaultAsync(t => t.Username == identifier, ct);
-        var normalizedEmail = identifier.ToUpperInvariant();
-        return members.FirstOrDefaultAsync(t => t.Email.Trim().ToUpper() == normalizedEmail, ct);
+
+        // AccountContacts holds the indexed, normalized email for each user (1) or team member (2).
+        var ownerIds = Db.Database.SqlQuery<int>($"""
+            SELECT OwnerId AS Value FROM AccountContacts WHERE OwnerKind = 2 AND EmailKey = UPPER({identifier})
+            """);
+        return members.FirstOrDefaultAsync(t => ownerIds.Contains(t.Id), ct);
     }
 }
