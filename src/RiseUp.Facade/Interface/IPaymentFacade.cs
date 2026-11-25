@@ -15,6 +15,8 @@ public interface IPaymentFacade
     Task<IReadOnlyList<PackageDto>> ListPackagesAsync(CancellationToken ct = default);
     PaymentMode Mode { get; }
     Task<Result<CheckoutDto>> CreateOrderAsync(Actor actor, int packageId, BillingAddress? billing = null, CancellationToken ct = default);
+    Task<OrderDto?> GetSandboxOrderAsync(Actor actor, string orderNumber, CancellationToken ct = default);
+    Task<Result> CompleteSandboxAsync(Actor actor, string orderNumber, string? method, string? outcome, CancellationToken ct = default);
     Task<Result> ConfirmHostedAsync(string orderNumber, string? validationId, CancellationToken ct = default);
     Task<IReadOnlyList<string>> DueForReconciliationAsync(CancellationToken ct = default);
     /// <summary>Server-to-server confirmation. Payload: "orderNumber|providerTransactionId|status". Idempotent.</summary>

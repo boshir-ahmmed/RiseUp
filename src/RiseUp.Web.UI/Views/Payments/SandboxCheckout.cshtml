@@ -1,13 +1,60 @@
-@model string
-@{ ViewData["Title"] = "Sandbox checkout"; }
-<section class="section" style="padding-top:48px"><div class="container" style="max-width:520px">
-    <form class="card mk-card card-b stack" method="post" action="/wallet/sandbox-checkout/@Model" asp-antiforgery="true">
-        <h1 style="font-size:24px">Sandbox checkout</h1>
-        <div class="notice n-warn small">SANDBOX ADAPTER — development only. It cannot be enabled in Production.</div>
-        <p class="small">Order <code>@Model</code>. Choose what the gateway does:</p>
-        <button class="btn btn-primary" name="outcome" value="paid">Pay with bKash (sandbox) — signed webhook</button>
-        <button class="btn btn-outline" name="outcome" value="redirect-only">Browser success redirect only (credits nothing)</button>
-        <button class="btn btn-outline" name="outcome" value="fail">Payment fails</button>
-        <button class="btn btn-outline" name="outcome" value="tampered">Tampered webhook signature</button>
-    </form>
-</div></section>
+@model OrderDto
+@{
+    ViewData["Title"] = "Demo checkout";
+    ViewData["HideFooter"] = true;
+    var cards = Context.Request.Query["channel"] == "cards";
+    var methods = cards ? SandboxPaymentMethods.Cards : SandboxPaymentMethods.MobileBanking;
+    var amount = Model.PriceBdt.ToString("#,##0.##");
+    var checkout = Url.Action("SandboxCheckout", "Payments", new { orderNumber = Model.OrderNumber });
+    var wallet = Url.Action("Wallet", "Workspace", new { order = Model.OrderNumber }) + "#orders";
+}
+<div class="demo-checkout">
+    <a class="checkout-back" href="@wallet"><span aria-hidden="true">←</span> Back to wallet</a>
+    <div class="checkout-sheet">
+        <section class="checkout-summary" aria-labelledby="checkout-title">
+            <h1 id="checkout-title">Checkout</h1>
+            <div class="checkout-price"><span>Total payable</span><strong><small>BDT</small> @amount</strong></div>
+            <dl class="checkout-invoice">
+                <div><dt>Purchase</dt><dd>@Model.Tokens RiseUp credits</dd></div>
+                <div><dt>Order number</dt><dd><code>@Model.OrderNumber</code></dd></div>
+            </dl>
+            <div class="checkout-demo"><partial name="_Icon" model='"shield"' /><div><strong>Demo checkout</strong><span>No real money moves. Use the test payment details provided.</span></div></div>
+        </section>
+        <section class="checkout-methods" aria-labelledby="method-title">
+            <h2 id="method-title">Payment method</h2>
+            <nav class="checkout-channels" aria-label="Payment categories">
+                <a href="@checkout" aria-current="@(!cards ? "page" : null)">Mobile banking</a>
+                <a href="@(checkout + "?channel=cards")" aria-current="@(cards ? "page" : null)">Cards</a>
+            </nav>
+            <form action="@checkout" method="post" asp-antiforgery="true">
+                <fieldset class="checkout-picker">
+                    <legend>@(cards ? "Choose a test card" : "Choose a provider")</legend>
+                    <div class="checkout-options">
+                        @foreach (var method in methods)
+                        {
+                            var key = method.ToLowerInvariant().Replace(" ", "-");
+                            <label class="checkout-option" data-provider="@key">
+                                <input type="radio" name="method" value="@method" checked="@(method == methods[0])" required />
+                                <span>@method</span>
+                                @if (cards) { <small>•••• @(method switch { "Visa" => "4242", "Mastercard" => "4444", _ => "1005" })</small> }
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+                @if (cards)
+                {
+                    <div class="checkout-instrument"><div><strong>Test cardholder</strong><span>RiseUp Demo</span></div><b>Demo card</b></div>
+                }
+                else
+                {
+                    <div class="checkout-instrument checkout-wallet"><div><strong>Demo wallet</strong><span>Ready to use</span></div><b>•••• 2034</b></div>
+                    <div class="checkout-instrument checkout-qr"><img src="~/images/checkout/demo-qr.png" width="96" height="96" alt="Demo QR code containing a test message" /><div><strong>Bangla QR demo</strong><span>Scan to see the test message, or use the button below to simulate payment.</span></div></div>
+                }
+                <button type="submit" class="btn btn-primary checkout-pay" name="outcome" value="paid">Pay BDT @amount <span aria-hidden="true">→</span></button>
+                <details class="checkout-tests"><summary>Other test outcomes</summary>
+                    <div><button type="submit" name="outcome" value="fail">Decline payment</button><button type="submit" name="outcome" value="redirect-only">Return without confirmation</button><button type="submit" name="outcome" value="tampered">Send invalid confirmation</button></div>
+                </details>
+            </form>
+        </section>
+    </div>
+</div>

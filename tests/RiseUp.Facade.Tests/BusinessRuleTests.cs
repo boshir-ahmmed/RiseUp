@@ -713,6 +713,48 @@ public class BusinessRuleTests
     }
 
     [Fact]
+    public async Task SandboxCheckoutScopesOrdersAndRecordsOnlyConfirmedMethods()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var founder = await h.Founder();
+        var other = await h.PendingFounder();
+        var pkg = (await h.Run<IPaymentFacade, IReadOnlyList<PackageDto>>(f => f.ListPackagesAsync())).First();
+        async Task<string> Create() =>
+            (await h.Run<IPaymentFacade, Result<CheckoutDto>>(f => f.CreateOrderAsync(founder, pkg.Id))).Value!.OrderNumber;
+        Task<Result> Submit(Actor who, string number, string method, string outcome) =>
+            h.Run<IPaymentFacade, Result>(f => f.CompleteSandboxAsync(who, number, method, outcome));
+        Task<OrderDto?> Get(Actor who, string number) =>
+            h.Run<IPaymentFacade, OrderDto?>(f => f.GetSandboxOrderAsync(who, number));
+
+        var before = await Wallet(h, founder.StartupId!.Value);
+        var order = await Create();
+        Assert.Null(await Get(other, order));
+        Assert.Equal(ErrorCodes.NotFound, (await Submit(other, order, "Nagad", "paid")).Error.Code);
+        Assert.Equal(ErrorCodes.Validation, (await Submit(founder, order, "Unknown", "paid")).Error.Code);
+        Assert.Equal(ErrorCodes.Validation, (await Submit(founder, order, "Visa", "unknown")).Error.Code);
+        Assert.True((await Submit(founder, order, "Upay", "redirect-only")).IsSuccess);
+        Assert.Equal(ErrorCodes.InvalidSignature, (await Submit(founder, order, "Rocket", "tampered")).Error.Code);
+        Assert.Equal(PaymentStatus.Pending, (await Get(founder, order))!.Status);
+        Assert.True((await Submit(founder, order, "bKash", "fail")).IsFailure);
+        Assert.Equal(PaymentStatus.Failed, (await Get(founder, order))!.Status);
+        Assert.True((await Submit(founder, order, "bKash", "paid")).IsFailure);
+        Assert.Equal(before, await Wallet(h, founder.StartupId.Value));
+
+        string[] methods = ["bKash", "Nagad", "Rocket", "Upay", "Bangla QR", "Visa", "Mastercard", "American Express"];
+        foreach (var method in methods)
+        {
+            order = await Create();
+            Assert.True((await Submit(founder, order, method, "paid")).IsSuccess);
+            var receipt = await Get(founder, order);
+            Assert.Equal(PaymentStatus.Paid, receipt!.Status);
+            Assert.Equal($"Demo · {method}", receipt.Method);
+            Assert.Equal(pkg.PriceBdt, receipt.PriceBdt);
+            Assert.True((await Submit(founder, order, method, "paid")).IsFailure);
+        }
+        Assert.Equal((before.Welcome, before.Purchased + pkg.Tokens * methods.Length), await Wallet(h, founder.StartupId.Value));
+    }
+
+    [Fact]
     public async Task T29_AdminRoles_CannotUseEachOthersTools_AndRequire2FA()
     {
         await using var h = await TestHost.CreateAsync();

@@ -54,7 +54,37 @@ public sealed class PaymentFacade(IPaymentRepository payments, IWalletRepository
         }
     }
 
-    public async Task<Result> HandleWebhookAsync(string payload, string signature, CancellationToken ct = default)
+    public async Task<OrderDto?> GetSandboxOrderAsync(Actor actor, string orderNumber, CancellationToken ct = default)
+    {
+        if (Mode != PaymentMode.Simulator || !actor.IsFounder || actor.StartupId is not int startupId ||
+            !orderNumber.StartsWith(OrderPrefix, StringComparison.Ordinal)) return null;
+        var order = await payments.GetByOrderNumberAsync(orderNumber, ct);
+        if (order is null || order.StartupId != startupId) return null;
+        var startup = await startups.GetByIdAsync(startupId, ct);
+        return startup is { IsDeleted: false } && startup.OwnerAccountId == actor.AccountId ? ToOrderDto(order) : null;
+    }
+
+    public async Task<Result> CompleteSandboxAsync(Actor actor, string orderNumber, string? method, string? outcome, CancellationToken ct = default)
+    {
+        var order = await GetSandboxOrderAsync(actor, orderNumber, ct);
+        if (order is null) return Result.Failure(Guard.NotFound("Order"));
+        if (order.Status != PaymentStatus.Pending || order.Credited)
+            return Result.Failure(ErrorCodes.Conflict, "This order has already been processed. Check its status in your wallet.");
+        if (!SandboxPaymentMethods.Supports(method) || outcome is not ("paid" or "fail" or "redirect-only" or "tampered"))
+            return Result.Failure(ErrorCodes.Validation, "Choose an available demo payment method and result.");
+        if (outcome == "redirect-only")
+            return Result.Success("Returned without gateway confirmation. Your order is pending.");
+
+        var status = outcome == "fail" ? "FAILED" : "PAID";
+        var payload = $"{order.OrderNumber}|SBX-{Guid.NewGuid():N}|{status}";
+        var signature = outcome == "tampered" ? "invalid" : gateway.CreateSandboxSignature(payload) ?? "";
+        return await ApplySandboxWebhookAsync(payload, signature, $"Demo · {method}", ct);
+    }
+
+    public Task<Result> HandleWebhookAsync(string payload, string signature, CancellationToken ct = default) =>
+        ApplySandboxWebhookAsync(payload, signature, "Gateway confirmation", ct);
+
+    private async Task<Result> ApplySandboxWebhookAsync(string payload, string signature, string method, CancellationToken ct)
     {
         if (Mode != PaymentMode.Simulator) return Result.Failure(ErrorCodes.InvalidSignature, "Simulator callbacks are disabled.");
         var payloadHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload ?? "")));
@@ -72,10 +102,11 @@ public sealed class PaymentFacade(IPaymentRepository payments, IWalletRepository
         {
             if (order.CreditedAtUtc is null) order.Status = PaymentStatus.Failed;
             await payments.AddEventAsync(new PaymentProviderEvent { OrderId = order.Id, ProviderTransactionId = txn, SignatureValid = true, PayloadHash = payloadHash, Result = $"Gateway reported {status}" }, ct);
-            await uow.SaveChangesAsync(ct);
+            try { await uow.SaveChangesAsync(ct); }
+            catch (PersistenceConflictException) { return Result.Failure(ErrorCodes.Conflict, "Order changed. Check its status in your wallet."); }
             return Result.Failure(ErrorCodes.Validation, "Payment was not successful. Nothing credited.");
         }
-        return await CreditAsync(order, txn, payloadHash, "Gateway confirmation", ct);
+        return await CreditAsync(order, txn, payloadHash, method, ct);
     }
 
     public async Task<Result> ReconcileAsync(Actor admin, string orderNumber, string providerTransactionId, string reason, CancellationToken ct = default)
@@ -170,11 +201,14 @@ public sealed class PaymentFacade(IPaymentRepository payments, IWalletRepository
         return Result.Success($"Payment verified. {order.TokensSnapshot} purchased credits added.");
     }
 
+    private static OrderDto ToOrderDto(PaymentOrder o) => new(o.OrderNumber, o.StartupId, o.TokensSnapshot, o.PriceBdtSnapshot,
+        o.Status, o.ProviderTransactionId, o.CreditedAtUtc != null, o.CreatedAtUtc, o.Method);
+
     public async Task<IReadOnlyList<OrderDto>> ListOrdersAsync(Actor actor, CancellationToken ct = default)
     {
         int? scope = actor.IsAdmin(AdminRole.FinanceAdmin) ? null : actor.IsFounder ? actor.StartupId : -1;
         if (scope == -1 || (actor.IsFounder && scope is null)) return [];
         return (await payments.ListOrdersAsync(scope, 100, ct))
-            .Select(o => new OrderDto(o.OrderNumber, o.StartupId, o.TokensSnapshot, o.PriceBdtSnapshot, o.Status, o.ProviderTransactionId, o.CreditedAtUtc is not null, o.CreatedAtUtc)).ToList();
+            .Select(ToOrderDto).ToList();
     }
 }
