@@ -1,10 +1,11 @@
 using System.Text.RegularExpressions;
 using RiseUp.Entities.Abstractions;
+using RiseUp.Entities.Governance;
 using RiseUp.Facade.Common;
 
 namespace RiseUp.Facade.Notifications;
 
-public sealed class NotificationFacade(IGovernanceRepository governance, IUnitOfWork uow) : INotificationFacade
+public sealed class NotificationFacade(IGovernanceRepository governance) : INotificationFacade
 {
     public async Task<IReadOnlyList<NotificationDto>> ListAsync(Actor actor, CancellationToken ct = default) =>
         (await governance.ListNotificationsAsync(actor.AccountId, actor.TeamAccountId, 100, ct)).Select(n => new NotificationDto(n.Id, DisplayText(n.Text, n.Link), n.Link, n.IsRead, n.CreatedAtUtc)).ToList();
@@ -19,15 +20,15 @@ public sealed class NotificationFacade(IGovernanceRepository governance, IUnitOf
         _ => text,
     };
 
-    public Task<(int Alert, int Message)> LatestIdsAsync(Actor actor, CancellationToken ct = default) =>
-        governance.LatestNotificationIdsAsync(actor.AccountId, actor.TeamAccountId, ct);
+    public Task<InboxState> GetInboxAsync(Actor actor, CancellationToken ct = default) =>
+        governance.GetInboxAsync(actor.AccountId, actor.TeamAccountId, ct);
 
-    public async Task<int> UnreadCountAsync(Actor actor, CancellationToken ct = default) =>
-        (await governance.ListNotificationsAsync(actor.AccountId, actor.TeamAccountId, 100, ct)).Count(n => !n.IsRead);
+    public Task<int> UnreadMessageWatermarkAsync(Actor actor, int conversationId, CancellationToken ct = default) =>
+        governance.UnreadMessageWatermarkAsync(actor.AccountId, actor.TeamAccountId, conversationId, ct);
 
-    public async Task MarkAllReadAsync(Actor actor, CancellationToken ct = default)
-    {
-        foreach (var n in await governance.ListNotificationsAsync(actor.AccountId, actor.TeamAccountId, 100, ct)) n.IsRead = true;
-        await uow.SaveChangesAsync(ct);
-    }
+    public Task MarkMessagesReadAsync(Actor actor, int conversationId, int throughId, CancellationToken ct = default) =>
+        governance.MarkMessagesReadAsync(actor.AccountId, actor.TeamAccountId, conversationId, throughId, ct);
+
+    public Task MarkAlertsReadAsync(Actor actor, int throughId, CancellationToken ct = default) =>
+        governance.MarkAlertsReadAsync(actor.AccountId, actor.TeamAccountId, throughId, ct);
 }

@@ -58,7 +58,7 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
     {
         var id = await IdentityAsync(actor, ct);
         var p = await LoadAsync(actor, false, ct);
-        var unread = (await governance.ListNotificationsAsync(actor.AccountId, actor.TeamAccountId, 100, ct)).Count(n => !n.IsRead);
+        var inbox = await governance.GetInboxAsync(actor.AccountId, actor.TeamAccountId, ct);
         var stats = new List<ShellStat>(); var badge = 0;
         if (actor.IsFounder && actor.StartupId is int sid && await startups.GetByIdAsync(sid, ct) is { } s)
         {
@@ -74,7 +74,7 @@ public sealed partial class ProfileFacade(IProfileRepository profiles, IUserAcco
         }
         var pending = actor.AccountId is int aid && await profiles.GetPendingNameRequestAsync(aid, ct) is not null;
         return new ShellDto(id.Name, string.IsNullOrWhiteSpace(p?.Headline) ? id.DefaultHeadline : p!.Headline, UrlRewrite.Media(p?.PhotoMediaId) is { Length: > 0 } u ? u : null,
-            UrlRewrite.Media(p?.CoverMediaId) is { Length: > 0 } c ? c : null, id.Color, id.Verified, pending, unread, badge, stats);
+            UrlRewrite.Media(p?.CoverMediaId) is { Length: > 0 } c ? c : null, id.Color, id.Verified, pending, inbox.UnreadAlerts, inbox.UnreadMessages, badge, stats);
     }
 
     public async Task<Result<MyProfileDto>> GetMineAsync(Actor actor, CancellationToken ct = default)

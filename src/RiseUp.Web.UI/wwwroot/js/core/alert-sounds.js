@@ -1,18 +1,18 @@
-// Only recipient-scoped sequence numbers travel to the browser. Muting a chat suppresses its notification at creation.
+// Unread badges work even when sound is off or the browser blocks audio.
 const settings = document.querySelector('[data-sound-account]');
-if (settings && window.AudioContext) startSounds(settings);
+if (settings) startInbox(settings);
 
-function startSounds(panel) {
+function startInbox(panel) {
   const prefix = 'riseup.sounds.' + panel.dataset.soundAccount + '.';
   const switches = [...panel.querySelectorAll('[data-tone]')];
-  let audio, previous, checking = false, stopped = false;
+  let audio, previous, checking = false, pending = false, stopped = false;
   const read = key => { try { return localStorage.getItem(prefix + key); } catch { return null; } };
   const write = (key, value) => { try { localStorage.setItem(prefix + key, value); } catch {} };
   function sync() {
     for (const input of switches) input.checked = read(input.dataset.tone) !== 'off';
   }
   function unlock() {
-    if (!switches.some(input => input.checked)) return;
+    if (!window.AudioContext || !switches.some(input => input.checked)) return;
     try {
       audio ??= new AudioContext();
       if (audio.state !== 'running') audio.resume().catch(() => {});
@@ -45,8 +45,35 @@ function startSounds(panel) {
     if (navigator.locks) return navigator.locks.request(prefix + 'play', play);
     play();
   }
+  function updateNav(path, unread) {
+    for (const link of document.querySelectorAll('.tb-nav a[href="' + path + '"], .side-nav a[href="' + path + '"]')) {
+      const top = !!link.closest('.tb-nav');
+      const label = link.querySelector(top ? '.lbl' : 'span').textContent;
+      link.setAttribute('aria-label', unread ? label + ', ' + unread + ' unread' : label);
+      let badge = link.querySelector(top ? '.dot' : '.cnt');
+      if (!unread) { badge?.remove(); continue; }
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = top ? 'dot' : 'cnt';
+        link.append(badge);
+      }
+      badge.textContent = top && unread > 9 ? '9+' : String(unread);
+    }
+  }
+  function updateBadges(next) {
+    updateNav('/conversations', next.unreadMessages);
+    updateNav('/notifications', next.unreadAlerts);
+    for (const room of document.querySelectorAll('[data-chat-id]')) {
+      const count = next.conversations[room.dataset.chatId] || 0;
+      const badge = room.querySelector('[data-chat-unread]');
+      badge.hidden = !count;
+      badge.textContent = String(count);
+      badge.setAttribute('aria-label', count + ' unread');
+    }
+  }
   async function check() {
-    if (checking || stopped || (previous && audio?.state !== 'running') || !switches.some(input => input.checked)) return;
+    if (stopped || (document.hidden && audio?.state !== 'running')) return;
+    if (checking) { pending = true; return; }
     checking = true;
     try {
       const res = await fetch('/notifications/latest', { cache: 'no-store', headers: { Accept: 'application/json' } });
@@ -54,12 +81,13 @@ function startSounds(panel) {
       if (!res.ok) return;
       const next = await res.json();
       if (next.owner !== panel.dataset.soundAccount) { stopped = true; return; }
+      updateBadges(next);
       if (previous) await announce(next, ['message', 'alert'].filter(kind => next[kind] > previous[kind]));
       previous = next;
     } catch { /* A later poll retries network failures. */ }
-    finally { checking = false; }
+    finally { checking = false; if (pending) { pending = false; check(); } }
   }
-  panel.hidden = false;
+  panel.hidden = !window.AudioContext;
   sync();
   for (const input of switches) input.addEventListener('change', () => {
     write(input.dataset.tone, input.checked ? 'on' : 'off');
@@ -70,6 +98,7 @@ function startSounds(panel) {
   document.addEventListener('pointerup', unlock);
   document.addEventListener('keydown', unlock);
   document.addEventListener('riseup:check-alerts', check);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
   check();
   setInterval(check, 6000);
 }

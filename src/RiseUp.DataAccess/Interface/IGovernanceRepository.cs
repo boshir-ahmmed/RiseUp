@@ -21,8 +21,11 @@ public interface IGovernanceRepository
     Task AddAuditAsync(AdminActionAudit audit, CancellationToken ct = default);
     Task<IReadOnlyList<AdminActionAudit>> ListAuditAsync(int take, CancellationToken ct = default);
     Task AddNotificationAsync(Notification notification, CancellationToken ct = default);
-    Task<(int Alert, int Message)> LatestNotificationIdsAsync(int? accountId, int? teamAccountId, CancellationToken ct = default);
+    Task<InboxState> GetInboxAsync(int? accountId, int? teamAccountId, CancellationToken ct = default);
     Task<IReadOnlyList<Notification>> ListNotificationsAsync(int? accountId, int? teamAccountId, int take, CancellationToken ct = default);
+    Task<int> UnreadMessageWatermarkAsync(int? accountId, int? teamAccountId, int conversationId, CancellationToken ct);
+    Task MarkMessagesReadAsync(int? accountId, int? teamAccountId, int conversationId, int throughId, CancellationToken ct);
+    Task MarkAlertsReadAsync(int? accountId, int? teamAccountId, int throughId, CancellationToken ct);
     Task<IReadOnlyList<int>> DueEmailsAsync(DateTime now, CancellationToken ct);
     Task<OutboxEvent?> ClaimEmailAsync(int id, DateTime now, CancellationToken ct);
     Task AddOutboxAsync(OutboxEvent evt, CancellationToken ct = default);
