@@ -106,12 +106,17 @@ public sealed class AccountFacade(
         return Result.Success("Email verified. You can now sign in.");
     }
 
-    public async Task<Result<SignedInUser>> SignInAsync(string email, string password, CancellationToken ct = default)
+    public async Task<Result<SignedInUser>> SignInAsync(string identifier, string password, CancellationToken ct = default)
     {
+        identifier = (identifier ?? "").Trim();
+        if (!identifier.Contains('@')) return await SignInTeamMemberAsync(identifier, password, ct);
+
+        var account = await accounts.FindByNormalizedEmailAsync(identifier.ToUpperInvariant(), ct);
+        if (account is null) return await SignInTeamMemberAsync(identifier, password, ct);
+
         var now = clock.UtcNow;
-        var account = await accounts.FindByNormalizedEmailAsync((email ?? "").Trim().ToUpperInvariant(), ct);
-        if (account is null || account.DeletedAtUtc is not null)
-            return Result.Failure<SignedInUser>(ErrorCodes.InvalidCredentials, "Email or password is incorrect.");
+        if (account.DeletedAtUtc is not null)
+            return Result.Failure<SignedInUser>(ErrorCodes.InvalidCredentials, "Email, username or password is incorrect.");
         if (account.LockoutEndUtc > now)
             return Result.Failure<SignedInUser>(ErrorCodes.AccountLocked, "Too many failed attempts. Try again in 15 minutes.");
 
@@ -124,7 +129,7 @@ public sealed class AccountFacade(
                 account.FailedLoginCount = 0;
             }
             await uow.SaveChangesAsync(ct);
-            return Result.Failure<SignedInUser>(ErrorCodes.InvalidCredentials, "Email or password is incorrect.");
+            return Result.Failure<SignedInUser>(ErrorCodes.InvalidCredentials, "Email, username or password is incorrect.");
         }
 
         if (!account.EmailVerified) return Result.Failure<SignedInUser>(ErrorCodes.EmailNotVerified, "Please verify your email before signing in.");
@@ -139,11 +144,11 @@ public sealed class AccountFacade(
         return Result.Success(new SignedInUser(account.Id, null, account.FullName, account.PrimaryRole, account.AdminRole, startupId, investorId, mfaRequired));
     }
 
-    public async Task<Result<SignedInUser>> SignInTeamMemberAsync(string username, string password, CancellationToken ct = default)
+    public async Task<Result<SignedInUser>> SignInTeamMemberAsync(string identifier, string password, CancellationToken ct = default)
     {
-        var member = await team.FindByUsernameAsync((username ?? "").Trim(), ct);
+        var member = await team.FindByLoginAsync((identifier ?? "").Trim(), ct);
         if (member is null || member.Status != TeamAccountStatus.Active || !hasher.Verify(member.PasswordHash, password ?? ""))
-            return Result.Failure<SignedInUser>(ErrorCodes.InvalidCredentials, "Username or password is incorrect.");
+            return Result.Failure<SignedInUser>(ErrorCodes.InvalidCredentials, "Email, username or password is incorrect.");
         return Result.Success(new SignedInUser(null, member.Id, member.FullName, PrimaryRole.TeamMember, AdminRole.None, member.StartupId, null, false, member.SessionVersion));
     }
 

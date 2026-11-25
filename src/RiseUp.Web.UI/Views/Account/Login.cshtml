@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Sign in"; }
 <section class="section onboarding"><div class="container" style="max-width:460px">
     <form class="card mk-card card-b stack" method="post" action="/login" asp-antiforgery="true">
-        <h1 style="font-size:26px">Sign in</h1><p class="small muted">Founders, investors, team members and administrators.</p>
+        <h1 style="font-size:26px">Sign in</h1><p class="small muted">Use your email to sign in. Team members can also use their username.</p>
         <div asp-validation-summary="ModelOnly" class="notice n-danger"></div>
         <input type="hidden" asp-for="ReturnUrl" />
         <label class="field"><span>Email or team username</span><input class="input" asp-for="Identifier" autocomplete="username" /><span asp-validation-for="Identifier" class="err"></span></label>

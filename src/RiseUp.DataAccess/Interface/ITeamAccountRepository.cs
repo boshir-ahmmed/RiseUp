@@ -19,5 +19,5 @@ public interface ITeamAccountRepository : IRepository<TeamAccount>
     Task<bool> HasActiveSessionAsync(int id, int version, CancellationToken ct = default);
     Task<int> CountOccupyingSlotsAsync(int startupId, CancellationToken ct = default);
     Task<bool> UsernameOrEmailTakenAsync(string username, string email, CancellationToken ct = default);
-    Task<TeamAccount?> FindByUsernameAsync(string username, CancellationToken ct = default);
+    Task<TeamAccount?> FindByLoginAsync(string identifier, CancellationToken ct = default);
 }
