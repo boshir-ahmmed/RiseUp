@@ -18,7 +18,7 @@ public sealed class PaymentOptions
 /// </summary>
 public sealed class SandboxPaymentGateway(IOptions<PaymentOptions> options) : IPaymentGateway
 {
-    public string Name => "Sandbox (bKash/Nagad/card simulator)";
+    public string Name => "RiseUp demo gateway";
     public PaymentMode Mode => PaymentMode.Simulator;
 
     public Task<CheckoutSession> CreateCheckoutAsync(string orderNumber, decimal amountBdt, CheckoutCustomer customer, CancellationToken ct = default) =>

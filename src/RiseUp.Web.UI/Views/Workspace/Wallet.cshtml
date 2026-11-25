@@ -47,6 +47,11 @@
     @if (returnedOrder is not null)
     {
         <section class="card-b" role="status"><strong>Order @returnedOrder.OrderNumber</strong><p>@OrderMessage(returnedOrder)</p>
+            @if (returnedOrder.Method?.StartsWith("Demo · ", StringComparison.Ordinal) == true) { <p class="small">@returnedOrder.Method</p> }
+            @if (Model.Mode == PaymentMode.Simulator && returnedOrder.Status == PaymentStatus.Pending && returnedOrder.OrderNumber.StartsWith("PO-", StringComparison.Ordinal))
+            {
+                <a class="btn btn-primary btn-sm" href="@Url.Action("SandboxCheckout", "Payments", new { orderNumber = returnedOrder.OrderNumber })">Resume demo checkout</a>
+            }
             @if (returnedOrder.Status is PaymentStatus.Pending or PaymentStatus.RequiresReview) { <a class="btn btn-outline btn-sm" href="@Url.Action("Wallet", "Workspace", new { order = returnedOrder.OrderNumber })#orders">Refresh order status</a> }
         </section>
     }

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RiseUp.Entities.Abstractions;
 using RiseUp.Facade.Payments;
+using RiseUp.Entities.Common;
+using RiseUp.Framework.Results;
 using RiseUp.Framework.Constants;
 using RiseUp.Web.UI.Infrastructure;
 
@@ -35,21 +37,20 @@ public sealed class PaymentsController(IPaymentFacade payments, IPaymentGateway 
 
     /// <summary>SANDBOX ONLY: a fake hosted checkout page. Unavailable when a real gateway is configured.</summary>
     [Authorize(Policy = Policies.Founder), HttpGet("/wallet/sandbox-checkout/{orderNumber}")]
-    public IActionResult SandboxCheckout(string orderNumber) => gateway.Mode == PaymentMode.Simulator ? View(model: orderNumber) : NotFound();
-
-    /// <summary>SANDBOX ONLY: simulates the gateway calling our webhook with a signed payload.</summary>
-    [Authorize(Policy = Policies.Founder), HttpPost("/wallet/sandbox-checkout/{orderNumber}")]
-    public async Task<IActionResult> SandboxComplete(string orderNumber, string outcome, CancellationToken ct)
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> SandboxCheckout(string orderNumber, CancellationToken ct)
     {
-        if (gateway.Mode != PaymentMode.Simulator) return NotFound();
-        if (outcome == "redirect-only")
-        {
-            Flash(RiseUp.Framework.Results.Result.Failure("payment_unconfirmed", "A success redirect alone credits nothing. The order stays pending for reconciliation."));
-            return ReturnToWallet(orderNumber);
-        }
-        var payload = $"{orderNumber}|SBX-{Random.Shared.Next(10000, 99999)}|{(outcome == "fail" ? "FAILED" : "PAID")}";
-        var signature = outcome == "tampered" ? "forged" : gateway.CreateSandboxSignature(payload) ?? "";
-        Flash(await payments.HandleWebhookAsync(payload, signature, ct));
+        var order = await payments.GetSandboxOrderAsync(Actor, orderNumber, ct);
+        if (order is null) return NotFound();
+        return order.Status == PaymentStatus.Pending && !order.Credited ? View(order) : ReturnToWallet(orderNumber);
+    }
+
+    [Authorize(Policy = Policies.Founder), HttpPost("/wallet/sandbox-checkout/{orderNumber}")]
+    public async Task<IActionResult> SandboxComplete(string orderNumber, string? method, string? outcome, CancellationToken ct)
+    {
+        var result = await payments.CompleteSandboxAsync(Actor, orderNumber, method, outcome, ct);
+        if (result.Error.Code == ErrorCodes.NotFound) return NotFound();
+        Flash(result);
         return ReturnToWallet(orderNumber);
     }
 }

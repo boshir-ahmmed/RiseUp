@@ -10,4 +10,4 @@ using RiseUp.Framework.Time;
 
 namespace RiseUp.Facade.Payments;
 
-public sealed record OrderDto(string OrderNumber, int StartupId, int Tokens, decimal PriceBdt, PaymentStatus Status, string? ProviderTransactionId, bool Credited, DateTime CreatedAtUtc);
+public sealed record OrderDto(string OrderNumber, int StartupId, int Tokens, decimal PriceBdt, PaymentStatus Status, string? ProviderTransactionId, bool Credited, DateTime CreatedAtUtc, string? Method = null);
