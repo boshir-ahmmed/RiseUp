@@ -29,13 +29,15 @@ public sealed class ConversationRepository(RiseUpDbContext db) : Repository<Conv
         await Set.Include(c => c.Members).AsNoTracking()
             .Where(c => c.Members.Any(m => m.TeamAccountId == teamAccountId && m.RemovedAtUtc == null)).ToListAsync(ct);
     public async Task<IReadOnlyList<Message>> ListMessagesAsync(int conversationId, int skip, int take, CancellationToken ct = default) =>
-        await Db.Messages.AsNoTracking().Where(m => m.ConversationId == conversationId).OrderBy(m => m.SentAtUtc).ThenBy(m => m.Id).Skip(skip).Take(take).ToListAsync(ct);
+        await Db.Messages.AsNoTracking().Include(m => m.Attachment).Where(m => m.ConversationId == conversationId).OrderBy(m => m.SentAtUtc).ThenBy(m => m.Id).Skip(skip).Take(take).ToListAsync(ct);
     public Task<Message?> LatestUserMessageAsync(int conversationId, CancellationToken ct) =>
-        Db.Messages.AsNoTracking().Where(m => m.ConversationId == conversationId && !m.IsSystem)
+        Db.Messages.AsNoTracking().Include(m => m.Attachment).Where(m => m.ConversationId == conversationId && !m.IsSystem)
             .OrderByDescending(m => m.Id).FirstOrDefaultAsync(ct);
     public async Task<IReadOnlyList<Message>> RecentMessagesAsync(int conversationId, int? beforeId, int take, CancellationToken ct) =>
-        await Db.Messages.AsNoTracking().Where(m => m.ConversationId == conversationId && (beforeId == null || m.Id < beforeId))
+        await Db.Messages.AsNoTracking().Include(m => m.Attachment).Where(m => m.ConversationId == conversationId && (beforeId == null || m.Id < beforeId))
             .OrderByDescending(m => m.Id).Take(take).ToListAsync(ct);
+    public Task<int?> FindAttachmentConversationAsync(int mediaId, CancellationToken ct = default) =>
+        Db.Messages.Where(m => m.AttachmentId == mediaId && m.DeletedAtUtc == null).Select(m => (int?)m.ConversationId).SingleOrDefaultAsync(ct);
     public Task<Message?> GetMessageAsync(int messageId, CancellationToken ct = default) => Db.Messages.FirstOrDefaultAsync(m => m.Id == messageId, ct);
     public async Task AddMessageAsync(Message message, CancellationToken ct = default) => await Db.Messages.AddAsync(message, ct);
     public async Task AddMemberAsync(ConversationMember member, CancellationToken ct = default) => await Db.ConversationMembers.AddAsync(member, ct);

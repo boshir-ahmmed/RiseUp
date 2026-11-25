@@ -30,6 +30,8 @@ public class Message : BaseEntity
     public int? AuthorAccountId { get; set; }
     public int? AuthorTeamAccountId { get; set; }
     public string AuthorName { get; set; } = string.Empty;
+    public int? AttachmentId { get; set; }
+    public RiseUp.Entities.Media.MediaAsset? Attachment { get; set; }
     public string Body { get; set; } = string.Empty;
     public bool IsSystem { get; set; }
     public DateTime SentAtUtc { get; set; }

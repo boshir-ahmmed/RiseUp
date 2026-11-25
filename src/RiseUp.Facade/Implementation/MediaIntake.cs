@@ -28,6 +28,7 @@ public sealed class MediaIntake(IMediaRepository media, IFileStorage storage, IM
         [MediaKind.PostVideo] = new(MediaTypes.Videos, BusinessRules.PostVideoMaxBytes, BusinessRules.PostVideoMaxSeconds, "Post videos"),
         [MediaKind.PitchDeck] = new([MediaTypes.Pdf, MediaTypes.Pptx], BusinessRules.PitchDeckMaxBytes, null, "Pitch decks"),
         [MediaKind.PitchInfoAttachment] = new([MediaTypes.Pdf, MediaTypes.Pptx, MediaTypes.Xlsx], BusinessRules.PitchDocumentMaxBytes, null, "Pitch reply attachments"),
+        [MediaKind.ChatAttachment] = new([.. MediaTypes.Images, MediaTypes.Pdf, MediaTypes.Pptx, MediaTypes.Xlsx], BusinessRules.PitchDocumentMaxBytes, null, "Chat attachments"),
         [MediaKind.PitchDocument] = new([MediaTypes.Pdf, MediaTypes.Pptx, MediaTypes.Xlsx], BusinessRules.PitchDocumentMaxBytes, null, "Pitch documents"),
     };
 
@@ -65,7 +66,7 @@ public sealed class MediaIntake(IMediaRepository media, IFileStorage storage, IM
             await storage.DeleteAsync(file.StorageKey, ct);
             return new Error(ErrorCodes.MediaInfected, "The file failed the malware scan and was deleted.");
         }
-        if (kind == MediaKind.PitchInfoAttachment && status != ScanStatus.Clean)
+        if ((kind is MediaKind.PitchInfoAttachment or MediaKind.ChatAttachment) && status != ScanStatus.Clean)
         {
             await storage.DeleteAsync(file.StorageKey, ct);
             return new Error(ErrorCodes.InvalidMedia, "The file could not be scanned. Please try again.");

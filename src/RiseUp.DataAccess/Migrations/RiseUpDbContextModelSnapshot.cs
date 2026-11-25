@@ -339,6 +339,9 @@ namespace RiseUp.DataAccess.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AttachmentId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("AuthorAccountId")
                         .HasColumnType("int");
 
@@ -380,6 +383,10 @@ namespace RiseUp.DataAccess.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AttachmentId")
+                        .IsUnique()
+                        .HasFilter("[AttachmentId] IS NOT NULL");
 
                     b.HasIndex("ConversationId", "SentAtUtc");
 
@@ -2555,11 +2562,18 @@ namespace RiseUp.DataAccess.Migrations
 
             modelBuilder.Entity("RiseUp.Entities.Conversations.Message", b =>
                 {
+                    b.HasOne("RiseUp.Entities.Media.MediaAsset", "Attachment")
+                        .WithMany()
+                        .HasForeignKey("AttachmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RiseUp.Entities.Conversations.Conversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Attachment");
                 });
 
             modelBuilder.Entity("RiseUp.Entities.Identity.AccountToken", b =>

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RiseUp.Entities.Common;
 using RiseUp.Facade.Common;
 using RiseUp.Facade.ConnectionRequests;
+using RiseUp.Facade.Conversations;
 using RiseUp.Facade.Media;
 using RiseUp.Facade.Pitching;
 using RiseUp.Facade.Posts;
@@ -378,6 +379,43 @@ public class V3V4FeatureTests
     }
 
     // ======================================================================= media access
+    [Fact]
+    public async Task ChatAttachmentsAndTypingFollowCurrentConversationMembership()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var owner = await h.Founder();
+        var investor = await h.Investor();
+        var team = await h.SignIn("rafi.ops");
+        var other = await h.Imran();
+        var chat = await h.Db(db => db.Conversations.Select(c => c.Id).SingleAsync());
+        Task<IReadOnlyList<ChatPeer>> Peers(Actor actor) =>
+            h.Run<IConversationFacade, IReadOnlyList<ChatPeer>>(f => f.TypingPeersAsync(actor, chat));
+        Assert.Empty(await Peers(other));
+        Assert.Contains(await Peers(owner), p => p.ViewerKey == team.ViewerKey);
+        var upload = await h.UploadAsync(Jpeg, "diagram.jpg", "image/jpeg");
+        var sent = await h.Run<IConversationFacade, Result<MessageDto>>(f => f.SendAsync(owner, chat, "", upload, default));
+        Assert.True(sent.IsSuccess, sent.Error.Message);
+        var mediaId = sent.Value!.AttachmentId!.Value;
+        async Task<bool> Download(Actor actor)
+        {
+            var result = await h.Run<IMediaFacade, Result<MediaStream>>(f => f.OpenAsync(actor, mediaId, false));
+            if (result.IsFailure) return false;
+            Assert.True(result.Value!.AsAttachment);
+            await result.Value.Content.DisposeAsync();
+            return true;
+        }
+        Assert.True(await Download(team));
+        Assert.False(await Download(other));
+        Assert.False(await Download(Actor.Anonymous));
+        Assert.True((await h.Run<IConversationFacade, Result>(f => f.SetTeamMembersAsync(owner, chat, []))).IsSuccess);
+        Assert.DoesNotContain(await Peers(owner), p => p.ViewerKey == team.ViewerKey);
+        Assert.False(await Download(team));
+        Assert.True(await Download(investor));
+        Assert.True((await h.Run<IConversationFacade, Result>(f => f.DeleteAsync(owner, sent.Value.Id))).IsSuccess);
+        Assert.False(await Download(owner));
+        Assert.False(await Download(investor));
+    }
+
     [Fact]
     public async Task M01_PrivatePitchMedia_OnlyForOwnerAndRecipients_TeasersPublicWhenOptedIn()
     {

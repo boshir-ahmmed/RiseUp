@@ -23,6 +23,7 @@ public interface IConversationRepository : IRepository<Conversation>
     Task<IReadOnlyList<Message>> ListMessagesAsync(int conversationId, int skip, int take, CancellationToken ct = default);
     Task<Message?> LatestUserMessageAsync(int conversationId, CancellationToken ct);
     Task<IReadOnlyList<Message>> RecentMessagesAsync(int conversationId, int? beforeId, int take, CancellationToken ct);
+    Task<int?> FindAttachmentConversationAsync(int mediaId, CancellationToken ct = default);
     Task<Message?> GetMessageAsync(int messageId, CancellationToken ct = default);
     Task AddMessageAsync(Message message, CancellationToken ct = default);
     Task AddMemberAsync(ConversationMember member, CancellationToken ct = default);
