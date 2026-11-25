@@ -1,0 +1,9 @@
+@model bool
+<form method="post" action="/settings/receive-pitches" asp-antiforgery="true">
+    <button type="submit" class="switch pitch-switch" role="switch" aria-checked="@Model.ToString().ToLowerInvariant()"
+            name="receive" value="@((!Model).ToString().ToLowerInvariant())">
+        Receive pitches
+        <span class="switch-track" aria-hidden="true"></span>
+        <span class="small muted" aria-hidden="true">@(Model ? "On" : "Off")</span>
+    </button>
+</form>

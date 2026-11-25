@@ -38,7 +38,9 @@
         </div>
         <div class="card kpi"><div class="l">Pitches awaiting you</div><a class="v" href="/requests?show=pending" aria-label="View @pitchCount pending pitches">@pitchCount</a></div>
         <div class="card kpi"><div class="l">Invitations today</div><div class="v">@Model.InvitationsUsedToday / 10</div><div class="tiny muted">Resets 00:00 Asia/Dhaka</div></div>
-        <div class="card kpi"><div class="l">Receive Pitches</div><form method="post" action="/settings/receive-pitches" class="mt8" asp-antiforgery="true"><input type="hidden" name="receive" value="@((!(Model.Investor?.Card.ReceivePitches ?? true)).ToString().ToLowerInvariant())" /><button class="btn btn-outline btn-sm">@(Model.Investor?.Card.ReceivePitches == true ? "ON — turn off" : "OFF — turn on")</button></form></div>
+        <div class="card kpi">
+            <partial name="_ReceivePitchesSwitch" model="@(Model.Investor?.Card.ReceivePitches == true)" />
+        </div>
     }
 </div>
 <div class="grid g2 mt24" style="align-items:start">
