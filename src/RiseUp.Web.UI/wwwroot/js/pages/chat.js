@@ -17,6 +17,24 @@ function startChat(root) {
   function nearBottom() { return list.scrollHeight - list.scrollTop - list.clientHeight < 72; }
   function bottom() { list.scrollTop = list.scrollHeight; jump.hidden = true; }
 
+  let renderedThrough = 0, acknowledged = 0, acknowledging = false;
+  async function acknowledgeVisible() {
+    if (acknowledging || historical || document.hidden || !nearBottom() || renderedThrough <= acknowledged) return;
+    const throughId = renderedThrough;
+    acknowledging = true;
+    try {
+      const res = await fetch('/conversations/' + id + '/read', {
+        method: 'POST', body: new URLSearchParams({ throughId }),
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+      });
+      if (!res.ok || res.redirected) return;
+      acknowledged = throughId;
+      document.dispatchEvent(new Event('riseup:check-alerts'));
+    } catch { /* Retry when the conversation refreshes. */ }
+    finally { acknowledging = false; }
+    if (renderedThrough > throughId) acknowledgeVisible();
+  }
+
   // Leave a message being edited in place as new messages arrive.
   function render(doc) {
     const existing = new Map([...list.querySelectorAll('[data-msg]')].map(row => [row.dataset.msg, row]));
@@ -62,13 +80,15 @@ function startChat(root) {
         if (res.redirected || res.status === 403 || res.status === 401) { location.replace('/conversations'); return; }
         if (!res.ok) throw new Error();
         render(new DOMParser().parseFromString(await res.text(), 'text/html'));
+        renderedThrough = Math.max(renderedThrough, Number(res.headers.get('X-Chat-Notice')) || 0);
+        acknowledgeVisible();
         status.textContent = live ? 'Live' : 'Checking periodically';
       } while (pending);
     } catch { status.textContent = 'Waiting for updates'; }
     finally { reading = false; }
   }
   jump.addEventListener('click', e => { if (!historical) { e.preventDefault(); bottom(); refresh(); } });
-  list.addEventListener('scroll', () => { if (!historical && nearBottom()) jump.hidden = true; });
+  list.addEventListener('scroll', () => { if (!historical && nearBottom()) { jump.hidden = true; acknowledgeVisible(); } });
 
   function showTypists() {
     const names = [...typists.values()].map(x => x.name);

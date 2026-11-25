@@ -100,7 +100,7 @@ public sealed class RequestsViewModel
     public bool ReceivePitches { get; set; }
 }
 
-public sealed record ConversationsViewModel(IReadOnlyList<ConversationSummaryDto> List, ConversationDto? Selected, IReadOnlyList<TeamAccountDto> Team, IReadOnlyList<MeetingDto>? Meetings = null);
+public sealed record ConversationsViewModel(IReadOnlyList<ConversationSummaryDto> List, IReadOnlyDictionary<int, int> Unread, ConversationDto? Selected, IReadOnlyList<TeamAccountDto> Team, IReadOnlyList<MeetingDto>? Meetings = null);
 public sealed record LibraryViewModel(IReadOnlyList<DocumentDto> Documents, IReadOnlyList<(int InvestorId, string Name)> ConnectedInvestors);
 public sealed record MyPostsViewModel(IReadOnlyList<OwnPostDto> Posts, IReadOnlyList<PromotionDto> Promotions, WalletDto? Wallet, int? EditId,
     string Tab, string StartupName, VideoDto? Teaser, bool PublicTeaser, IReadOnlyList<(int Days, int Cost)> Packages, string? LogoUrl);

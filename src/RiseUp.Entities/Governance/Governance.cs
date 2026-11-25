@@ -26,6 +26,14 @@ public class AdminActionAudit : BaseEntity
     public bool IsRestrictedContentAccess { get; set; }
 }
 
+public sealed record UnreadConversation(int Count, int LatestId);
+
+public sealed record InboxState(int LatestAlertId, int LatestMessageId, int UnreadAlerts,
+    IReadOnlyDictionary<int, UnreadConversation> UnreadConversations)
+{
+    public int UnreadMessages => UnreadConversations.Values.Sum(room => room.Count);
+}
+
 public class Notification : BaseEntity
 {
     public int? RecipientAccountId { get; set; }

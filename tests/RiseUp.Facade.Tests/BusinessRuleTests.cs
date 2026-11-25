@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using RiseUp.Entities.Abstractions;
 using RiseUp.Entities.Common;
+using RiseUp.Entities.Governance;
 using RiseUp.Entities.Startups;
 using RiseUp.Facade.Common;
 using RiseUp.Facade.ConfidentialDocuments;
@@ -39,8 +40,11 @@ public class BusinessRuleTests
         var team = await h.SignIn("rafi.ops");
         var other = await h.Imran();
         var id = await h.Db(db => db.Conversations.Select(c => c.Id).SingleAsync());
-        Task<(int Alert, int Message)> Latest(Actor a) =>
-            h.Run<INotificationFacade, (int, int)>(f => f.LatestIdsAsync(a));
+        async Task<(int Alert, int Message)> Latest(Actor a)
+        {
+            var inbox = await h.Run<INotificationFacade, InboxState>(f => f.GetInboxAsync(a));
+            return (inbox.LatestAlertId, inbox.LatestMessageId);
+        }
         var original = await Latest(recipient);
         var senderState = await Latest(founder);
         var otherState = await Latest(other);
@@ -55,6 +59,47 @@ public class BusinessRuleTests
         await h.Run<IConversationFacade, Result>(f => f.SetMutedAsync(recipient, id, true));
         Assert.True((await h.Run<IConversationFacade, Result<MessageDto>>(f => f.SendAsync(founder, id, "Second update"))).IsSuccess);
         Assert.Equal(received, await Latest(recipient));
+    }
+
+    [Fact]
+    public async Task ReadingAlertsAndConversationsClearsOnlyTheViewedChannelAndSnapshot()
+    {
+        await using var h = await TestHost.CreateAsync();
+        var investor = await h.Investor();
+        var team = await h.SignIn("rafi.ops");
+        var room = await h.Db(db => db.Conversations.Select(c => c.Id).SingleAsync());
+        var link = $"/conversations/{room}";
+        await h.Db(async db =>
+        {
+            db.Notifications.AddRange(
+                new Notification { RecipientAccountId = investor.AccountId, Text = "New message from Founder.", Link = link },
+                new Notification { RecipientAccountId = investor.AccountId, Text = "Group membership changed.", Link = link },
+                new Notification { RecipientTeamAccountId = team.TeamAccountId, Text = "New message from Founder.", Link = link });
+            return await db.SaveChangesAsync();
+        });
+        await h.Run<INotificationFacade, bool>(async f =>
+        {
+            var inbox = await f.GetInboxAsync(investor);
+            var alerts = await f.ListAsync(investor);
+            Assert.Contains(alerts, n => n.Text == "Group membership changed.");
+            Assert.DoesNotContain(alerts, n => n.Text.StartsWith("New message from "));
+            await f.MarkAlertsReadAsync(investor, inbox.LatestAlertId);
+            var afterAlerts = await f.GetInboxAsync(investor);
+            Assert.Equal(0, afterAlerts.UnreadAlerts);
+            Assert.Equal(inbox.UnreadMessages, afterAlerts.UnreadMessages);
+            Assert.True(afterAlerts.UnreadConversations.ContainsKey(room));
+            var before = await f.UnreadMessageWatermarkAsync(investor, room);
+            await h.Db(async db =>
+            {
+                db.Notifications.Add(new Notification { RecipientAccountId = investor.AccountId, Text = "New message from Founder.", Link = link + "#msgs" });
+                return await db.SaveChangesAsync();
+            });
+            await f.MarkMessagesReadAsync(investor, room, before);
+            Assert.Equal(1, (await f.GetInboxAsync(investor)).UnreadConversations[room].Count);
+            Assert.True((await f.GetInboxAsync(team)).UnreadMessages > 0);
+            Assert.DoesNotContain(await f.ListAsync(investor), n => n.Link == link + "#msgs");
+            return true;
+        });
     }
 
     [Fact]

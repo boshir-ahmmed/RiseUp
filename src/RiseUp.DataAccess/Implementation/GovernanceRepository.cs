@@ -25,18 +25,48 @@ public sealed class GovernanceRepository(RiseUpDbContext db) : IGovernanceReposi
     public async Task<IReadOnlyList<AdminActionAudit>> ListAuditAsync(int take, CancellationToken ct = default) =>
         await db.AdminAudit.AsNoTracking().OrderByDescending(a => a.CreatedAtUtc).ThenByDescending(a => a.Id).Take(take).ToListAsync(ct);
     public async Task AddNotificationAsync(Notification notification, CancellationToken ct = default) => await db.Notifications.AddAsync(notification, ct);
+    private IQueryable<Notification> Channel(int? accountId, int? teamAccountId, bool messages) =>
+        db.Notifications.Where(n => (accountId != null && n.RecipientAccountId == accountId) ||
+                (teamAccountId != null && n.RecipientTeamAccountId == teamAccountId))
+            // Older chat notifications used the conversation URL without the message anchor.
+            .Where(n => (n.Link != null && n.Link.StartsWith("/conversations/") &&
+                (n.Link.EndsWith("#msgs") || EF.Functions.Like(n.Text, "New message from %."))) == messages);
+
     public async Task<IReadOnlyList<Notification>> ListNotificationsAsync(int? accountId, int? teamAccountId, int take, CancellationToken ct = default) =>
-        await db.Notifications.Where(n => (accountId != null && n.RecipientAccountId == accountId) || (teamAccountId != null && n.RecipientTeamAccountId == teamAccountId))
-            .OrderByDescending(n => n.CreatedAtUtc).Take(take).ToListAsync(ct);
-    public async Task<(int Alert, int Message)> LatestNotificationIdsAsync(int? accountId, int? teamAccountId, CancellationToken ct = default)
+        await Channel(accountId, teamAccountId, false).AsNoTracking()
+            .OrderByDescending(n => n.CreatedAtUtc).ThenByDescending(n => n.Id).Take(take).ToListAsync(ct);
+
+    public async Task<InboxState> GetInboxAsync(int? accountId, int? teamAccountId, CancellationToken ct = default)
     {
-        var latest = await db.Notifications
-            .Where(n => (accountId != null && n.RecipientAccountId == accountId) || (teamAccountId != null && n.RecipientTeamAccountId == teamAccountId))
-            .GroupBy(n => n.Link != null && n.Link.EndsWith("#msgs"))
-            .Select(g => new { IsMessage = g.Key, Id = g.Max(n => n.Id) })
-            .ToDictionaryAsync(x => x.IsMessage, x => x.Id, ct);
-        return (latest.GetValueOrDefault(false), latest.GetValueOrDefault(true));
+        var alerts = await Channel(accountId, teamAccountId, false).GroupBy(n => 1)
+            .Select(g => new { Latest = g.Max(n => n.Id), Unread = g.Count(n => !n.IsRead) }).SingleOrDefaultAsync(ct);
+        var rooms = db.ConversationMembers.Where(m => m.RemovedAtUtc == null &&
+            ((accountId != null && m.AccountId == accountId) || (teamAccountId != null && m.TeamAccountId == teamAccountId)))
+            .Select(m => m.ConversationId).Distinct();
+        var byRoom = await (from n in Channel(accountId, teamAccountId, true)
+                            join id in rooms on n.Link!.Replace("#msgs", "") equals "/conversations/" + id
+                            group n by id into g
+                            select new { Id = g.Key, Latest = g.Max(n => n.Id), Unread = g.Count(n => !n.IsRead) }).ToListAsync(ct);
+        return new InboxState(alerts?.Latest ?? 0, byRoom.Select(r => r.Latest).DefaultIfEmpty().Max(), alerts?.Unread ?? 0,
+            byRoom.Where(r => r.Unread > 0).ToDictionary(r => r.Id, r => new UnreadConversation(r.Unread, r.Latest)));
     }
+
+    private IQueryable<Notification> UnreadInRoom(int? accountId, int? teamAccountId, int conversationId)
+    {
+        var link = $"/conversations/{conversationId}";
+        return Channel(accountId, teamAccountId, true).Where(n => !n.IsRead && (n.Link == link || n.Link == link + "#msgs"));
+    }
+
+    public async Task<int> UnreadMessageWatermarkAsync(int? accountId, int? teamAccountId, int conversationId, CancellationToken ct) =>
+        await UnreadInRoom(accountId, teamAccountId, conversationId).MaxAsync(n => (int?)n.Id, ct) ?? 0;
+
+    public Task MarkMessagesReadAsync(int? accountId, int? teamAccountId, int conversationId, int throughId, CancellationToken ct) =>
+        UnreadInRoom(accountId, teamAccountId, conversationId).Where(n => n.Id <= throughId)
+            .ExecuteUpdateAsync(change => change.SetProperty(n => n.IsRead, true), ct);
+
+    public Task MarkAlertsReadAsync(int? accountId, int? teamAccountId, int throughId, CancellationToken ct) =>
+        Channel(accountId, teamAccountId, false).Where(n => !n.IsRead && n.Id <= throughId)
+            .ExecuteUpdateAsync(change => change.SetProperty(n => n.IsRead, true), ct);
 
     private IQueryable<OutboxEvent> DueEmails(DateTime now)
     {

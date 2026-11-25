@@ -136,9 +136,9 @@ public class SqlServerCommerceTests
             Assert.Single(replies, r => r.Error.Code == ErrorCodes.Conflict);
             Assert.Equal(1, await db.Notifications.CountAsync(n => n.Text.Contains("replied to your information request")));
             var recipient = new Actor(investor.AccountId, investor.DisplayName, PrimaryRole.Investor, InvestorId: investor.Id);
-            var signals = await Run<INotificationFacade, (int Alert, int Message)>(f => f.LatestIdsAsync(recipient));
-            Assert.True(signals.Alert > 0);
-            Assert.Equal(0, signals.Message);
+            var signals = await Run<INotificationFacade, RiseUp.Entities.Governance.InboxState>(f => f.GetInboxAsync(recipient));
+            Assert.True(signals.LatestAlertId > 0);
+            Assert.Equal(0, signals.LatestMessageId);
         }
         finally { await db.Database.EnsureDeletedAsync(); }
     }

@@ -98,10 +98,14 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     public async Task<IActionResult> Conversations(int? id, int? before, CancellationToken ct)
     {
         var list = await conversations.ListAsync(Actor, ct);
-        var selected = id ?? list.FirstOrDefault()?.Id;
+        var inbox = await notifications.GetInboxAsync(Actor, ct);
+        var unread = inbox.UnreadConversations.ToDictionary(entry => entry.Key, entry => entry.Value.Count);
+        var selected = id ?? list.FirstOrDefault(c => unread.ContainsKey(c.Id))?.Id ?? list.FirstOrDefault()?.Id;
         var detail = selected is int sid ? (await conversations.RecentAsync(Actor, sid, before, ct)) : null;
         if (detail is { IsFailure: true }) return Forbid();
-        return View(new ConversationsViewModel(list, detail?.Value, Actor.IsFounder ? await team.ListAsync(Actor, ct) : [],
+        if (before == null && selected is int opened && unread.Remove(opened))
+            await notifications.MarkMessagesReadAsync(Actor, opened, inbox.UnreadConversations[opened].LatestId, ct);
+        return View(new ConversationsViewModel(list, unread, detail?.Value, Actor.IsFounder ? await team.ListAsync(Actor, ct) : [],
             selected is int msid ? await meetings.ListAsync(Actor, msid, ct) : []));
     }
 
@@ -109,8 +113,19 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> LatestMessages(int id, CancellationToken ct)
     {
+        var throughId = await notifications.UnreadMessageWatermarkAsync(Actor, id, ct);
         var detail = await conversations.RecentAsync(Actor, id, null, ct);
-        return detail.IsSuccess ? PartialView("_Messages", detail.Value) : Forbid();
+        if (detail.IsFailure) return Forbid();
+        Response.Headers["X-Chat-Notice"] = throughId.ToString();
+        return PartialView("_Messages", detail.Value);
+    }
+
+    [Authorize(Policy = Policies.ChatParticipant), HttpPost("/conversations/{id:int}/read")]
+    public async Task<IActionResult> ReadMessages(int id, int throughId, CancellationToken ct)
+    {
+        if (!await conversations.CanAccessAsync(Actor, id, ct)) return Forbid();
+        await notifications.MarkMessagesReadAsync(Actor, id, throughId, ct);
+        return NoContent();
     }
 
     [Authorize(Policy = Policies.ChatParticipant), HttpPost("/conversations/{id:int}/messages")]
@@ -449,15 +464,16 @@ public sealed class WorkspaceController(IConnectionRequestFacade requests, IMatc
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> LatestNotificationIds(CancellationToken ct)
     {
-        var (alert, message) = await notifications.LatestIdsAsync(Actor, ct);
-        return Ok(new { owner = Actor.ViewerKey, alert, message });
+        var inbox = await notifications.GetInboxAsync(Actor, ct);
+        return Ok(new { owner = Actor.ViewerKey, alert = inbox.LatestAlertId, message = inbox.LatestMessageId,
+            inbox.UnreadAlerts, inbox.UnreadMessages, conversations = inbox.UnreadConversations.ToDictionary(x => x.Key, x => x.Value.Count) });
     }
 
     [HttpGet("/notifications")]
     public async Task<IActionResult> Notifications(CancellationToken ct)
     {
         var list = await notifications.ListAsync(Actor, ct);
-        await notifications.MarkAllReadAsync(Actor, ct);
+        if (list.Count > 0) await notifications.MarkAlertsReadAsync(Actor, list.Max(n => n.Id), ct);
         return View(list);
     }
 }

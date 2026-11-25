@@ -12,7 +12,8 @@ else
             <h2>Conversations</h2>
             @foreach (var c in Model.List)
             {
-                <a class="chat-item @(c.Id == sel?.Summary.Id ? "on" : "")" data-chat-id="@c.Id" href="/conversations/@c.Id" aria-current="@(c.Id == sel?.Summary.Id ? "page" : null)"><span class="chat-monogram" aria-hidden="true">@System.Globalization.StringInfo.GetNextTextElement(c.Title)</span><div style="min-width:0;flex:1"><div class="row between"><strong class="small">@c.Title</strong>@if (c.Muted) {<span class="tiny muted">muted</span>}</div><div data-preview class="tiny muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@(c.LastMessage ?? "No messages yet")</div></div></a>
+                var unread = Model.Unread.GetValueOrDefault(c.Id);
+                <a class="chat-item @(c.Id == sel?.Summary.Id ? "on" : "")" data-chat-id="@c.Id" href="/conversations/@c.Id" aria-current="@(c.Id == sel?.Summary.Id ? "page" : null)"><span class="chat-monogram" aria-hidden="true">@System.Globalization.StringInfo.GetNextTextElement(c.Title)</span><div style="min-width:0;flex:1"><div class="row between"><strong class="small">@c.Title</strong>@if (c.Muted) {<span class="tiny muted">muted</span>}</div><div data-preview class="tiny muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@(c.LastMessage ?? "No messages yet")</div></div><span class="cnt" data-chat-unread hidden="@(unread == 0)" aria-label="@unread unread">@unread</span></a>
             }
         </nav>
         @if (sel is not null)
