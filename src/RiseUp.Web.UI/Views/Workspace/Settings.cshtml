@@ -27,7 +27,10 @@
         <section id="verification" class="card card-b"><h2>Verification</h2><p>Check your application, review the requirements or renew your documents.</p><a class="btn btn-outline" href="/verification">View verification</a></section>
         @if (Model.Investor is not null)
         {
-            <form class="card card-b" method="post" action="/settings/receive-pitches" asp-antiforgery="true"><h3>Receive Pitches</h3><p class="small muted">Turning this off blocks new pitches (founders aren't charged). Pending pitches and chats are unaffected.</p><input type="hidden" name="receive" value="@((!Model.Investor.Card.ReceivePitches).ToString().ToLowerInvariant())" /><button class="btn btn-outline">Currently @(Model.Investor.Card.ReceivePitches ? "ON — turn off" : "OFF — turn on")</button></form>
+            <div class="card card-b">
+                <partial name="_ReceivePitchesSwitch" model="Model.Investor.Card.ReceivePitches" />
+                <p class="small muted mb0">Turning this off blocks new pitches (founders aren't charged). Pending pitches and chats are unaffected.</p>
+            </div>
         }
         @if (s is not null && HostEnv.IsDevelopment())
         {
