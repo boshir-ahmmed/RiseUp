@@ -12,6 +12,12 @@ function startChat(root) {
   const typing = root.querySelector('[data-typing]');
   const historical = new URLSearchParams(location.search).has('before');
   const connection = window.signalR && new signalR.HubConnectionBuilder().withUrl('/hubs/chat').withAutomaticReconnect().build();
+  const directoryToggle = root.querySelector('[data-chat-directory]');
+  directoryToggle.hidden = false;
+  directoryToggle.addEventListener('click', () => {
+    const open = directoryToggle.getAttribute('aria-expanded') === 'true';
+    directoryToggle.setAttribute('aria-expanded', String(!open));
+  });
   const typists = new Map();
   let reading = false, pending = false, sending = false, live = false, lastPulse = 0, idleTimer;
   function nearBottom() { return list.scrollHeight - list.scrollTop - list.clientHeight < 72; }
@@ -41,12 +47,12 @@ function startChat(root) {
     const incoming = [...doc.body.querySelectorAll('[data-msg]')];
     const oldLastId = list.lastElementChild?.dataset.msg;
     const hasNew = incoming.at(-1)?.dataset.msg !== oldLastId;
-    const same = incoming.length === existing.size && incoming.every(row => {
-      const old = existing.get(row.dataset.msg);
-      return old && old.textContent === row.textContent &&
-        old.querySelector('img')?.getAttribute('src') === row.querySelector('img')?.getAttribute('src');
-    });
-    if (same && list.querySelector('.history-link')?.href === doc.querySelector('.history-link')?.href) return;
+    function unchanged(row, incomingRow) {
+      return row && row.textContent === incomingRow.textContent &&
+        row.querySelector('img')?.getAttribute('src') === incomingRow.querySelector('img')?.getAttribute('src');
+    }
+    const same = incoming.length === existing.size && incoming.every(row => unchanged(existing.get(row.dataset.msg), row));
+    if (same && list.querySelector('.history-link')?.getAttribute('href') === doc.querySelector('.history-link')?.getAttribute('href')) return;
     const stick = nearBottom();
     const anchor = [...existing.values()].find(row => row.getBoundingClientRect().bottom > list.getBoundingClientRect().top);
     const offset = anchor?.getBoundingClientRect().top;
@@ -54,7 +60,8 @@ function startChat(root) {
     const fragment = document.createDocumentFragment();
     for (const node of doc.body.children) {
       const row = existing.get(node.dataset.msg);
-      fragment.appendChild(row?.querySelector('details[open]') && node.querySelector('details') ? row : node.cloneNode(true));
+      const editing = row?.querySelector('details[open]') && node.querySelector('details');
+      fragment.appendChild(editing || unchanged(row, node) ? row : node.cloneNode(true));
     }
     list.replaceChildren(fragment);
     if (focused && list.contains(focused)) focused.focus({ preventScroll: true });
@@ -159,8 +166,15 @@ function startChat(root) {
   if (!form) return;
   const note = form.querySelector('[data-send-status]');
   const clear = form.querySelector('[data-clear-file]');
-  file.addEventListener('change', () => { clear.hidden = !file.files.length; note.textContent = ''; });
-  clear.addEventListener('click', () => { file.value = ''; clear.hidden = true; note.textContent = ''; file.focus(); });
+  const filename = form.querySelector('[data-file-name]');
+  form.querySelector('[data-attach-label]').hidden = false;
+  function showFile() {
+    const name = file.files[0]?.name || '';
+    filename.textContent = name;
+    filename.hidden = clear.hidden = !name;
+  }
+  file.addEventListener('change', () => { showFile(); note.textContent = ''; });
+  clear.addEventListener('click', () => { file.value = ''; showFile(); note.textContent = ''; file.focus(); });
   form.addEventListener('submit', async e => {
     e.preventDefault();
     if (sending) return;
@@ -177,7 +191,7 @@ function startChat(root) {
       if (res.redirected) throw new Error('Please sign in again to send.');
       const result = await res.json().catch(() => ({}));
       if (!res.ok || !result.ok) throw new Error(result.title || 'Could not send the message.');
-      form.reset(); clear.hidden = true; note.textContent = '';
+      form.reset(); showFile(); note.textContent = '';
       if (historical) { location.assign('/conversations/' + id); return; }
       bottom();
       await refresh();

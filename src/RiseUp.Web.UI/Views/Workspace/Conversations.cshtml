@@ -8,12 +8,23 @@
 else
 {
     <div class="card chat" data-conversation="@sel?.Summary.Id">
-        <nav class="chat-list" aria-label="Conversations">
-            <h2>Conversations</h2>
+        <button type="button" class="chat-directory-toggle" data-chat-directory aria-controls="chat-list" aria-expanded="false" hidden>
+            <span>Conversations <span class="chat-list-count">@Model.List.Count</span> <small class="chat-unread-hint">Unread messages</small></span><partial name="_Icon" model='"chevron-down"' />
+        </button>
+        <nav class="chat-list" id="chat-list" aria-label="Conversations">
+            <h2>Conversations <span class="chat-list-count">@Model.List.Count</span></h2>
             @foreach (var c in Model.List)
             {
                 var unread = Model.Unread.GetValueOrDefault(c.Id);
-                <a class="chat-item @(c.Id == sel?.Summary.Id ? "on" : "")" data-chat-id="@c.Id" href="/conversations/@c.Id" aria-current="@(c.Id == sel?.Summary.Id ? "page" : null)"><span class="chat-monogram" aria-hidden="true">@System.Globalization.StringInfo.GetNextTextElement(c.Title)</span><div style="min-width:0;flex:1"><div class="row between"><strong class="small">@c.Title</strong>@if (c.Muted) {<span class="tiny muted">muted</span>}</div><div data-preview class="tiny muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">@(c.LastMessage ?? "No messages yet")</div></div><span class="cnt" data-chat-unread hidden="@(unread == 0)" aria-label="@unread unread">@unread</span></a>
+                <a class="chat-item @(c.Id == sel?.Summary.Id ? "on" : "")" data-chat-id="@c.Id" href="/conversations/@c.Id" aria-current="@(c.Id == sel?.Summary.Id ? "page" : null)">
+                    <span class="chat-monogram" aria-hidden="true">@System.Globalization.StringInfo.GetNextTextElement(c.Title)</span>
+                    <span class="chat-item-copy">
+                        <strong>@c.Title</strong>
+                        <span data-preview>@(c.LastMessage ?? "No messages yet")</span>
+                        @if (c.Muted) { <small>Muted</small> }
+                    </span>
+                    <span class="cnt" data-chat-unread hidden="@(unread == 0)" aria-label="@unread unread">@unread</span>
+                </a>
             }
         </nav>
         @if (sel is not null)
@@ -27,7 +38,7 @@ else
                         <form method="post" action="/conversations/@sel.Summary.Id/mute" class="inline" asp-antiforgery="true"><input type="hidden" name="muted" value="@((!sel.Summary.Muted).ToString().ToLowerInvariant())" /><button class="btn btn-ghost btn-sm">@(sel.Summary.Muted ? "Unmute" : "Mute")</button></form>
                         @if (!actor.IsTeamMember) {<form method="post" action="/conversations/@sel.Summary.Id/block" class="inline" asp-antiforgery="true"><input type="hidden" name="blocked" value="@((sel.Summary.DisabledReason?.Contains("blocked") != true).ToString().ToLowerInvariant())" /><button class="btn btn-ghost btn-sm">@(sel.Summary.DisabledReason?.Contains("blocked") == true ? "Unblock" : "Block")</button></form>}
                     </div>
-                @if (sel.ContactEmail is not null) { <div class="tiny" style="padding:8px 16px;background:#F8FAFC;border-bottom:1px solid var(--border)">Contact: @sel.ContactEmail · @(sel.ContactPhone ?? "—")</div> }
+                @if (sel.ContactEmail is not null) { <div class="tiny chat-contact">Contact · @sel.ContactEmail · @(sel.ContactPhone ?? "—")</div> }
                 @if (actor.IsFounder && Model.Team.Any(t => t.Status == TeamAccountStatus.Active))
                 {
                     <details style="padding:8px 16px;border-bottom:1px solid var(--border)"><summary class="small">Team members in this conversation</summary>
@@ -81,9 +92,12 @@ else
                             <button class="btn btn-primary" type="submit">Send</button>
                         </div>
                         <div class="chat-files">
-                            <input type="file" name="file" aria-label="Attach a file" aria-describedby="chat-file-types" accept=".pdf,.pptx,.xlsx,.jpg,.jpeg,.png,.webp" />
+                            <label class="chat-attach"><span data-attach-label hidden>Attach file</span>
+                                <input type="file" name="file" aria-label="Attach a file" aria-describedby="chat-file-types" accept=".pdf,.pptx,.xlsx,.jpg,.jpeg,.png,.webp" />
+                            </label>
+                            <span data-file-name class="chat-file-name" hidden></span>
                             <button type="button" class="linkbtn tiny" data-clear-file hidden>Remove file</button>
-                            <span id="chat-file-types" class="tiny muted">PDF, PPTX, XLSX or image · up to 10 MB</span>
+                            <span id="chat-file-types" class="tiny muted">PDF, PPTX, XLSX, JPG, PNG or WebP · up to 10 MB</span>
                         </div>
                         <div class="small" role="status" data-send-status></div>
                     </form>
