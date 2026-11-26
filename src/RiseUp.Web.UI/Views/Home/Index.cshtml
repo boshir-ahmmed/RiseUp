@@ -37,26 +37,29 @@
             <nav class="card side-nav"><div class="grp">Explore</div><a href="/" class="on"><span>🏠 Home feed</span></a><a href="/reels"><span>▶ Reels</span></a><a href="/startups"><span>🚀 Startups</span></a><a href="/investors"><span>💼 Investors</span></a><a href="/how-it-works"><span>🧭 How it works</span></a><a href="/pricing"><span>🪙 Pricing</span></a><a href="/faq"><span>❓ FAQ</span></a></nav>
         </aside>
     }
-    <div style="min-width:0">
+    <div class="feed-stream">
         @if (actor.IsFounder)
         {
-            <div class="card comp"><div class="comp-top"><a href="/me" aria-label="Your profile" style="line-height:0">@await Component.InvokeAsync("Shell", new { part = "Avatar" })</a><a class="comp-fake" href="/my-posts">@(Model.CanPost ? "Share an update from your startup…" : "Posting unlocks after verification")</a></div>
-                <div class="comp-acts"><a href="/my-posts" style="color:#378FE9" aria-label="Photo"><partial name="_Icon" model='"cam"' /><span>Photo</span></a><a href="/my-posts?tab=reels" style="color:#5F9B41" aria-label="Create reel"><partial name="_Icon" model='"vid"' /><span>Reel</span></a><a href="/my-posts" style="color:#C37D16" aria-label="Milestone"><partial name="_Icon" model='"flag"' /><span>Milestone</span></a><a href="/pitches" style="color:#E06847" aria-label="Pitch"><partial name="_Icon" model='"pitch"' /><span>Pitch</span></a></div></div>
+            <div class="card comp"><div class="comp-top"><a href="/me" aria-label="Your profile" class="comp-avatar">@await Component.InvokeAsync("Shell", new { part = "Avatar" })</a><a class="comp-fake" href="/my-posts">@(Model.CanPost ? "Share an update from your startup…" : "Posting unlocks after verification")</a></div>
+                <div class="comp-acts"><a href="/my-posts" class="comp-photo" aria-label="Photo"><partial name="_Icon" model='"cam"' /><span>Photo</span></a><a href="/my-posts?tab=reels" class="comp-reel" aria-label="Create reel"><partial name="_Icon" model='"vid"' /><span>Reel</span></a><a href="/my-posts" class="comp-milestone" aria-label="Milestone"><partial name="_Icon" model='"flag"' /><span>Milestone</span></a><a href="/pitches" class="comp-pitch" aria-label="Pitch"><partial name="_Icon" model='"pitch"' /><span>Pitch</span></a></div></div>
         }
-        <nav class="stories" aria-label="Verified startups">
-            @foreach (var s in Model.Stories)
-            {
-                <a class="story" href="/startups/@s.Id"><span class="ring"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" /></span><span class="tiny">@s.Name</span></a>
-            }
-        </nav>
+        @if (Model.Stories.Count > 0)
+        {
+            <nav class="stories" aria-label="Verified startups">
+                @foreach (var s in Model.Stories)
+                {
+                    <a class="story" href="/startups/@s.Id"><span class="ring"><partial name="_Brand" model="(s.Name, s.ColorIndex, string.Empty, s.LogoUrl)" /></span><span class="tiny">@s.Name</span></a>
+                }
+            </nav>
+        }
         <form class="feed-tabs" method="get" action="/" aria-label="Filter feed">
-            <a class="pill @(Model.Tab is not ("latest" or "saved") ? "on" : "")" href="/?tab=foryou@catQ">For you</a>
-            <a class="pill @(Model.Tab == "latest" ? "on" : "")" href="/?tab=latest@catQ">Latest</a>
-            <a class="pill" href="/reels">▶ Reels</a>
-            @if (canInteract) { <a class="pill @(Model.Tab == "saved" ? "on" : "")" href="/?tab=saved">🔖 Saved</a> }
+            <a class="pill @(Model.Tab is not ("latest" or "saved") ? "on" : "")" aria-current="@(Model.Tab is not ("latest" or "saved") ? "page" : null)" href="/?tab=foryou@catQ">For you</a>
+            <a class="pill @(Model.Tab == "latest" ? "on" : "")" aria-current="@(Model.Tab == "latest" ? "page" : null)" href="/?tab=latest@catQ">Latest</a>
+            <a class="pill" href="/reels">Reels</a>
+            @if (canInteract) { <a class="pill @(Model.Tab == "saved" ? "on" : "")" aria-current="@(Model.Tab == "saved" ? "page" : null)" href="/?tab=saved">Saved</a> }
             <input type="hidden" name="tab" value="@Model.Tab" />
             <label class="sr" for="category">Category</label>
-            <select id="category" name="category" class="input" style="width:auto;margin-left:auto;padding:6px 10px;border-radius:999px;font-size:13px" data-autosubmit>
+            <select id="category" name="category" class="input feed-category" data-autosubmit>
                 <option value="">All categories</option>
                 @foreach (var c in Enum.GetValues<PostCategory>()) { <option value="@c" selected="@(Model.Category == c)">@c</option> }
             </select>
