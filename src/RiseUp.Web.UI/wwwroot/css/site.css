@@ -1,6 +1,6 @@
 /* Shared palette, typography and sizing for the public site and member workspace. */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --font-body: Inter, "Noto Sans Bengali", "Nirmala UI", system-ui, sans-serif;
   --font-heading: "Plus Jakarta Sans", var(--font-body);
   --ink: light-dark(#0f172a, #eef4fa);
@@ -38,7 +38,6 @@
   --shadow: 0 1px 3px rgb(15 23 42 / 9%);
   --shadow-h: 0 10px 30px rgb(12 22 34 / 16%);
 }
-:root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
 
 .cat-announcements { background: var(--info-l); color: var(--info); }
@@ -932,11 +931,32 @@ dialog.crop-dialog::backdrop{background:rgba(15,23,42,.55)}
   .checkout-summary, .checkout-methods { padding: 20px; }
 }
 
-/* The same native picker is available in the account menu and public navigation. */
-.theme-picker { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--slate); font-size: 14px; }
-.theme-picker select { padding-inline: var(--space-2); min-height: 44px; border: 1px solid var(--control-border); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
-.menu .theme-picker { display: flex; justify-content: space-between; margin-block: var(--space-2); }
-#pubnav .theme-picker { padding-inline: var(--space-2); }
+/* A 44px button surrounds the illustrated track in both menus. */
+.theme-picker {
+  position: relative; display: inline-block; flex: none; align-self: center;
+  width: 82px; height: 44px; padding: 0; border: 0;
+  background: transparent; border-radius: var(--r-pill); cursor: pointer;
+}
+.theme-picker::before, .theme-picker::after {
+  content: ""; position: absolute; box-sizing: border-box; border-radius: var(--r-pill);
+}
+.theme-picker::before {
+  inset: 3px 0; border: 1px solid #8794a3;
+  background: #fff url("../images/theme-switch.svg") center / 80px 36px no-repeat;
+  box-shadow: var(--shadow);
+}
+.theme-picker::after {
+  top: 8px; left: 5px; width: 28px; height: 28px;
+  background: #fff0d2; border: 3px solid #d58a17;
+  transform: translateX(44px); transition: transform var(--motion) ease;
+}
+.theme-picker[aria-checked="true"]::before { background-color: #354152; border-color: #8290a3; }
+.theme-picker[aria-checked="true"]::after { transform: translateX(0); background: #4b5668; border-color: #fff; }
+.menu .theme-picker { display: block; margin-block: var(--space-2); }
+@media (forced-colors: active) {
+  .theme-picker::before { border-color: ButtonText; }
+  .theme-picker::after { background: ButtonText; border-color: ButtonText; }
+}
 .tb-me .menu, #pubnav.open { max-height: calc(100dvh - 136px); overflow-y: auto; }
 :is(.btn, .tb-mebtn, .tb-nav a, .nav a, .side-nav a, .workspace-tabs a, .pc-acts button, .pc-acts .pc-act) { min-height: 44px; min-width: 44px; }
 @media (max-width: 760px) {
