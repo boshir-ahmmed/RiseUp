@@ -1,7 +1,7 @@
 @model RiseUp.Web.UI.Components.ShellModel
 @{ var s = Model.Shell; }
 <div class="card spc">
-    <div class="spc-cover" style="@Ui.CoverStyle(s.CoverUrl)"></div>
+    <div class="spc-cover"><img src="@(s.CoverUrl ?? Ui.DefaultCover)" data-image-fallback="@Ui.DefaultCover" alt="" /></div>
     <a href="/me" class="spc-av" aria-label="View your profile"><partial name="_Avatar" model="(s.Name, s.PhotoUrl, s.ColorIndex, 64)" /></a>
     <div class="spc-b"><a href="/me" class="spc-n">@s.Name</a>@if (s.IsVerified) {<text> </text><span class="vtick" title="Verified account">✓</span>}<div class="tiny muted">@s.Headline</div>
         @if (s.HasPendingName) { <div class="tiny mt8"><span class="badge b-pend">Name change pending review</span></div> }</div>
@@ -15,9 +15,32 @@
         @foreach (var i in g)
         {
             var on = Model.IsOn(i.Href) && !(i.Href == "/me" && Model.Path.StartsWith("/me/edit"));
-            <a href="@i.Href" class="@(on ? "on" : "")" aria-current="@(on ? "page" : null)"><span>@i.Label</span>@if (i.Badge > 0) {<span class="cnt">@i.Badge</span>}</a>
+            var icon = i.Href switch
+            {
+                "/" => "home",
+                "/discover" => "compass",
+                "/dashboard" => "dashboard",
+                "/pitches" => "pitch",
+                "/requests" => "inbox",
+                "/conversations" => "msg",
+                "/my-posts" => "vid",
+                "/team" => "team",
+                "/library" => "folder",
+                "/settings" => Model.Actor.IsFounder ? "building" : "preferences",
+                "/me" => "profile",
+                "/me/edit" or "/admin/profile-changes" => "edit",
+                "/wallet" or "/admin/finance" => "wallet",
+                "/notifications" => "bell",
+                "/shortlist" => "star",
+                "/admin/reports" => "flag",
+                "/admin" or "/verification" or "/admin/verification" => "shield",
+                _ => "list"
+            };
+            <a href="@i.Href" class="@(on ? "on" : "")" aria-current="@(on ? "page" : null)"><span class="shell-nav-label"><partial name="_Icon" model="icon" />@i.Label</span>@if (i.Badge > 0) {<span class="cnt">@i.Badge</span>}</a>
         }
     }
-    <div class="grp">More</div><a href="/reels"><span>▶ Reels</span></a><a href="/startups"><span>Browse all startups</span></a>
+    <div class="grp">More</div>
+    <a href="/reels" aria-current="@(Model.IsOn("/reels") ? "page" : null)"><span class="shell-nav-label"><partial name="_Icon" model='"play"' />Reels</span></a>
+    <a href="/startups" aria-current="@(Model.IsOn("/startups") ? "page" : null)"><span class="shell-nav-label"><partial name="_Icon" model='"building"' />Browse all startups</span></a>
 </nav>
 <p class="tiny muted side-foot"><a href="/about">About</a> · <a href="/how-it-works">How it works</a> · <a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a><br />RiseUp © @DateTime.UtcNow.Year</p>
