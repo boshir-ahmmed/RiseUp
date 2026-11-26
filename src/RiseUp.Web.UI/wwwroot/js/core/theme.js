@@ -1,37 +1,40 @@
-// Apply a saved choice before the stylesheets load. Device mode follows the browser.
+// Restore an explicit dark preference before the stylesheets load.
 (() => {
   const key = 'riseup.appearance';
   const root = document.documentElement;
-  let picker;
+  const scheme = document.querySelector('meta[name="color-scheme"]');
+  let toggle;
+
   function apply(value) {
-    if (value === 'dark' || value === 'light') root.dataset.theme = value;
-    else delete root.dataset.theme;
-    if (picker) picker.value = root.dataset.theme || 'system';
+    const dark = value === 'dark';
+    root.dataset.theme = dark ? 'dark' : 'light';
+    if (scheme) scheme.content = root.dataset.theme;
+    if (toggle) toggle.setAttribute('aria-checked', String(dark));
   }
-  try { apply(localStorage.getItem(key)); } catch { /* Device colours still work. */ }
+
+  try { apply(localStorage.getItem(key)); }
+  catch { apply('light'); }
 
   window.addEventListener('storage', event => {
     if (event.key === key || event.key === null) apply(event.newValue);
   });
+
   document.addEventListener('DOMContentLoaded', () => {
     const host = document.getElementById('memenu') || document.getElementById('pubnav');
     if (!host) return;
-    const label = document.createElement('label');
-    label.className = 'theme-picker';
-    label.append('Appearance');
-    picker = document.createElement('select');
-    for (const [value, name] of [['system', 'Device'], ['light', 'Light'], ['dark', 'Dark']]) {
-      picker.add(new Option(name, value));
-    }
-    picker.value = root.dataset.theme || 'system';
-    picker.addEventListener('change', () => {
-      apply(picker.value);
-      try {
-        if (picker.value === 'system') localStorage.removeItem(key);
-        else localStorage.setItem(key, picker.value);
-      } catch { /* Keep the selection for this page if storage is unavailable. */ }
+
+    toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'theme-picker';
+    toggle.title = 'Dark mode';
+    toggle.setAttribute('role', 'switch');
+    toggle.setAttribute('aria-label', 'Dark mode');
+    toggle.setAttribute('aria-checked', String(root.dataset.theme === 'dark'));
+    toggle.addEventListener('click', () => {
+      apply(root.dataset.theme === 'dark' ? 'light' : 'dark');
+      try { localStorage.setItem(key, root.dataset.theme); }
+      catch { /* The switch still works for this page. */ }
     });
-    label.append(picker);
-    host.insertBefore(label, host.querySelector('form[action="/logout"]'));
+    host.insertBefore(toggle, host.querySelector('form[action="/logout"]'));
   });
 })();
