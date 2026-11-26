@@ -6,26 +6,32 @@
 }
 <section class="card profile-publications" id="publications" aria-label="Published content">
     <nav class="studio-tabs" aria-label="Profile content">
-        <a href="@(Model.Path)?tab=posts#publications" class="@(!Model.Reels ? "on" : null)" aria-current="@(!Model.Reels ? "page" : null)">Posts · @posts.Count</a>
-        <a href="@(Model.Path)?tab=reels#publications" class="@(Model.Reels ? "on" : null)" aria-current="@(Model.Reels ? "page" : null)">Reels · @(reels.Count + (Model.Teaser is null ? 0 : 1))</a>
+        <a href="@(Model.Path)?tab=posts#publications" class="@(!Model.Reels ? "on" : null)" aria-current="@(!Model.Reels ? "page" : null)"><partial name="_Icon" model='"list"' /> Posts <span class="publication-count">@posts.Count</span></a>
+        <a href="@(Model.Path)?tab=reels#publications" class="@(Model.Reels ? "on" : null)" aria-current="@(Model.Reels ? "page" : null)"><partial name="_Icon" model='"vid"' /> Reels <span class="publication-count">@(reels.Count + (Model.Teaser is null ? 0 : 1))</span></a>
     </nav>
-    <div class="publication-grid @(Model.Reels ? "vertical" : "")">
-        @foreach (var p in items)
-        {
-            <a class="publication" href="/posts/@p.Id">
-                <div class="publication-cover">
-                    @if (p.PosterUrl is not null) { <img src="@p.PosterUrl" alt="" loading="lazy" /> }
-                    else if (p.VideoUrl is not null) { <video src="@(p.VideoUrl)#t=0.1" muted playsinline preload="metadata" aria-hidden="true"></video> }
-                    else { <span>@p.Title</span> }
-                    @if (p.VideoUrl is not null) { <b aria-hidden="true">▶</b> }
-                </div>
-                <strong>@p.Title</strong><small>@Ui.Dhaka(p.PublishedAtUtc)</small>
-            </a>
-        }
-        @if (Model.Reels && Model.Teaser is { } teaser)
-        {
-            <div class="publication"><div class="portrait-frame"><video controls muted playsinline data-feedvideo preload="none" src="@teaser.Url" poster="@teaser.PosterUrl" aria-label="Startup teaser"></video></div><strong>Startup teaser</strong></div>
-        }
-    </div>
-    @if (items.Count == 0 && (!Model.Reels || Model.Teaser is null)) { <p class="empty">No published @(Model.Reels ? "reels" : "posts") yet.</p> }
+    @if (items.Count > 0 || (Model.Reels && Model.Teaser is not null))
+    {
+        <div class="publication-grid @(Model.Reels ? "vertical" : "")">
+            @foreach (var p in items)
+            {
+                <a class="publication" href="/posts/@p.Id" aria-labelledby="publication-@p.Id">
+                    <div class="publication-cover">
+                        @if (p.PosterUrl is not null) { <img src="@p.PosterUrl" alt="" loading="lazy" /> }
+                        else if (p.VideoUrl is not null) { <video src="@(p.VideoUrl)#t=0.1" muted playsinline preload="metadata" aria-hidden="true"></video> }
+                        else { <span class="publication-excerpt">@p.Body</span> }
+                        @if (p.VideoUrl is not null) { <b aria-hidden="true">▶</b> }
+                    </div>
+                    <strong id="publication-@p.Id">@p.Title</strong><small>@Ui.Dhaka(p.PublishedAtUtc)</small>
+                </a>
+            }
+            @if (Model.Reels && Model.Teaser is { } teaser)
+            {
+                <div class="publication"><div class="portrait-frame"><video controls muted playsinline data-feedvideo preload="none" src="@teaser.Url" poster="@teaser.PosterUrl" aria-label="Startup teaser"></video></div><strong>Startup teaser</strong></div>
+            }
+        </div>
+    }
+    else
+    {
+        <p class="empty">No published @(Model.Reels ? "reels" : "posts") yet.</p>
+    }
 </section>

@@ -5,17 +5,17 @@
     Layout = "_AppLayout";
 }
 <div class="card prof">
-    <div class="prof-cover" style="@Ui.CoverStyle(profile.CoverUrl)"></div>
+    <div class="prof-cover" aria-hidden="true" style="@Ui.CoverStyle(profile.CoverUrl)"></div>
     <div class="prof-b">
         <div class="prof-av"><partial name="_Avatar" model="(profile.Name, profile.PhotoUrl, profile.ColorIndex, 132)" /><partial name="_PersonalLogo" model="(profile.Name, profile.LogoUrl, profile.ColorIndex)" /></div>
-        <div class="row between" style="align-items:flex-start">
+        <div class="profile-summary">
             <div>
-                <h1 class="prof-n">@profile.Name @if (profile.IsVerified) {<span class="vtick" style="font-size:14px;width:22px;height:22px" title="Verified account">✓</span>}</h1>
+                <h1 class="prof-n">@profile.Name @if (profile.IsVerified) {<span class="vtick" title="Verified account"><span aria-hidden="true">✓</span><span class="sr">Verified account</span></span>}</h1>
                 <div class="prof-hl">@profile.Headline</div>
-                <div class="small muted mt8">@if (profile.Location.Length > 0) {<span>📍 @profile.Location · </span>}@profile.RoleLine@if (profile.Link is not null) {<span> · <a href="@profile.Link" target="_blank" rel="noopener noreferrer nofollow">🔗 @profile.Link.Replace("https://", "").Replace("http://", "")</a></span>}</div>
+                <div class="small muted mt8">@if (profile.Location.Length > 0) {<span>@profile.Location · </span>}@profile.RoleLine@if (profile.Link is not null) {<span> · <a href="@profile.Link" target="_blank" rel="noopener noreferrer nofollow">@profile.Link.Replace("https://", "").Replace("http://", "")</a></span>}</div>
                 @if (profile.PendingName is not null) { <div class="notice n-info small mt16" style="display:block">Name change to <strong>@profile.PendingName</strong> is waiting for a Verification Administrator. Your current name stays visible until it's approved.</div> }
             </div>
-            <div class="row">
+            <div class="row prof-actions">
                 <a class="btn btn-primary" href="/me/edit"><partial name="_Icon" model='"edit"' /> Edit profile</a>
                 @if (profile.InvestorId is int iid) { <a class="btn btn-outline" href="/investors/@iid">Public investor page</a> }
                 else if (profile.StartupId is int sid) { <a class="btn btn-outline" href="/startups/@sid">Startup page</a> }
@@ -23,11 +23,11 @@
         </div>
     </div>
 </div>
-<div class="grid mt16 g-detail" style="align-items:start">
+<div class="grid mt16 g-detail profile-details">
     <div class="stack">
         @if (Model.Publications is not null) { <partial name="_ProfilePublications" model="Model.Publications" /> }
         <div class="card card-b"><h3>About</h3>
-            @if (profile.Bio.Length > 0) { <p class="mb0" style="white-space:pre-wrap">@profile.Bio</p> }
+            @if (profile.Bio.Length > 0) { <p class="mb0 profile-bio">@profile.Bio</p> }
             else { <p class="muted small mb0">@(profile.IsTeamMember ? "Team-member profiles show name, title and photo only." : "Add a short bio so founders and investors know who you are.")</p> }
         </div>
         @if (profile.StartupName is not null && profile.StartupId is int s2)
