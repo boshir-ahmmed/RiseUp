@@ -945,7 +945,7 @@ dialog.crop-dialog::backdrop{background:rgba(15,23,42,.55)}
 .chat-files [data-clear-file] { min-height: 44px; }
 .chat [hidden], .chat-in [data-send-status]:empty { display: none; }
 @media(max-width:760px) {
-  .chat { grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto minmax(0,1fr); height: max(510px, 74dvh); }
+  .chat { grid-template-columns: minmax(0,1fr); grid-template-rows: auto auto minmax(0,1fr); height: clamp(440px, calc(100dvh - var(--dbh, 0px) - 264px - env(safe-area-inset-bottom)), 820px); min-height: 0; }
   .chat-directory-toggle { grid-row: 1; display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; min-height: 44px; background: var(--surface); color: var(--ink); border: 0; border-bottom: 1px solid var(--border); font: inherit; font-weight: 650; cursor: pointer; }
   .chat-directory-toggle:focus-visible { outline-offset: -3px; }
   .chat-directory-toggle[aria-expanded=true] svg { transform: rotate(180deg); }
