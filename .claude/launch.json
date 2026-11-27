@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "riseup-sqlite-demo",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/RiseUp.Web.UI", "--launch-profile", "RiseUp (SQLite demo)", "--urls", "http://localhost:5180"],
+      "port": 5180
+    }
+  ]
+}
